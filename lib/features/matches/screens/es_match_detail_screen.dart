@@ -15,6 +15,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Map<String, dynamic>? _scorecard;
+  Map<String, dynamic>? _liveScore;
   Map<String, dynamic>? _fantasyPoints;
   bool _loadingScorecard = false;
   bool _loadingPoints = false;
@@ -45,9 +46,20 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
   Future<void> _loadScorecard() async {
     if (_matchId == 0) return;
     setState(() => _loadingScorecard = true);
-    final data = await EntitySportService.getScorecard(_matchId);
-    if (!mounted) return;
-    setState(() { _scorecard = data; _loadingScorecard = false; });
+    try {
+      final res = await Future.wait([
+        EntitySportService.getScorecard(_matchId),
+        if (_isLive || _isFinished) EntitySportService.getLiveScore(_matchId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _scorecard = res[0];
+        if (res.length > 1) _liveScore = res[1];
+        _loadingScorecard = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingScorecard = false);
+    }
   }
 
   Future<void> _loadPoints() async {
@@ -311,7 +323,9 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     }
 
     final innings = _scorecard!['innings'] as List<dynamic>? ?? [];
-    if (innings.isEmpty) {
+    final hasLive = _liveScore != null && _liveScore!.isNotEmpty;
+
+    if (innings.isEmpty && !hasLive) {
       return const Center(child: Text('No scorecard data yet', style: TextStyle(color: Colors.white38)));
     }
 
@@ -323,9 +337,152 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
         child: Column(children: [
           // Live indicators
           if (_isLive) _liveIndicator(),
+          if (_liveScore != null && _liveScore!.isNotEmpty) _liveScoreBlock(_liveScore!),
           ...innings.map((inn) => _inningsBlock(inn as Map<String, dynamic>)),
         ]),
       ),
+    );
+  }
+
+  Widget _liveScoreBlock(Map<String, dynamic> data) {
+    final live = data['live_score'] as Map<String, dynamic>? ?? {};
+    final batsmen = data['batsmen'] as List<dynamic>? ?? [];
+    final bowlers = data['bowlers'] as List<dynamic>? ?? [];
+    final comms = data['commentaries'] as List<dynamic>? ?? [];
+
+    final statusNote = data['status_note']?.toString() ?? '';
+    final teamBat = data['team_batting']?.toString() ?? 'Batting';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: const Color(0xFF243052), borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Live Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [(data['status'] == 3 ? Colors.redAccent : AppColors.primary), AppColors.secondary.withOpacity(0.8)]),
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(14), topRight: Radius.circular(14)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: Text(teamBat, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
+              Text('${live['runs'] ?? '0'}/${live['wickets'] ?? '0'}  (${live['overs'] ?? '0'} Ov)',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ]),
+            const SizedBox(height: 6),
+            Row(children: [
+              Text('CRR: ${live['runrate'] ?? '0.00'}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              if (live['required_runrate'] != null) ...[
+                const Spacer(),
+                Text('RRR: ${live['required_runrate']}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ]),
+            if (statusNote.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(statusNote, style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
+            ],
+          ]),
+        ),
+
+        // Batsmen Live
+        if (batsmen.isNotEmpty) ...[
+          _sectionHeader('BATTER'),
+          ...batsmen.map((b) => _battingRowLive(b as Map<String, dynamic>)),
+        ],
+
+        // Bowlers Live
+        if (bowlers.isNotEmpty) ...[
+          _sectionHeader('BOWLER'),
+          ...bowlers.map((b) => _bowlingRowLive(b as Map<String, dynamic>)),
+        ],
+
+        // Recent Commentary
+        if (comms.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            color: const Color(0xFF1B2033),
+            child: const Text('RECENT BALLS', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          ),
+          ...comms.take(6).map((c) => _commentaryCard(c as Map<String, dynamic>)),
+        ],
+      ]),
+    );
+  }
+
+  Widget _battingRowLive(Map<String, dynamic> b) {
+    return Container(
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05)))),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(children: [
+        Expanded(child: Text(b['name']?.toString() ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
+        _scoreCell(b['runs']?.toString() ?? '0', Colors.white, bold: true),
+        _scoreCell(b['balls_faced']?.toString() ?? '0', Colors.white60),
+        _scoreCell(b['fours']?.toString() ?? '0', Colors.white60),
+        _scoreCell(b['sixes']?.toString() ?? '0', Colors.white60),
+        SizedBox(width: 45, child: Text(b['strike_rate']?.toString() ?? '-', style: const TextStyle(color: Colors.white, fontSize: 12), textAlign: TextAlign.right)),
+      ]),
+    );
+  }
+
+  Widget _bowlingRowLive(Map<String, dynamic> b) {
+    return Container(
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05)))),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(children: [
+        Expanded(child: Text(b['name']?.toString() ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
+        _scoreCell(b['overs']?.toString() ?? '0', Colors.white),
+        _scoreCell(b['maidens']?.toString() ?? '0', Colors.white60),
+        _scoreCell(b['runs_conceded']?.toString() ?? '0', Colors.white),
+        _scoreCell(b['wickets']?.toString() ?? '0', AppColors.primary, bold: true),
+        SizedBox(width: 45, child: Text(b['econ']?.toString() ?? '-', style: const TextStyle(color: Colors.white, fontSize: 12), textAlign: TextAlign.right)),
+      ]),
+    );
+  }
+
+  Widget _commentaryCard(Map<String, dynamic> c) {
+    if (c['event'] == 'overend') {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        width: double.infinity,
+        decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.1), border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05)))),
+        child: Text(c['commentary']?.toString() ?? 'Over End', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+      );
+    }
+    
+    final isWicket = c['event'] == 'wicket';
+    final isBoundary = c['score'] == 4 || c['score'] == 6;
+    Color ballColor = Colors.grey.shade800;
+    Color textColor = Colors.white;
+
+    if (isWicket) {
+      ballColor = Colors.redAccent;
+    } else if (c['score'] == 6) {
+      ballColor = Colors.green;
+    } else if (c['score'] == 4) {
+      ballColor = Colors.lightBlue;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05)))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(width: 30, child: Text('${c['over']}.${c['ball']}', style: const TextStyle(color: Colors.white60, fontSize: 11))),
+            Container(
+              width: 24, height: 24,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(color: ballColor, shape: BoxShape.circle),
+              child: Center(child: Text(isWicket ? 'W' : c['score']?.toString() ?? '0', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 11))),
+            ),
+          ],
+        ),
+        Expanded(
+          child: Text(c['commentary']?.toString() ?? '', style: TextStyle(color: Colors.grey.shade300, fontSize: 12, height: 1.4)),
+        ),
+      ]),
     );
   }
 

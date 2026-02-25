@@ -305,22 +305,22 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
 
   // ── LOADER ─────────────────────────────────────────────────────────────────
   Widget _loader() => Scaffold(
-    backgroundColor: const Color(0xFF1B2033),
+    backgroundColor: Colors.white,
     body: SafeArea(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const CircularProgressIndicator(color: AppColors.accent, strokeWidth: 3),
+      const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
       const SizedBox(height: 20),
-      Text('Loading Squad…', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 15)),
+      Text('Loading Squad…', style: TextStyle(color: Colors.grey.shade600, fontSize: 15)),
     ]))),
   );
 
   Widget _errView() => Scaffold(
-    backgroundColor: const Color(0xFF1B2033),
-    appBar: AppBar(backgroundColor: const Color(0xFF1B2033), iconTheme: const IconThemeData(color: Colors.white),
-      title: const Text('Create Team', style: TextStyle(color: Colors.white))),
+    backgroundColor: Colors.white,
+    appBar: AppBar(backgroundColor: Colors.white, iconTheme: const IconThemeData(color: Colors.black),
+      title: const Text('Create Team', style: TextStyle(color: Colors.black))),
     body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Icon(Icons.error_outline, size: 60, color: Colors.white38),
+      const Icon(Icons.error_outline, size: 60, color: Colors.grey),
       const SizedBox(height: 16),
-      Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54)),
+      Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
       const SizedBox(height: 20),
       ElevatedButton.icon(onPressed: _loadSquad, icon: const Icon(Icons.refresh), label: const Text('Retry'),
         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white)),
@@ -332,7 +332,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   // ─────────────────────────────────────────────────────────────────────────
   Widget _selectScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B2033),
+      backgroundColor: Colors.grey[50],
       body: SafeArea(
         bottom: false,
         child: Column(children: [
@@ -414,29 +414,29 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   }
 
   Widget _infoBar() => Container(
-    color: const Color(0xFF141828),
+    color: Colors.white,
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
     child: Row(children: [
-      const Icon(Icons.info_outline, color: Colors.white38, size: 13),
+      Icon(Icons.info_outline, color: Colors.grey.shade500, size: 14),
       const SizedBox(width: 6),
       Expanded(child: Text('Max 7 players from one team  •  $_count/11',
-        style: const TextStyle(color: Colors.white38, fontSize: 11))),
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 12))),
       Text('${_usedCredits.toStringAsFixed(1)}/$_totalCredits CR',
-        style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.bold)),
+        style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.bold)),
     ]),
   );
 
   Widget _roleTabs() => Container(
-    color: const Color(0xFF1B2033),
+    color: Colors.white,
     child: TabBar(
       controller: _tabCtrl,
       isScrollable: false,
-      indicatorColor: AppColors.accent,
+      indicatorColor: AppColors.primary,
       indicatorWeight: 2.5,
-      labelColor: AppColors.accent,
-      unselectedLabelColor: Colors.white38,
-      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 11),
+      labelColor: AppColors.primary,
+      unselectedLabelColor: Colors.grey.shade600,
+      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
       tabs: _roles.map((r) {
         final cnt = r == 'ALL' ? _players.length : _players.where((p) => p.role == r).length;
         return Tab(child: Text('${_roleLabels[r]}\n($cnt)', textAlign: TextAlign.center,
@@ -450,7 +450,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     final teams = list.map((p) => p.teamShort).toSet().toList();
 
     return Container(
-      color: const Color(0xFF1B2033),
+      color: Colors.white,
       child: list.isEmpty
           ? _emptyState()
           : ListView(children: [
@@ -465,27 +465,27 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   }
 
   Widget _emptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    const Icon(Icons.sports_cricket, size: 48, color: Colors.white12),
+    Icon(Icons.sports_cricket, size: 48, color: Colors.grey.shade300),
     const SizedBox(height: 12),
-    const Text('No players found', style: TextStyle(color: Colors.white38, fontSize: 14)),
+    Text('No players found', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
   ]));
 
   Widget _colHeader() => Container(
-    color: const Color(0xFF141828),
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-    child: const Row(children: [
-      SizedBox(width: 50),
-      Expanded(child: Text('PLAYER', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold))),
-      SizedBox(width: 90, child: Text('STATS', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-      SizedBox(width: 50, child: Text('CREDITS', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-      SizedBox(width: 36),
+    color: Colors.grey.shade100,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+    child: Row(children: [
+      const SizedBox(width: 50),
+      Expanded(child: Text('PLAYER', style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.bold))),
+      SizedBox(width: 90, child: Text('STATS', style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+      SizedBox(width: 50, child: Text('CREDITS', style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+      const SizedBox(width: 36),
     ]),
   );
 
   Widget _teamDivider(String team) => Container(
-    color: const Color(0xFF243052),
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-    child: Text(team, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+    color: Colors.grey.shade200,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+    child: Text(team, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
   );
 
   Widget _playerTile(_Player p) {
@@ -499,45 +499,45 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       onTap: () => _toggle(p),
       child: Container(
         decoration: BoxDecoration(
-          color: sel ? const Color(0xFF1A331A) : const Color(0xFF1B2033),
+          color: sel ? Colors.green.shade50 : Colors.white,
           border: Border(
-            left: BorderSide(color: sel ? AppColors.success : Colors.transparent, width: 3),
-            bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
+            left: BorderSide(color: sel ? Colors.green : Colors.transparent, width: 3),
+            bottom: BorderSide(color: Colors.grey.shade200),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(children: [
           // Avatar
           Stack(clipBehavior: Clip.none, children: [
-            _avatar(p.imageUrl, p.name, clr, 38),
+            _avatar(p.imageUrl, p.name, clr, 44),
             // Role badge
             Positioned(bottom: -5, left: 0, right: 0,
               child: Center(child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(color: clr, borderRadius: BorderRadius.circular(3)),
-                child: Text(p.role, style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+                child: Text(p.role, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
               ))),
-            if (isC) Positioned(top: -4, right: -4, child: _badge('C', AppColors.accent)),
-            if (isVC) Positioned(top: -4, right: -4, child: _badge('VC', AppColors.blue)),
+            if (isC) Positioned(top: -4, right: -4, child: _badge('C', Colors.redAccent)),
+            if (isVC) Positioned(top: -4, right: -4, child: _badge('VC', Colors.blue)),
           ]),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           // Name + style
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(p.shortName,
-              style: TextStyle(color: canAdd ? Colors.white : Colors.white30,
-                fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(color: canAdd ? Colors.black : Colors.grey.shade400,
+                fontWeight: FontWeight.bold, fontSize: 14),
               maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 2),
-            Text(p.teamShort, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+            Text(p.teamShort, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
             if (p.battingStyle.isNotEmpty)
-              Text(p.battingStyle, style: const TextStyle(color: Colors.white24, fontSize: 9),
+              Text(p.battingStyle, style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
           // Stats
           SizedBox(width: 90, child: _statsSection(p)),
           // Credits
           SizedBox(width: 50, child: Text(p.credits.toStringAsFixed(1),
-            style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 13),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
             textAlign: TextAlign.center)),
           // Toggle
           SizedBox(width: 36, child: Center(
@@ -546,7 +546,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
               width: 28, height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: sel ? AppColors.success : canAdd ? AppColors.primary : const Color(0xFF333),
+                color: sel ? Colors.green : canAdd ? AppColors.primary : Colors.grey.shade300,
               ),
               child: Icon(sel ? Icons.check : Icons.add, color: Colors.white, size: 16),
             ),
@@ -559,34 +559,35 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   Widget _statsSection(_Player p) {
     if (p.role == 'BOWL' && p.wickets.isNotEmpty) {
       return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
-        _stat('${p.wickets}W', Colors.orange),
-        if (p.economy.isNotEmpty) _stat('Eco ${p.economy}', Colors.orange.withOpacity(0.7)),
+        _stat('${p.wickets}W', Colors.orange.shade800),
+        if (p.economy.isNotEmpty) _stat('Eco ${p.economy}', Colors.orange.shade700),
       ]);
     }
     if (p.runs.isNotEmpty) {
       return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
-        _stat('${p.runs}${p.balls.isNotEmpty ? " (${p.balls})" : ""}', AppColors.blue),
-        if (p.strikeRate.isNotEmpty) _stat('SR ${p.strikeRate}', AppColors.success),
+        _stat('${p.runs}${p.balls.isNotEmpty ? " (${p.balls})" : ""}', Colors.blue.shade800),
+        if (p.strikeRate.isNotEmpty) _stat('SR ${p.strikeRate}', Colors.green.shade800),
       ]);
     }
     return Text('${p.rating.toStringAsFixed(1)} pts',
-      style: const TextStyle(color: Colors.white38, fontSize: 11), textAlign: TextAlign.center);
+      style: TextStyle(color: Colors.grey.shade500, fontSize: 12), textAlign: TextAlign.center);
   }
 
   Widget _stat(String text, Color color) => Text(text,
-    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+    style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
     textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis);
 
   Widget _bottomBar() => Container(
     padding: EdgeInsets.only(left: 16, right: 16, top: 12,
       bottom: MediaQuery.of(context).padding.bottom + 12),
-    decoration: const BoxDecoration(color: Color(0xFF141828),
-      border: Border(top: BorderSide(color: Colors.white12))),
+    decoration: BoxDecoration(color: Colors.white,
+      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -4))]),
     child: Row(children: [
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('$_count / 11', style: const TextStyle(color: Colors.white,
+        Text('$_count / 11', style: const TextStyle(color: Colors.black,
           fontWeight: FontWeight.bold, fontSize: 18)),
-        const Text('Players', style: TextStyle(color: Colors.white38, fontSize: 11)),
+        Text('Players', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
       ]),
       const SizedBox(width: 16),
       // Mini role breakdown
@@ -595,23 +596,23 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           final c = _rc(r);
           final clr = _roleClr[r]!;
           return Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: Column(children: [
-            Text('$c', style: TextStyle(color: c > 0 ? clr : Colors.white24, fontWeight: FontWeight.bold, fontSize: 14)),
-            Text(r, style: const TextStyle(color: Colors.white38, fontSize: 9)),
+            Text('$c', style: TextStyle(color: c > 0 ? clr : Colors.grey.shade400, fontWeight: FontWeight.bold, fontSize: 15)),
+            Text(r, style: TextStyle(color: Colors.grey.shade500, fontSize: 10)),
           ]));
         }).toList())),
       GestureDetector(
         onTap: _canProceed ? () => setState(() => _showCaptainScreen = true) : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           decoration: BoxDecoration(
             gradient: _canProceed
                 ? const LinearGradient(colors: [AppColors.primary, AppColors.secondary])
-                : const LinearGradient(colors: [Color(0xFF444), Color(0xFF333)]),
+                : LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade300]),
             borderRadius: BorderRadius.circular(28),
           ),
           child: Text(
             _canProceed ? 'Next →' : 'Select ${11 - _count} more',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
         ),
       ),
     ]),
@@ -621,15 +622,15 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   //  CAPTAIN / VC SCREEN
   // ─────────────────────────────────────────────────────────────────────────
   Widget _captainScreen() => Scaffold(
-    backgroundColor: const Color(0xFF1B2033),
+    backgroundColor: Colors.grey[50],
     body: SafeArea(bottom: false, child: Column(children: [
       _captainHeader(),
-      Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: const Row(children: [
-          Icon(Icons.info_outline, color: Colors.white38, size: 14),
-          SizedBox(width: 6),
+      Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Row(children: [
+          Icon(Icons.info_outline, color: Colors.grey.shade600, size: 15),
+          const SizedBox(width: 6),
           Text('C gets 2x pts  •  VC gets 1.5x pts',
-            style: TextStyle(color: Colors.white38, fontSize: 12)),
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w600)),
         ])),
       Expanded(child: ListView(children: [
         ..._selectedPlayers.map(_captainTile),
@@ -654,7 +655,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         Text('Choose Captain & VC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         Text('Select from your 11 players', style: TextStyle(color: Colors.white60, fontSize: 11)),
       ])),
-      Row(children: [_badge('C', AppColors.accent), const SizedBox(width: 8), _badge('VC', AppColors.blue)]),
+      Row(children: [_badge('C', Colors.redAccent), const SizedBox(width: 8), _badge('VC', Colors.blue)]),
     ]),
   );
 
@@ -664,50 +665,51 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     final clr   = _roleClr[p.role] ?? AppColors.primary;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+      margin: const EdgeInsets.fromLTRB(14, 6, 14, 4),
       decoration: BoxDecoration(
-        color: isC ? const Color(0xFF2D2200) : isVC ? const Color(0xFF001833) : const Color(0xFF243052),
+        color: isC ? Colors.red.shade50 : isVC ? Colors.blue.shade50 : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isC ? AppColors.accent : isVC ? AppColors.blue : Colors.white12,
+          color: isC ? Colors.redAccent : isVC ? Colors.blue : Colors.grey.shade200,
           width: isC || isVC ? 1.5 : 1,
         ),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
       ),
       child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         // Avatar
         Stack(clipBehavior: Clip.none, children: [
           _avatar(p.imageUrl, p.name, clr, 48),
-          if (isC)  Positioned(top: -5, right: -5, child: _badge('C',  AppColors.accent)),
-          if (isVC) Positioned(top: -5, right: -5, child: _badge('VC', AppColors.blue)),
+          if (isC)  Positioned(top: -5, right: -5, child: _badge('C',  Colors.redAccent)),
+          if (isVC) Positioned(top: -5, right: -5, child: _badge('VC', Colors.blue)),
         ]),
         const SizedBox(width: 14),
         // Info
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          Text(p.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
             maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
           Wrap(spacing: 8, children: [
             _pill(p.role, clr),
-            _pill(p.teamShort, Colors.white24),
-            _pill('${p.credits.toStringAsFixed(1)} CR', AppColors.accent.withOpacity(0.8)),
+            _pill(p.teamShort, Colors.grey.shade600),
+            _pill('${p.credits.toStringAsFixed(1)} CR', Colors.black87),
           ]),
           if (p.runs.isNotEmpty || p.wickets.isNotEmpty)
-            Padding(padding: const EdgeInsets.only(top: 4), child: Wrap(spacing: 10, children: [
+            Padding(padding: const EdgeInsets.only(top: 6), child: Wrap(spacing: 12, children: [
               if (p.runs.isNotEmpty) Text('${p.runs} runs${p.balls.isNotEmpty ? " (${p.balls}b)" : ""}  SR:${p.strikeRate}',
-                style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                style: TextStyle(color: Colors.blue.shade800, fontSize: 11, fontWeight: FontWeight.bold)),
               if (p.wickets.isNotEmpty) Text('${p.wickets}W  Eco:${p.economy}',
-                style: const TextStyle(color: Colors.orange, fontSize: 11)),
+                style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold)),
             ])),
         ])),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         // C / VC buttons
         Column(children: [
-          _cvBtn('C', isC, AppColors.accent, () => setState(() {
+          _cvBtn('C', isC, Colors.redAccent, () => setState(() {
             if (isC) { _captainId = null; }
             else { if (_vcId == p.id) _vcId = null; _captainId = p.id; }
           })),
-          const SizedBox(height: 6),
-          _cvBtn('VC', isVC, AppColors.blue, () => setState(() {
+          const SizedBox(height: 8),
+          _cvBtn('VC', isVC, Colors.blue, () => setState(() {
             if (isVC) { _vcId = null; }
             else { if (_captainId == p.id) _captainId = null; _vcId = p.id; }
           })),
@@ -717,23 +719,23 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   }
 
   Widget _pill(String text, Color bg) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(color: bg.withOpacity(bg == Colors.white24 ? 1 : 0.15), borderRadius: BorderRadius.circular(4)),
-    child: Text(text, style: TextStyle(color: bg == Colors.white24 ? Colors.white54 : bg, fontSize: 10, fontWeight: FontWeight.bold)),
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+    decoration: BoxDecoration(color: bg.withOpacity(0.12), borderRadius: BorderRadius.circular(5)),
+    child: Text(text, style: TextStyle(color: bg == Colors.grey.shade600 ? Colors.grey.shade800 : bg, fontSize: 10, fontWeight: FontWeight.bold)),
   );
 
   Widget _cvBtn(String label, bool active, Color color, VoidCallback fn) => GestureDetector(
     onTap: fn,
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 180),
-      width: 42, height: 30,
+      width: 44, height: 32,
       decoration: BoxDecoration(
-        color:  active ? color : Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color, width: 1.5),
+        color:  active ? color : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: active ? color : Colors.grey.shade300, width: 1.5),
       ),
       child: Center(child: Text(label,
-        style: TextStyle(color: active ? Colors.white : color, fontWeight: FontWeight.bold, fontSize: 12))),
+        style: TextStyle(color: active ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.bold, fontSize: 13))),
     ),
   );
 
@@ -749,35 +751,36 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     return Container(
       padding: EdgeInsets.only(left: 16, right: 16, top: 12,
         bottom: MediaQuery.of(context).padding.bottom + 12),
-      decoration: const BoxDecoration(color: Color(0xFF141828),
-        border: Border(top: BorderSide(color: Colors.white12))),
+      decoration: BoxDecoration(color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -4))]),
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            _badge('C', AppColors.accent), const SizedBox(width: 8),
-            Text(cName, style: TextStyle(color: _captainId != null ? AppColors.accent : Colors.white30,
-              fontWeight: FontWeight.bold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+            _badge('C', Colors.redAccent), const SizedBox(width: 8),
+            Text(cName, style: TextStyle(color: _captainId != null ? Colors.redAccent : Colors.grey.shade400,
+              fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
           ]),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Row(children: [
-            _badge('VC', AppColors.blue), const SizedBox(width: 8),
-            Text(vName, style: TextStyle(color: _vcId != null ? AppColors.blue : Colors.white30,
-              fontWeight: FontWeight.bold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+            _badge('VC', Colors.blue), const SizedBox(width: 8),
+            Text(vName, style: TextStyle(color: _vcId != null ? Colors.blue : Colors.grey.shade400,
+              fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
           ]),
         ])),
         const SizedBox(width: 12),
         GestureDetector(
           onTap: ready ? _submit : null,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: BoxDecoration(
               gradient: ready
                   ? const LinearGradient(colors: [Color(0xFF1B5E20), Color(0xFF43A047)])
-                  : const LinearGradient(colors: [Color(0xFF444), Color(0xFF333)]),
+                  : LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade300]),
               borderRadius: BorderRadius.circular(28),
             ),
             child: const Text('Create Team 🏏',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
           ),
         ),
       ]),
@@ -790,16 +793,17 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     showDialog(
       context: context, barrierDismissible: false,
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xFF243052),
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.emoji_events_rounded, size: 64, color: AppColors.accent),
+          const Icon(Icons.emoji_events_rounded, size: 64, color: Colors.orange),
           const SizedBox(height: 16),
           const Text('Team Created! 🎉',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
           const SizedBox(height: 16),
           Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07), borderRadius: BorderRadius.circular(12)),
+            color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200)),
             child: Column(children: [
               _row('Players',       '$_count/11'),
               _row('Credits Used',  '${_usedCredits.toStringAsFixed(1)} / ${_totalCredits.toStringAsFixed(0)}'),
@@ -822,11 +826,11 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   }
 
   Widget _row(String l, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
+    padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(children: [
-      Text(l, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+      Text(l, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
       const Spacer(),
-      Text(v, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+      Text(v, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
     ]),
   );
 }

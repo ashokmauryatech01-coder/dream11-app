@@ -113,4 +113,13 @@ class EntitySportService {
       return {};
     } catch (_) { return {}; }
   }
+
+  // 10. LIVE MATCH DATA — ball by ball running scorecard
+  static Future<Map<String, dynamic>> getLiveScore(int matchId) async {
+    try {
+      final data = await _get('/matches/$matchId/live/?token=$token');
+      if (data['status'] == 'ok') return data['response'] as Map<String, dynamic>? ?? {};
+      return {};
+    } catch (_) { return {}; }
+  }
 }

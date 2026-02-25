@@ -103,6 +103,51 @@ class AuthService {
     }
   }
 
+  /// Send login OTP to phone number.
+  Future<Map<String, dynamic>> sendOTP(String phone) async {
+    final response = await ApiClient.post('/auth/send-otp', {
+      'phone': phone,
+      'user_type': 'user',
+    });
+
+    if (response != null && response['success'] == true) {
+      return response;
+    }
+
+    throw Exception(response?['message'] ?? 'Failed to send OTP.');
+  }
+
+  /// Resend login OTP to phone number.
+  Future<Map<String, dynamic>> resendOTP(String phone) async {
+    final response = await ApiClient.post('/auth/resend-otp', {
+      'phone': phone,
+      'user_type': 'user',
+    });
+
+    if (response != null && response['success'] == true) {
+      return response;
+    }
+
+    throw Exception(response?['message'] ?? 'Failed to resend OTP.');
+  }
+
+  /// Verify phone OTP for login. Returns token + user on success.
+  Future<Map<String, dynamic>> verifyOTPLogin(String phone, String otp) async {
+    final response = await ApiClient.post('/auth/verify-otp', {
+      'phone': phone,
+      'otp': otp,
+      'user_type': 'user',
+    });
+
+    if (response != null && response['success'] != false && response['data'] != null && response['data']['token'] != null) {
+      final token = response['data']['token'] as String;
+      await ApiClient.saveToken(token);
+      return {'token': token, 'user': response['data']['user']};
+    }
+
+    throw Exception(response?['message'] ?? 'OTP Login verification failed.');
+  }
+
   /// Logout and clear stored token.
   Future<void> logout() async {
     try {

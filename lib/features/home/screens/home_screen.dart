@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
+      appBar: _selectedIndex == 4 ? null : _buildAppBar(),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null && _liveMatches.isEmpty && _upcomingMatches.isEmpty

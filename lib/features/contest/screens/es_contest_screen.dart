@@ -52,7 +52,7 @@ class _EsContestScreenState extends State<EsContestScreen>
       final typeParam = _filter == 'all' ? 'all' : _filter;
       final res = await ApiClient.get('/contests?match_id=$matchId&type=$typeParam&page=1&limit=20');
       if (!mounted) return;
-      final items = res?['data']?['items'] ?? res?['data'] ?? [];
+      final items = res?['data']?['contests'] ?? res?['data']?['items'] ?? res?['data'] ?? [];
       setState(() { _contests = items is List ? items : []; _loading = false; });
     } catch (_) {
       if (!mounted) return;
@@ -163,12 +163,13 @@ class _EsContestScreenState extends State<EsContestScreen>
 
   // ── CONTEST CARD ──────────────────────────────────────────────────────────
   Widget _contestCard(Map<String, dynamic> c) {
-    final totalSpots  = (c['total_spots'] as num?)?.toInt() ?? 2;
-    final filledSpots = (c['filled_spots'] as num?)?.toInt() ?? 0;
-    final fee         = (c['entry_fee'] as num?)?.toInt() ?? 0;
+    final totalSpots  = (c['max_participants'] as num?)?.toInt() ?? (c['total_spots'] as num?)?.toInt() ?? 2;
+    final filledSpots = (c['current_participants'] as num?)?.toInt() ?? (c['filled_spots'] as num?)?.toInt() ?? 0;
+    final fee         = double.tryParse(c['entry_fee']?.toString() ?? '0')?.toInt() ?? 0;
     final isFree      = fee == 0;
-    final prize       = c['prize_pool']?.toString() ?? '₹0';
-    final winners     = (c['winner_percentage'] as num?)?.toInt() ?? 50;
+    final prizeAmt    = double.tryParse(c['prize_pool']?.toString() ?? '0')?.toInt() ?? 0;
+    final prize       = prizeAmt > 0 ? '₹${prizeAmt.toString()}' : c['prize_pool']?.toString() ?? '₹0';
+    final winners     = double.tryParse(c['winner_percentage']?.toString() ?? '50')?.toInt() ?? 50;
     final spotsLeft   = totalSpots - filledSpots;
     final progress    = totalSpots > 0 ? (filledSpots / totalSpots).clamp(0.0, 1.0) : 0.0;
     final name        = c['name']?.toString() ?? 'Contest';
@@ -176,8 +177,10 @@ class _EsContestScreenState extends State<EsContestScreen>
 
     Color progressColor = progress >= 0.9 ? Colors.red : progress >= 0.6 ? Colors.orange : Colors.green;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return GestureDetector(
+      onTap: () => _showContestDetails(context, c),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -264,7 +267,7 @@ class _EsContestScreenState extends State<EsContestScreen>
           ),
         ),
       ]),
-    );
+    ));
   }
 
   void _join(Map<String, dynamic> contest) {
@@ -273,4 +276,60 @@ class _EsContestScreenState extends State<EsContestScreen>
       builder: (_) => EsCreateTeamScreen(matchData: _selectedMatch),
     ));
   }
+
+  void _showContestDetails(BuildContext ctx, Map<String, dynamic> c) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20))),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Contest Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+            const Divider(height: 24),
+            _detailRow('Total Spots', c['max_participants']?.toString() ?? c['total_spots']?.toString() ?? '-'),
+            _detailRow('Spots Filled', c['current_participants']?.toString() ?? c['filled_spots']?.toString() ?? '-'),
+            _detailRow('Entry Fee', '₹${c['entry_fee']?.toString() ?? '0'}'),
+            _detailRow('Prize Pool', '₹${c['prize_pool']?.toString() ?? '0'}'),
+            _detailRow('Winners', '${c['winner_percentage']?.toString() ?? '50'}%'),
+            _detailRow('Multiple Entries', (c['multiple_entries'] == true) ? 'Allowed' : 'Not Allowed'),
+            _detailRow('Contest Type', (c['type']?.toString().toUpperCase() ?? 'PUBLIC')),
+            _detailRow('Guaranteed', (c['is_guaranteed'] == true || c['guaranteed'] == true) ? 'Yes' : 'No'),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _join(c);
+                },
+                icon: const Icon(Icons.group_add_rounded),
+                label: const Text('Join Contest', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        )
+      )
+    );
+  }
+
+  Widget _detailRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      ],
+    ),
+  );
 }

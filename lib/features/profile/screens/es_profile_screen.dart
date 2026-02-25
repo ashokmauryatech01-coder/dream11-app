@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/api_client.dart';
+import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PROFILE SCREEN  — white background, light cards, real API
@@ -15,7 +16,8 @@ class EsProfileScreen extends StatefulWidget {
 class _EsProfileScreenState extends State<EsProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
-  Map<String, dynamic>? _profile;
+  Map<String, dynamic>? _userObj;
+  Map<String, dynamic>? _statsObj;
   List<dynamic> _myTeams = [];
   List<dynamic> _history = [];
   List<dynamic> _leaderboard = [];
@@ -41,8 +43,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         ApiClient.get('/leaderboard?type=weekly&page=1&limit=20').catchError((_) => null),
       ]);
       if (!mounted) return;
+      
+      final profileData = results[0]?['data'] as Map<String, dynamic>?;
+      
       setState(() {
-        _profile    = results[0]?['data'] as Map<String, dynamic>?;
+        _userObj    = profileData?['user'] as Map<String, dynamic>?;
+        _statsObj   = profileData?['stats'] as Map<String, dynamic>?;
         _myTeams    = results[1]?['data']?['items'] ?? results[1]?['data'] ?? [];
         _history    = results[2]?['data']?['items'] ?? results[2]?['data'] ?? [];
         _leaderboard = results[3]?['data']?['items'] ?? results[3]?['data'] ?? [];
@@ -54,13 +60,13 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   }
 
   // getters
-  String get _name    => _profile?['name']?.toString() ?? 'Your Name';
-  String get _email   => _profile?['email']?.toString() ?? '';
-  String get _phone   => _profile?['phone']?.toString() ?? '';
-  String get _balance => '₹${_profile?['wallet_balance']?.toString() ?? '0'}';
-  String get _matches => (_profile?['total_contests'] ?? _myTeams.length).toString();
-  String get _wins    => (_profile?['total_wins'] ?? 0).toString();
-  String get _earnings => '₹${_profile?['total_winnings'] ?? 0}';
+  String get _name    => _userObj?['name']?.toString() ?? 'Your Name';
+  String get _email   => _userObj?['email']?.toString() ?? '';
+  String get _phone   => _userObj?['phone']?.toString() ?? '';
+  String get _balance => '₹${_userObj?['wallet_balance']?.toString() ?? _userObj?['points']?.toString() ?? '0'}';
+  String get _matches => (_statsObj?['total_contests'] ?? _myTeams.length).toString();
+  String get _wins    => (_statsObj?['total_wins'] ?? 0).toString();
+  String get _earnings => '₹${_statsObj?['total_winnings'] ?? 0}';
   String get _initial => _name.isNotEmpty ? _name[0].toUpperCase() : '?';
 
   @override
@@ -125,7 +131,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
             ])),
             // Action buttons
             Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              _iconBtn(Icons.edit_rounded, () {}),
+              _iconBtn(Icons.edit_rounded, () async {
+                final changed = await Navigator.push<bool>(context, MaterialPageRoute(
+                  builder: (_) => EsEditProfileScreen(initialProfile: _userObj),
+                ));
+                if (changed == true) _load();
+              }),
               const SizedBox(height: 8),
               _iconBtn(Icons.refresh_rounded, _load),
             ]),
@@ -186,7 +197,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     const SizedBox(height: 10),
     _sectionTitle('Support'),
     _menuCard([
-      _menuItem(Icons.help_outline_rounded, 'Help & FAQ', 'Get support', Colors.grey, () {}),
+      _menuItem(Icons.help_outline_rounded, 'How To Play', 'Learn points & rules', Colors.grey, () {
+        Navigator.pushNamed(context, '/how-to-play'); // we'll bind this
+      }),
       _menuItem(Icons.privacy_tip_outlined, 'Privacy Policy', 'How we use your data', Colors.grey, () {}),
     ]),
     const SizedBox(height: 14),
