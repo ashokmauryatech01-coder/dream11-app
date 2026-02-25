@@ -4,31 +4,36 @@ import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
+import 'package:fantasy_crick/core/services/auth_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({super.key});
+  /// Email or phone that the OTP was sent to (shown to the user)
+  final String? sentTo;
+
+  const OtpVerificationScreen({super.key, this.sentTo});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  final List<TextEditingController> _controllers =
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
   bool _loading = false;
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    for (final c in _controllers) { c.dispose(); }
+    for (final f in _focusNodes) { f.dispose(); }
     super.dispose();
   }
 
-  void _onChanged(String value, int index) {
+  String get _otp => _controllers.map((c) => c.text).join();
+
+  void _onDigitChanged(String value, int index) {
     if (value.isNotEmpty) {
       if (index < 5) {
         _focusNodes[index + 1].requestFocus();
@@ -43,50 +48,61 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> _handleVerify() async {
-    String otp = _controllers.map((c) => c.text).join();
+    final otp = _otp;
     if (otp.length != 6) {
       await BeautyDialog.show(
         context,
         title: 'Invalid OTP',
-        message: 'Please enter the 6-digit OTP sent to your phone.',
+        message: 'Please enter the 6-digit OTP sent to your account.',
         type: BeautyDialogType.warning,
       );
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    setState(() => _loading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await _authService.verifyRegistrationOtp(otp);
 
-    if (!mounted) return;
+      if (!mounted) return;
+      setState(() => _loading = false);
 
-    setState(() {
-      _loading = false;
-    });
+      await BeautyDialog.show(
+        context,
+        title: 'Verified! 🎉',
+        message: 'Your account has been verified successfully.',
+        type: BeautyDialogType.success,
+        confirmText: 'Go to Home',
+        onConfirm: () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false,
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      await BeautyDialog.show(
+        context,
+        title: 'Verification Failed',
+        message: msg,
+        type: BeautyDialogType.error,
+      );
+    }
+  }
+
+  Future<void> _handleResend() async {
+    // Clear all OTP boxes
+    for (final c in _controllers) { c.clear(); }
+    _focusNodes[0].requestFocus();
 
     await BeautyDialog.show(
       context,
-      title: 'Verified',
-      message: 'OTP verified successfully.',
-      type: BeautyDialogType.success,
-      confirmText: 'Continue',
-      onConfirm: () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
-      },
-    );
-  }
-
-  void _handleResend() {
-    BeautyDialog.show(
-      context,
-      title: 'OTP Sent',
-      message: 'A new OTP has been sent to your phone.',
+      title: 'OTP Resent',
+      message:
+          'A new OTP has been sent to ${widget.sentTo ?? 'your registered contact'}.',
       type: BeautyDialogType.info,
     );
   }
@@ -105,10 +121,28 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
               const SizedBox(height: 20),
+
+              // Icon
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  size: 48,
+                  color: AppColors.primary,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               const Text(
                 'Verify OTP',
                 style: TextStyle(
@@ -118,41 +152,49 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                "We've sent a 6-digit code to your phone",
-                style: TextStyle(
-                  fontSize: 16,
+              const SizedBox(height: 10),
+              Text(
+                widget.sentTo != null
+                    ? "We've sent a 6-digit code to\n${widget.sentTo}"
+                    : "We've sent a 6-digit code to your registered contact",
+                style: const TextStyle(
+                  fontSize: 15,
                   color: AppColors.textLight,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 50),
-              
+
+              const SizedBox(height: 48),
+
+              // OTP digit boxes
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(6, (index) {
                   return SizedBox(
-                    width: 45,
-                    height: 55,
+                    width: 46,
+                    height: 56,
                     child: TextField(
                       controller: _controllers[index],
                       focusNode: _focusNodes[index],
-                      onChanged: (value) => _onChanged(value, index),
+                      onChanged: (value) => _onDigitChanged(value, index),
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
-                      style: const TextStyle(fontSize: 18, color: AppColors.text),
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.text),
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
                         counterText: '',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.primary),
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 2),
                         ),
                         filled: true,
                         fillColor: AppColors.white,
@@ -162,17 +204,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   );
                 }),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               CustomButton(
                 title: 'Verify OTP',
                 onTap: _handleVerify,
                 loading: _loading,
               ),
-              
-              const SizedBox(height: 20),
-              
+
+              const SizedBox(height: 24),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

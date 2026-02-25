@@ -69,8 +69,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -78,8 +84,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             },
             "description": "Register a new user. `user_type` can be `user` or `admin`. Token is auto-saved to collection variables on success."
           }
@@ -105,8 +116,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -114,8 +131,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           }
         },
@@ -141,8 +163,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -150,8 +178,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
             "description": "Login and get Bearer token. Token is auto-saved."
           }
@@ -177,8 +210,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -186,8 +225,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -196,13 +240,24 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/auth/logout",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             },
             "description": "Invalidates the current Bearer token."
           }
@@ -217,13 +272,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/profile",
-              "host": ["{{base_url}}"],
-              "path": ["user", "profile"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "profile"
+              ]
             },
             "description": "Returns authenticated user profile and stats (total teams, contests, winnings)."
           }
@@ -233,13 +299,23 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/dashboard",
-              "host": ["{{base_url}}"],
-              "path": ["dashboard"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard"
+              ]
             },
             "description": "Returns platform stats, user stats, recent teams/contests, and upcoming matches."
           }
@@ -249,17 +325,37 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/history?type=all&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "history"
+              ],
               "query": [
-                { "key": "type", "value": "all", "description": "all | contests | teams" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "all | contests | teams"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -269,17 +365,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/history?type=contests&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "history"
+              ],
               "query": [
-                { "key": "type", "value": "contests" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "type",
+                  "value": "contests"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -294,17 +409,37 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/matches?type=all&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["matches"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "matches"
+              ],
               "query": [
-                { "key": "type", "value": "all", "description": "all | live | upcoming | finished" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "all | live | upcoming | finished"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -314,15 +449,28 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/matches?type=live",
-              "host": ["{{base_url}}"],
-              "path": ["matches"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "matches"
+              ],
               "query": [
-                { "key": "type", "value": "live" }
+                {
+                  "key": "type",
+                  "value": "live"
+                }
               ]
             }
           }
@@ -332,15 +480,28 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/matches?type=upcoming",
-              "host": ["{{base_url}}"],
-              "path": ["matches"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "matches"
+              ],
               "query": [
-                { "key": "type", "value": "upcoming" }
+                {
+                  "key": "type",
+                  "value": "upcoming"
+                }
               ]
             }
           }
@@ -350,15 +511,28 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/matches?type=finished",
-              "host": ["{{base_url}}"],
-              "path": ["matches"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "matches"
+              ],
               "query": [
-                { "key": "type", "value": "finished" }
+                {
+                  "key": "type",
+                  "value": "finished"
+                }
               ]
             }
           }
@@ -368,13 +542,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/matches/{{match_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["matches", "{{match_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "matches",
+                "{{match_id}}"
+              ]
             },
             "description": "Returns match details plus all players for that match."
           }
@@ -389,16 +574,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/players?page=1&limit=12",
-              "host": ["{{base_url}}"],
-              "path": ["players"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "players"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "12" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "12"
+                }
               ]
             }
           }
@@ -408,17 +609,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/players?match_id={{match_id}}&page=1&limit=12",
-              "host": ["{{base_url}}"],
-              "path": ["players"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "players"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "12" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "12"
+                }
               ]
             }
           }
@@ -428,16 +648,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/players?match_id={{match_id}}&role=batsman",
-              "host": ["{{base_url}}"],
-              "path": ["players"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "players"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "role", "value": "batsman", "description": "batsman | bowler | all-rounder | wicket-keeper" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "role",
+                  "value": "batsman",
+                  "description": "batsman | bowler | all-rounder | wicket-keeper"
+                }
               ]
             }
           }
@@ -447,16 +684,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/players?match_id={{match_id}}&role=bowler",
-              "host": ["{{base_url}}"],
-              "path": ["players"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "players"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "role", "value": "bowler" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "role",
+                  "value": "bowler"
+                }
               ]
             }
           }
@@ -466,16 +719,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/players?match_id={{match_id}}&role=all-rounder",
-              "host": ["{{base_url}}"],
-              "path": ["players"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "players"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "role", "value": "all-rounder" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "role",
+                  "value": "all-rounder"
+                }
               ]
             }
           }
@@ -485,16 +754,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/players?match_id={{match_id}}&role=wicket-keeper",
-              "host": ["{{base_url}}"],
-              "path": ["players"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "players"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "role", "value": "wicket-keeper" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "role",
+                  "value": "wicket-keeper"
+                }
               ]
             }
           }
@@ -509,16 +794,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/teams?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["teams"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -528,17 +829,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/teams?match_id={{match_id}}&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["teams"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -548,9 +868,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -558,8 +887,12 @@
             },
             "url": {
               "raw": "{{base_url}}/teams",
-              "host": ["{{base_url}}"],
-              "path": ["teams"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams"
+              ]
             },
             "description": "Create a team with exactly 11 players. `captain_id` gets 2x points, `vice_captain_id` gets 1.5x points."
           }
@@ -574,17 +907,37 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/contests?type=all&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["contests"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "contests"
+              ],
               "query": [
-                { "key": "type", "value": "all", "description": "all | mega | head-to-head | practice" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "all | mega | head-to-head | practice"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -594,18 +947,40 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/contests?match_id={{match_id}}&type=all&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["contests"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "contests"
+              ],
               "query": [
-                { "key": "match_id", "value": "{{match_id}}" },
-                { "key": "type", "value": "all" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "match_id",
+                  "value": "{{match_id}}"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -615,15 +990,28 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/contests?type=mega",
-              "host": ["{{base_url}}"],
-              "path": ["contests"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "contests"
+              ],
               "query": [
-                { "key": "type", "value": "mega" }
+                {
+                  "key": "type",
+                  "value": "mega"
+                }
               ]
             }
           }
@@ -638,17 +1026,37 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/leaderboard?type=weekly&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["leaderboard"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard"
+              ],
               "query": [
-                { "key": "type", "value": "weekly", "description": "weekly | monthly | all-time" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "type",
+                  "value": "weekly",
+                  "description": "weekly | monthly | all-time"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -658,17 +1066,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/leaderboard?type=monthly&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["leaderboard"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard"
+              ],
               "query": [
-                { "key": "type", "value": "monthly" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "type",
+                  "value": "monthly"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -678,17 +1105,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/leaderboard?type=all-time&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["leaderboard"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard"
+              ],
               "query": [
-                { "key": "type", "value": "all-time" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "type",
+                  "value": "all-time"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -703,13 +1149,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/matches",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "matches"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "matches"
+              ]
             }
           }
         },
@@ -718,13 +1175,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/live-matches",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "live-matches"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "live-matches"
+              ]
             }
           }
         },
@@ -733,13 +1201,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/upcoming-matches",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "upcoming-matches"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "upcoming-matches"
+              ]
             }
           }
         },
@@ -748,13 +1227,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/finished-matches",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "finished-matches"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "finished-matches"
+              ]
             }
           }
         },
@@ -763,13 +1253,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/live-series",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "live-series"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "live-series"
+              ]
             }
           }
         },
@@ -778,13 +1279,25 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/matches/{{match_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "matches", "{{match_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "matches",
+                "{{match_id}}"
+              ]
             }
           }
         },
@@ -793,13 +1306,26 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/cricket/series/{{series_id}}/points",
-              "host": ["{{base_url}}"],
-              "path": ["cricket", "series", "{{series_id}}", "points"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cricket",
+                "series",
+                "{{series_id}}",
+                "points"
+              ]
             }
           }
         }
@@ -813,12 +1339,19 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/how-to-play",
-              "host": ["{{base_url}}"],
-              "path": ["how-to-play"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "how-to-play"
+              ]
             },
             "description": "Returns step-by-step guide and full points scoring system (batting, bowling, fielding)."
           }
@@ -828,12 +1361,19 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/docs",
-              "host": ["{{base_url}}"],
-              "path": ["docs"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "docs"
+              ]
             }
           }
         }
@@ -847,13 +1387,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/dashboard",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "dashboard"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard"
+              ]
             },
             "description": "Platform-wide stats + recent teams and contests. Requires admin token."
           }
@@ -863,18 +1414,45 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/users?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "users"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "search", "value": "", "description": "Search by name or email", "disabled": true },
-                { "key": "status", "value": "verified", "description": "verified | unverified", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name or email",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "verified",
+                  "description": "verified | unverified",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -884,16 +1462,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/users?search=john&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "users"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
               "query": [
-                { "key": "search", "value": "john" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "search",
+                  "value": "john"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -903,9 +1498,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -913,8 +1517,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/users/{{user_id}}/status",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "users", "{{user_id}}", "status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{user_id}}",
+                "status"
+              ]
             }
           }
         },
@@ -923,13 +1534,25 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "users", "{{user_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
             }
           }
         },
@@ -938,18 +1561,44 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/teams?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "teams"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "teams"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "status", "value": "active", "description": "active | inactive", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | inactive",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -959,18 +1608,43 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/contests?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "contests"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "contests"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "status", "value": "", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -980,9 +1654,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -990,8 +1673,13 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/contests",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "contests"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "contests"
+              ]
             },
             "description": "Create a new contest. `type` can be: mega, head-to-head, practice, standard."
           }
@@ -1001,18 +1689,44 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/matches?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "matches"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "matches"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "status", "value": "upcoming", "description": "upcoming | live | completed", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "upcoming",
+                  "description": "upcoming | live | completed",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1022,9 +1736,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1032,8 +1755,13 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/matches",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "matches"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "matches"
+              ]
             },
             "description": "Team codes auto-resolve flag emojis and colors. Supported codes: IND, AUS, ENG, PAK, SA, NZ, WI, SL, BAN, AFG, MI, CSK, RCB, KKR, DC, SRH, RR, PBKS, LSG"
           }
@@ -1043,9 +1771,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1053,8 +1790,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/matches/{{match_id}}/score",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "matches", "{{match_id}}", "score"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "matches",
+                "{{match_id}}",
+                "score"
+              ]
             }
           }
         },
@@ -1063,18 +1807,44 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/transactions?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "transactions"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "transactions"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "type", "value": "deposit", "description": "deposit | withdrawal | refund | prize", "disabled": true },
-                { "key": "search", "value": "", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "type",
+                  "value": "deposit",
+                  "description": "deposit | withdrawal | refund | prize",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1084,9 +1854,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1094,8 +1873,13 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/transactions",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "transactions"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "transactions"
+              ]
             },
             "description": "`type` must be one of: deposit, withdrawal, refund, prize"
           }
@@ -1105,16 +1889,35 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/reports?start_date=2026-01-01&end_date=2026-02-21",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "reports"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-01-01", "description": "Format: YYYY-MM-DD" },
-                { "key": "end_date", "value": "2026-02-21", "description": "Format: YYYY-MM-DD" }
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01",
+                  "description": "Format: YYYY-MM-DD"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-02-21",
+                  "description": "Format: YYYY-MM-DD"
+                }
               ]
             },
             "description": "Revenue, deposits, withdrawals, prizes, user growth, top users, popular contests. Defaults to last 30 days."
