@@ -9,8 +9,9 @@ import 'package:fantasy_crick/core/services/auth_service.dart';
 class OtpVerificationScreen extends StatefulWidget {
   /// Email or phone that the OTP was sent to (shown to the user)
   final String? sentTo;
+  final bool isLogin;
 
-  const OtpVerificationScreen({super.key, this.sentTo});
+  const OtpVerificationScreen({super.key, this.sentTo, this.isLogin = false});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -62,15 +63,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _loading = true);
 
     try {
-      await _authService.verifyRegistrationOtp(otp);
+      if (widget.isLogin && widget.sentTo != null) {
+        await _authService.verifyOTPLogin(widget.sentTo!, otp);
+      } else {
+        await _authService.verifyRegistrationOtp(widget.sentTo ?? '', otp);
+      }
 
       if (!mounted) return;
       setState(() => _loading = false);
 
       await BeautyDialog.show(
         context,
-        title: 'Verified! 🎉',
-        message: 'Your account has been verified successfully.',
+        title: widget.isLogin ? 'Login Verified! 🎉' : 'Verified! 🎉',
+        message: widget.isLogin ? "You're successfully logged in." : 'Your account has been verified successfully.',
         type: BeautyDialogType.success,
         confirmText: 'Go to Home',
         onConfirm: () {
@@ -98,13 +103,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     for (final c in _controllers) { c.clear(); }
     _focusNodes[0].requestFocus();
 
-    await BeautyDialog.show(
-      context,
-      title: 'OTP Resent',
-      message:
-          'A new OTP has been sent to ${widget.sentTo ?? 'your registered contact'}.',
-      type: BeautyDialogType.info,
-    );
+    try {
+      if (widget.sentTo != null) {
+        await _authService.resendOTP(widget.sentTo!);
+      }
+      
+      if (!mounted) return;
+      await BeautyDialog.show(
+        context,
+        title: 'OTP Resent',
+        message:
+            'A new OTP has been sent to ${widget.sentTo ?? 'your registered contact'}.',
+        type: BeautyDialogType.info,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      await BeautyDialog.show(
+        context,
+        title: 'Resend Failed',
+        message: msg,
+        type: BeautyDialogType.error,
+      );
+    }
   }
 
   @override

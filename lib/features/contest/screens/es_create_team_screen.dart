@@ -115,7 +115,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     final shortB = teambRaw?['short_name']?.toString() ?? 'TM B';
 
     if (matchId == null && tidA == null && tidB == null) {
-      _buildDemo(shortA, shortB);
+      setState(() { _loading = false; _error = 'Match data unavailable.'; });
       return;
     }
 
@@ -132,7 +132,18 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
 
       List<_Player> players = _parseSquad(squadData, shortA, shortB, statsMap);
 
-      // 3. If squad is empty, fall back to Teams Player API
+      // 3. If squad is empty, fall back to Match Players API 
+      if (players.isEmpty && matchId != null) {
+        final matchPlayers = await EntitySportService.getPlayersByMatch(matchId);
+        int idx = 0;
+        for (final p in matchPlayers) {
+          final tShort = (idx % 2 == 0) ? shortA : shortB; 
+          players.add(_fromRaw(p, tShort, statsMap));
+          idx++;
+        }
+      }
+
+      // 4. If STILL empty, fall back to Teams Player API
       if (players.isEmpty) {
         final futures = <Future<List<Map<String, dynamic>>>>[];
         if (tidA != null) futures.add(EntitySportService.getTeamPlayers(tidA));
@@ -148,11 +159,14 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       }
 
       if (!mounted) return;
-      if (players.isEmpty) { _buildDemo(shortA, shortB); return; }
+      if (players.isEmpty) { 
+        setState(() { _error = 'No squad announced yet. Try again later.'; _loading = false; });
+        return; 
+      }
       setState(() { _players = players; _loading = false; });
     } catch (e) {
       if (!mounted) return;
-      _buildDemo(shortA, shortB);
+      setState(() { _error = 'Failed to load real squad data.'; _loading = false; });
     }
   }
 
@@ -234,20 +248,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     } catch (_) {}
   }
 
-  void _buildDemo(String shortA, String shortB) {
-    if (!mounted) return;
-    final roleSeq = ['WK','BAT','BAT','BAT','BAT','AR','AR','BOWL','BOWL','BOWL','BOWL'];
-    final ps = <_Player>[];
-    for (int i = 0; i < roleSeq.length; i++) {
-      ps.add(_Player(id: 'a$i', name: '$shortA Player ${i+1}', shortName: '${shortA[0]}. Player${i+1}',
-          role: roleSeq[i], credits: (8.0 + i * 0.2).clamp(8.0, 10.0), imageUrl: '', teamShort: shortA,
-          rating: 8.0, battingStyle: 'Right Hand Bat', bowlingStyle: ''));
-      ps.add(_Player(id: 'b$i', name: '$shortB Player ${i+1}', shortName: '${shortB[0]}. Player${i+1}',
-          role: roleSeq[i], credits: (8.0 + i * 0.2).clamp(8.0, 10.0), imageUrl: '', teamShort: shortB,
-          rating: 8.0, battingStyle: 'Right Hand Bat', bowlingStyle: ''));
-    }
-    setState(() { _players = ps; _loading = false; _error = null; });
-  }
+
 
   // ── helpers ────────────────────────────────────────────────────────────────
   String _mapRole(String r) {

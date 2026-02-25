@@ -84,14 +84,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         context,
         title: 'Account Created! 🎉',
         message:
-            'Your account is ready. Please verify the OTP sent to $phone.',
+            'Your account is ready. Please verify the OTP sent to $email.',
         type: BeautyDialogType.success,
         confirmText: 'Verify OTP',
         onConfirm: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => OtpVerificationScreen(sentTo: phone),
+              builder: (_) => OtpVerificationScreen(sentTo: email),
             ),
           );
         },

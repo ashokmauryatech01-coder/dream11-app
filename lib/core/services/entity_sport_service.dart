@@ -91,7 +91,7 @@ class EntitySportService {
   // 9. TEAM PLAYERS — fetch all players for a team with images
   static Future<List<Map<String, dynamic>>> getTeamPlayers(int tid) async {
     try {
-      final data = await _get('/teams/$tid/player?token=$token');
+      final data = await _get('/teams/$tid/players?token=$token');
       if (data['status'] == 'ok') {
         final items = data['response']?['items'] as Map<String, dynamic>?;
         final players = items?['players'] as Map<String, dynamic>?;
@@ -112,6 +112,17 @@ class EntitySportService {
       if (data['status'] == 'ok') return data['response']?['player'] as Map<String, dynamic>? ?? {};
       return {};
     } catch (_) { return {}; }
+  }
+
+  // 11. PLAYERS BY MATCH — fallback if squad is unavailable
+  static Future<List<Map<String, dynamic>>> getPlayersByMatch(int matchId) async {
+    try {
+      final data = await _get('/players?token=$token&recent_match=$matchId&per_page=100');
+      if (data['status'] == 'ok') {
+        return (data['response']?['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (_) { return []; }
   }
 
   // 10. LIVE MATCH DATA — ball by ball running scorecard

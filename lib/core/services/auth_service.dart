@@ -93,8 +93,10 @@ class AuthService {
   }
 
   /// Verify phone/email OTP after registration.
-  Future<void> verifyRegistrationOtp(String otp) async {
-    final response = await ApiClient.post('/auth/verify', {
+  Future<void> verifyRegistrationOtp(String phone, String otp) async {
+    final response = await ApiClient.post('/auth/verify-otp', {
+      'phone': phone,
+      'user_type': 'user',
       'otp': otp,
     });
 
