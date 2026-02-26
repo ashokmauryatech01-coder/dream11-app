@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 30),
                 const Text(
-                  '11 Dreamer',
+                  'Segga Sportzz',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,

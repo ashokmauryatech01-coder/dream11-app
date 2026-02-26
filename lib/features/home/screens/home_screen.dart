@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ]),
           const SizedBox(height: 12),
-          const Text('11 Dreamer', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+          const Text('Segga Sportzz', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Text(
             '${_upcomingMatches.length} upcoming · ${_finishedMatches.length} finished · ${_liveSeries.length} series',
