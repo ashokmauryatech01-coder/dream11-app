@@ -24,11 +24,11 @@ class ContestModel {
       id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       matchId: json['match_id']?.toString() ?? '',
-      entryFee: (json['entry_fee'] ?? 0).toDouble(),
-      prizePool: (json['prize_pool'] ?? 0).toDouble(),
-      maxTeams: json['max_teams'] ?? 0,
-      currentTeams: json['current_teams'] ?? 0,
-      multipleTeams: json['multiple_teams'] ?? false,
+      entryFee: double.tryParse(json['entry_fee']?.toString() ?? '0') ?? 0.0,
+      prizePool: double.tryParse(json['prize_pool']?.toString() ?? '0') ?? 0.0,
+      maxTeams: json['max_participants'] ?? json['max_teams'] ?? 0,
+      currentTeams: json['current_participants'] ?? json['current_teams'] ?? 0,
+      multipleTeams: json['multiple_entries'] ?? json['multiple_teams'] ?? false,
     );
   }
 }

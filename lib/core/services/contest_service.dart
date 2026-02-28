@@ -19,7 +19,8 @@ class ContestService {
   Future<List<ContestModel>> getContestsForMatch(String matchId) async {
     try {
       final response = await ApiClient.get('/contests?match_id=$matchId&type=all');
-      final data = response['data'] as List<dynamic>? ?? [];
+      final data = response['data']?['contests'] as List<dynamic>? ?? 
+                   response['data'] as List<dynamic>? ?? [];
       return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
     } catch (_) {
       return _getMockContests();
