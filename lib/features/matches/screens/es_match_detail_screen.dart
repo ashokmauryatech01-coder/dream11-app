@@ -122,14 +122,14 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      /* floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => EsCreateTeamScreen(matchData: widget.matchData),
         )),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.group_add_rounded, color: Colors.white),
         label: const Text('Create Team', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
+      ), */
     );
   }
 

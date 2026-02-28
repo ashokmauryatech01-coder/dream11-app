@@ -6,6 +6,8 @@ import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
+import 'package:fantasy_crick/core/constants/country_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -26,6 +28,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   String _countryCode = '+91';
+  CountryInfo? _countryData;
   String _userIp = '';
 
   final AuthService _authService = AuthService();
@@ -80,6 +83,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       final fullPhone = '$_countryCode$phone';
       await _authService.signUp(name, email, fullPhone, password);
+
+      // Save user country/currency preferences locally
+      final prefs = await SharedPreferences.getInstance();
+      if (_countryData != null) {
+        await prefs.setString('user_country_code', _countryData!.code);
+        await prefs.setString('user_currency', _countryData!.currency);
+        await prefs.setString('user_currency_symbol', _countryData!.currencySymbol);
+      }
 
       if (!mounted) return;
       setState(() => _loading = false);
@@ -359,8 +370,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         _countryCode = data['country_calling_code'] ?? '+91';
         _userIp = data['ip'] ?? '';
+        
+        // Find country data in constants
+        final countryCode = data['country_code'];
+        if (countryCode != null) {
+          _countryData = CountryConstants.countries.firstWhere(
+            (c) => c.code == countryCode,
+            orElse: () => CountryConstants.countries.firstWhere((c) => c.code == "IN"),
+          );
+        }
       });
     }
+  }
+
+  void _showCountryPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CountryPickerSheet(
+        onSelected: (CountryInfo country) {
+          setState(() {
+            _countryCode = country.dialCode;
+            _countryData = country;
+          });
+        },
+      ),
+    );
   }
 
   Widget _buildPhoneField({
@@ -393,12 +429,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  countryCode,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: AppColors.text),
+              GestureDetector(
+                onTap: _showCountryPicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Text(
+                        _countryData?.flag ?? '',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        countryCode,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: AppColors.text),
+                      ),
+                      const Icon(Icons.arrow_drop_down, color: AppColors.textLight),
+                    ],
+                  ),
                 ),
               ),
               Container(
@@ -424,6 +473,110 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CountryPickerSheet extends StatefulWidget {
+  final Function(CountryInfo) onSelected;
+  const _CountryPickerSheet({required this.onSelected});
+
+  @override
+  State<_CountryPickerSheet> createState() => _CountryPickerSheetState();
+}
+
+class _CountryPickerSheetState extends State<_CountryPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  List<CountryInfo> _filteredCountries = CountryConstants.countries;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_filter);
+  }
+
+  void _filter() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredCountries = CountryConstants.countries
+          .where((c) =>
+              c.name.toLowerCase().contains(query) ||
+              c.dialCode.contains(query) ||
+              c.code.toLowerCase().contains(query))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Select Country',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search country name or code...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _filteredCountries.length,
+              itemBuilder: (context, index) {
+                final country = _filteredCountries[index];
+                return ListTile(
+                  leading: Text(country.flag, style: const TextStyle(fontSize: 24)),
+                  title: Text(country.name),
+                  trailing: Text(
+                    country.dialCode,
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                  onTap: () {
+                    widget.onSelected(country);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

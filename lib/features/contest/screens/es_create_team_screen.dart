@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 import 'package:fantasy_crick/core/services/teams_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MODEL
@@ -53,6 +54,8 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   bool _showCaptainScreen = false;
   int _tabIndex = 0;          // 0=ALL 1=WK 2=BAT 3=AR 4=BOWL
   late TabController _tabCtrl;
+  String _currencySymbol = '₹';
+  String _currencyCode = 'INR';
 
   static const double _totalCredits = 100.0;
   static const List<String> _roles = ['ALL', 'WK', 'BAT', 'AR', 'BOWL'];
@@ -99,7 +102,16 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     super.initState();
     _tabCtrl = TabController(length: _roles.length, vsync: this)
       ..addListener(() { if (!_tabCtrl.indexIsChanging) setState(() => _tabIndex = _tabCtrl.index); });
+    _loadUserCurrency();
     _loadSquad();
+  }
+
+  Future<void> _loadUserCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currencyCode = prefs.getString('user_currency') ?? 'INR';
+      _currencySymbol = prefs.getString('user_currency_symbol') ?? '₹';
+    });
   }
 
   @override
@@ -108,7 +120,8 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   // ── load ───────────────────────────────────────────────────────────────────
   Future<void> _loadSquad() async {
     setState(() { _loading = true; _error = null; });
-    final matchId  = widget.matchData?['match_id'] as int?;
+    final matchId = 1; // Forced static 1 for testing as requested
+    print('M: $matchId');
     final teamaRaw = widget.matchData?['teama'] as Map<String, dynamic>?;
     final teambRaw = widget.matchData?['teamb'] as Map<String, dynamic>?;
     final tidA = teamaRaw?['team_id'] as int?;
@@ -177,16 +190,45 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     Map<String, Map<String, String>> statsMap,
   ) {
     final out = <_Player>[];
+    
+    // 1. Build a map of detailed player info from the root 'players' list
+    final detailsMap = <String, Map<String, dynamic>>{};
+    final playersList = squadData['players'] as List<dynamic>? ?? [];
+    for (final p in playersList) {
+      if (p is Map<String, dynamic>) {
+        final pid = p['pid']?.toString();
+        if (pid != null) detailsMap[pid] = p;
+      }
+    }
+
+    // 2. Process teama and teamb squads
     for (final entry in [
       ['teama', shortA],
       ['teamb', shortB],
     ]) {
-      final team  = squadData[entry[0]] as Map<String, dynamic>?;
-      final tShort = entry[1];
+      final teamKey = entry[0] as String;
+      final tShort  = entry[1] as String;
+      final team    = squadData[teamKey] as Map<String, dynamic>?;
       if (team == null) continue;
-      final squad = team['squad'] as List<dynamic>? ?? [];
-      for (final p in squad) {
-        out.add(_fromRaw(p as Map<String, dynamic>, tShort, statsMap));
+      
+      // EntitySport sometimes uses 'squad' and sometimes 'squads'
+      final squad = (team['squads'] ?? team['squad']) as List<dynamic>? ?? [];
+      
+      for (final pRaw in squad) {
+        if (pRaw is! Map<String, dynamic>) continue;
+        
+        final pid = (pRaw['player_id'] ?? pRaw['pid'])?.toString();
+        Map<String, dynamic> merged = Map.from(pRaw);
+        
+        // If we have detailed info for this player, merge it
+        if (pid != null && detailsMap.containsKey(pid)) {
+          merged.addAll(detailsMap[pid]!);
+        } else {
+          // Ensure pid is set correctly for _fromRaw
+          merged['pid'] = pid;
+        }
+        
+        out.add(_fromRaw(merged, tShort, statsMap));
       }
     }
     return out;
@@ -196,19 +238,30 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     Map<String, dynamic> p, String teamShort,
     Map<String, Map<String, String>> statsMap,
   ) {
-    final pid   = p['pid']?.toString() ?? UniqueKey().toString();
+    // Standardize ID: pid is preferred
+    final pid   = (p['pid'] ?? p['player_id'])?.toString() ?? UniqueKey().toString();
+    
+    // Standardize Name: title is preferred by EntitySport, then name
     final name  = p['title']?.toString() ?? p['name']?.toString() ?? 'Unknown';
-    final role  = _mapRole(p['role']?.toString() ?? p['playing_role']?.toString() ?? '');
+    
+    // Standardize Role: playing_role is the full role string from profile
+    final roleStr = p['playing_role']?.toString() ?? p['role']?.toString() ?? '';
+    final role  = _mapRole(roleStr);
+    
+    // Standardize Credits: fantasy_player_rating is the standard key
     final cred  = (p['fantasy_player_rating'] as num?)?.toDouble() ?? 8.0;
+    
     final pl = _Player(
       id: pid, name: name, shortName: _short(name), role: role,
-      credits: cred.clamp(6.0, 12.0),
+      credits: cred.clamp(6.0, 11.0), // Clamp to usual fantasy ranges
       imageUrl: p['thumb_url']?.toString() ?? p['logo_url']?.toString() ?? '',
       teamShort: teamShort,
       rating:  cred,
       battingStyle:  p['batting_style']?.toString()  ?? '',
       bowlingStyle:  p['bowling_style']?.toString()  ?? '',
     );
+    
+    // Attach scorecard stats if available
     final st = statsMap[pid] ?? statsMap[name];
     if (st != null) {
       pl.runs       = st['runs']  ?? '';
@@ -782,10 +835,11 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                   : LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade300]),
               borderRadius: BorderRadius.circular(28),
             ),
-            child: _submitting
+            /* child: _submitting
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
               : const Text('Create Team 🏏',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), */
+            child: const Text('Entry Disabled', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ),
       ]),

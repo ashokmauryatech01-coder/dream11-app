@@ -127,13 +127,16 @@ class TeamsService {
     required int captainId,
     required int viceCaptainId,
   }) async {
+    print("playerIds: $playerIds");
+    print("matchId: $matchId");
     final response = await ApiClient.post('/teams', {
       'name': name,
-      'match_id': matchId,
-      'players': playerIds,
-      'captain_id': captainId,
-      'vice_captain_id': viceCaptainId,
+      'match_id': 1,
+      'players': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      'captain_id': 1,
+      'vice_captain_id': 2,
     });
+    print("responseeeeeeeeeeeeeeeeeeeeeeeee: $response");
 
     if (response != null && response['success'] != false) {
       return response;

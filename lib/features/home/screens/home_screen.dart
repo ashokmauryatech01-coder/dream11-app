@@ -311,12 +311,12 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           const SizedBox(height: 16),
           Row(children: [
-            _HeroPill(
+            /* _HeroPill(
               icon: Icons.add_circle_outline,
               label: 'Create Team',
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EsCreateTeamScreen())),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 12), */
             _HeroPill(
               icon: Icons.emoji_events_outlined,
               label: 'Contests',
@@ -344,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen>
               onTap: () => setState(() { _selectedIndex = 1; _matchesTabController.index = 2; }),
             )),
             const SizedBox(width: 10),
-            Expanded(child: _QuickActionCard(
+            /* Expanded(child: _QuickActionCard(
               icon: Icons.group_add,
               label: 'Create\nTeam',
               color: AppColors.blue,
@@ -358,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen>
                 }
               },
             )),
-            const SizedBox(width: 10),
+            const SizedBox(width: 10), */
             Expanded(child: _QuickActionCard(
               icon: Icons.leaderboard,
               label: 'View\nContest',

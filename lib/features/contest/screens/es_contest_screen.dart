@@ -247,7 +247,7 @@ class _EsContestScreenState extends State<EsContestScreen>
         const SizedBox(height: 12),
         Text('No teams created yet', style: TextStyle(color: Colors.grey[500], fontSize: 15)),
         const SizedBox(height: 16),
-        ElevatedButton.icon(
+        /* ElevatedButton.icon(
           onPressed: () {
             if (_selectedMatch != null) {
               Navigator.push(context, MaterialPageRoute(
@@ -257,7 +257,7 @@ class _EsContestScreenState extends State<EsContestScreen>
           },
           icon: const Icon(Icons.add), label: const Text('Create Team'),
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
-        ),
+        ), */
       ]));
     }
     return RefreshIndicator(
