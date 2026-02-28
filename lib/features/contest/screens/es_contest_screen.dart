@@ -20,7 +20,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
   Map<String, dynamic>? _selectedMatch;
   List<dynamic> _contests = [];
   bool _loading = false;
-  String _currencySymbol = '₹';
+  Map<String, dynamic>? _location;
 
   int _mainTab = 0; // 0 = Contests, 1 = My Teams
   List<Map<String, dynamic>> _myTeams = [];
@@ -40,9 +40,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     final data = await LocationService.getLocationData();
     if (mounted) {
       setState(() {
-        _currencySymbol =
-            data['currency_symbol'] ??
-            LocationService.getCurrencySymbol(data['currency']);
+        _location = data;
       });
     }
   }
@@ -90,7 +88,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
   List<Map<String, dynamic>> _fallbackContests() => [
     {
       'name': 'Mega Contest',
-      'prize_pool': '50 Lakhs',
+      'prize_pool': 5000000,
       'total_spots': 200000,
       'filled_spots': 123456,
       'entry_fee': 49,
@@ -99,7 +97,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     },
     {
       'name': 'Head to Head',
-      'prize_pool': '${_currencySymbol}1,000',
+      'prize_pool': 1000,
       'total_spots': 2,
       'filled_spots': 1,
       'entry_fee': 25,
@@ -108,7 +106,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     },
     {
       'name': 'Small League',
-      'prize_pool': '${_currencySymbol}10,000',
+      'prize_pool': 10000,
       'total_spots': 50,
       'filled_spots': 45,
       'entry_fee': 75,
@@ -117,7 +115,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     },
     {
       'name': 'Free Practice',
-      'prize_pool': '${_currencySymbol}500',
+      'prize_pool': 500,
       'total_spots': 500,
       'filled_spots': 200,
       'entry_fee': 0,
@@ -126,7 +124,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     },
     {
       'name': 'Champions League',
-      'prize_pool': '25 Lakhs',
+      'prize_pool': 2500000,
       'total_spots': 100000,
       'filled_spots': 80000,
       'entry_fee': 199,
@@ -135,7 +133,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     },
     {
       'name': 'Classic H2H',
-      'prize_pool': '${_currencySymbol}500',
+      'prize_pool': 500,
       'total_spots': 2,
       'filled_spots': 0,
       'entry_fee': 10,
@@ -510,11 +508,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     final fee =
         double.tryParse(c['entry_fee']?.toString() ?? '0')?.toInt() ?? 0;
     final isFree = fee == 0;
-    final prizeAmt =
-        double.tryParse(c['prize_pool']?.toString() ?? '0')?.toInt() ?? 0;
-    final prize = prizeAmt > 0
-        ? '${_currencySymbol}${prizeAmt.toString()}'
-        : c['prize_pool']?.toString() ?? '${_currencySymbol}0';
+    final prize = LocationService.formatAmount(c['prize_pool'] ?? 0, _location);
     final winners =
         double.tryParse(c['winner_percentage']?.toString() ?? '50')?.toInt() ??
         50;
@@ -604,9 +598,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
                               ),
                             ),
                             Text(
-                              prize.startsWith('${_currencySymbol}')
-                                  ? prize
-                                  : '${_currencySymbol}$prize',
+                              prize,
                               style: const TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.bold,
@@ -636,7 +628,9 @@ class _EsContestScreenState extends State<EsContestScreen> {
                       ),
                     ),
                     child: Text(
-                      isFree ? 'FREE' : '${_currencySymbol}$fee',
+                      isFree
+                          ? 'FREE'
+                          : LocationService.formatAmount(fee, _location),
                       style: TextStyle(
                         color: isFree ? Colors.green : AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -703,7 +697,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
                     spotsLeft > 0
                         ? (isFree
                               ? 'Join Free'
-                              : 'Join Contest  ${_currencySymbol}$fee')
+                              : 'Join Contest  ${LocationService.formatAmount(fee, _location)}')
                         : 'Contest Full',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
@@ -779,11 +773,11 @@ class _EsContestScreenState extends State<EsContestScreen> {
             ),
             _detailRow(
               'Entry Fee',
-              '${_currencySymbol}${c['entry_fee']?.toString() ?? '0'}',
+              LocationService.formatAmount(c['entry_fee'], _location),
             ),
             _detailRow(
               'Prize Pool',
-              '${_currencySymbol}${c['prize_pool']?.toString() ?? '0'}',
+              LocationService.formatAmount(c['prize_pool'], _location),
             ),
             _detailRow(
               'Winners',

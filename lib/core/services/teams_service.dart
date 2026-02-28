@@ -5,11 +5,11 @@ import 'api_client.dart';
 /// ============================================================================
 /// TEAMS SERVICE - Updated for CricAPI
 /// ============================================================================
-/// 
+///
 /// Service layer for fetching team data.
 /// Note: CricAPI doesn't have a dedicated teams endpoint.
 /// Team data comes from match squad API.
-/// 
+///
 /// ============================================================================
 
 class TeamsService {
@@ -20,19 +20,21 @@ class TeamsService {
     try {
       final squadData = await _api.getMatchSquad(matchId);
       final List<CricketTeamModel> teams = [];
-      
+
       for (final squad in squadData) {
         final teamName = squad['teamName'] as String? ?? '';
         if (teamName.isNotEmpty) {
-          teams.add(CricketTeamModel(
-            id: teamName.hashCode.toString(),
-            name: teamName,
-            shortName: _getShortName(teamName),
-            imageUrl: null,
-          ));
+          teams.add(
+            CricketTeamModel(
+              id: teamName.hashCode.toString(),
+              name: teamName,
+              shortName: _getShortName(teamName),
+              imageUrl: null,
+            ),
+          );
         }
       }
-      
+
       return teams;
     } catch (e) {
       return [];
@@ -45,16 +47,16 @@ class TeamsService {
       final matches = await _api.getCurrentMatches();
       final Set<String> teamNames = {};
       final List<CricketTeamModel> teams = [];
-      
+
       for (final match in matches) {
         final teamsList = match['teams'] as List<dynamic>? ?? [];
         final teamInfoList = match['teamInfo'] as List<dynamic>? ?? [];
-        
+
         for (int i = 0; i < teamsList.length; i++) {
           final teamName = teamsList[i].toString();
           if (!teamNames.contains(teamName)) {
             teamNames.add(teamName);
-            
+
             // Find team info
             String? shortName;
             String? imageUrl;
@@ -63,17 +65,19 @@ class TeamsService {
               shortName = info['shortname'] as String?;
               imageUrl = info['img'] as String?;
             }
-            
-            teams.add(CricketTeamModel(
-              id: teamName.hashCode.toString(),
-              name: teamName,
-              shortName: shortName ?? _getShortName(teamName),
-              imageUrl: imageUrl,
-            ));
+
+            teams.add(
+              CricketTeamModel(
+                id: teamName.hashCode.toString(),
+                name: teamName,
+                shortName: shortName ?? _getShortName(teamName),
+                imageUrl: imageUrl,
+              ),
+            );
           }
         }
       }
-      
+
       // Sort alphabetically
       teams.sort((a, b) => a.name.compareTo(b.name));
       return teams;
@@ -131,10 +135,10 @@ class TeamsService {
     print("matchId: $matchId");
     final response = await ApiClient.post('/teams', {
       'name': name,
-      'match_id': 1,
-      'players': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      'captain_id': 1,
-      'vice_captain_id': 2,
+      'match_id': matchId,
+      'players': playerIds,
+      'captain_id': captainId,
+      'vice_captain_id': viceCaptainId,
     });
     print("responseeeeeeeeeeeeeeeeeeeeeeeee: $response");
 
@@ -151,6 +155,8 @@ class TeamsService {
     if (words.length > 1) {
       return words.map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
     }
-    return name.length > 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase();
+    return name.length > 3
+        ? name.substring(0, 3).toUpperCase()
+        : name.toUpperCase();
   }
 }

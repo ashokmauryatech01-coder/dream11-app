@@ -1,10 +1,10 @@
 /// ============================================================================
 /// MATCH MODEL - Updated for CricAPI
 /// ============================================================================
-/// 
+///
 /// Supports both old RapidAPI format and new CricAPI format.
 /// Use `fromCricApi` factory for CricAPI responses.
-/// 
+///
 /// CricAPI Response Structure:
 /// {
 ///   "id": "guid",
@@ -21,7 +21,7 @@
 ///   "matchStarted": true,
 ///   "matchEnded": false
 /// }
-/// 
+///
 /// ============================================================================
 
 class MatchModel {
@@ -62,7 +62,7 @@ class MatchModel {
     // Parse teams from teams array and teamInfo
     final teamsArray = json['teams'] as List<dynamic>? ?? [];
     final teamInfoArray = json['teamInfo'] as List<dynamic>? ?? [];
-    
+
     final List<Team> teams = [];
     for (int i = 0; i < teamsArray.length && i < 2; i++) {
       final teamName = teamsArray[i].toString();
@@ -84,7 +84,9 @@ class MatchModel {
 
     // Parse score array
     final scoreArray = json['score'] as List<dynamic>? ?? [];
-    final scores = scoreArray.map((s) => ScoreInfo.fromJson(s as Map<String, dynamic>)).toList();
+    final scores = scoreArray
+        .map((s) => ScoreInfo.fromJson(s as Map<String, dynamic>))
+        .toList();
 
     // Parse date
     DateTime dateTime;
@@ -137,6 +139,57 @@ class MatchModel {
     );
   }
 
+  /// Create a MatchModel from the new custom backend response
+  factory MatchModel.fromNewApi(Map<String, dynamic> json) {
+    final status = json['status']?.toString().toLowerCase() ?? 'upcoming';
+    final isLive = status == 'live';
+    final isEnded =
+        status == 'finished' ||
+        status == 'completed' ||
+        json['status_text']?.toString().contains('Won') == true;
+
+    return MatchModel(
+      id: json['id']?.toString() ?? '',
+      teams: [
+        Team(
+          name: json['team1_code'] ?? 'T1',
+          shortName: json['team1_code'] ?? 'T1',
+          imageUrl:
+              json['team1_flag'] != null &&
+                  json['team1_flag'].toString().startsWith('http')
+              ? json['team1_flag']
+              : null,
+        ),
+        Team(
+          name: json['team2_code'] ?? 'T2',
+          shortName: json['team2_code'] ?? 'T2',
+          imageUrl:
+              json['team2_flag'] != null &&
+                  json['team2_flag'].toString().startsWith('http')
+              ? json['team2_flag']
+              : null,
+        ),
+      ],
+      venue: Venue(
+        name:
+            json['venue'] ??
+            (json['title']?.toString().contains('•') == true
+                ? json['title'].toString().split('•').last.trim()
+                : 'TBD'),
+        city: '',
+      ),
+      dateTime: json['time'] != null
+          ? DateTime.parse(json['time'])
+          : DateTime.now(),
+      format: 'T20', // Default or parse from title
+      status: json['status_text'] ?? status,
+      score: [], // Could be parsed if scores were in a better format
+      matchStarted: isLive || isEnded,
+      matchEnded: isEnded,
+      matchDesc: json['title'] ?? 'Cricket Match',
+    );
+  }
+
   /// Check if a string looks like a GUID/UUID
   static bool _looksLikeId(String s) {
     // GUIDs are typically 36 chars with hyphens
@@ -160,10 +213,7 @@ class MatchModel {
 
     return MatchModel(
       id: (json['matchId'] ?? '').toString(),
-      teams: [
-        Team.fromApiJson(team1Data),
-        Team.fromApiJson(team2Data),
-      ],
+      teams: [Team.fromApiJson(team1Data), Team.fromApiJson(team2Data)],
       venue: Venue.fromApiJson(venueData),
       dateTime: dateTime,
       format: json['matchFormat'] as String? ?? 'T20',
@@ -176,29 +226,33 @@ class MatchModel {
   }
 
   /// Create a MatchModel from /cricket-matches-* endpoints (legacy)
-  factory MatchModel.fromMatchesApi(Map<String, dynamic> json, {String status = 'upcoming'}) {
+  factory MatchModel.fromMatchesApi(
+    Map<String, dynamic> json, {
+    String status = 'upcoming',
+  }) {
     final team1Data = json['team1'] as Map<String, dynamic>? ?? {};
     final team2Data = json['team2'] as Map<String, dynamic>? ?? {};
     final venueData = json['venueInfo'] as Map<String, dynamic>? ?? {};
 
     final startDateStr = (json['startDate'] ?? '0').toString();
     final startDateMs = int.tryParse(startDateStr) ?? 0;
-    final dateTime = startDateMs > 0 
+    final dateTime = startDateMs > 0
         ? DateTime.fromMillisecondsSinceEpoch(startDateMs)
         : DateTime.now();
 
     return MatchModel(
       id: (json['matchId'] ?? json['id'] ?? '').toString(),
-      teams: [
-        Team.fromApiJson(team1Data),
-        Team.fromApiJson(team2Data),
-      ],
+      teams: [Team.fromApiJson(team1Data), Team.fromApiJson(team2Data)],
       venue: Venue.fromApiJson(venueData),
       dateTime: dateTime,
-      format: json['matchFormat'] as String? ?? json['format'] as String? ?? 'T20',
+      format:
+          json['matchFormat'] as String? ?? json['format'] as String? ?? 'T20',
       status: json['state'] as String? ?? status,
-      seriesName: json['seriesName'] as String? ?? json['_seriesName'] as String?,
-      seriesCategory: json['seriesCategory'] as String? ?? json['_seriesCategory'] as String?,
+      seriesName:
+          json['seriesName'] as String? ?? json['_seriesName'] as String?,
+      seriesCategory:
+          json['seriesCategory'] as String? ??
+          json['_seriesCategory'] as String?,
       matchDesc: json['matchDesc'] as String? ?? json['title'] as String?,
       dateHeader: json['_dateHeader'] as String?,
     );
@@ -214,10 +268,12 @@ class MatchModel {
   bool get isCompleted => matchEnded;
 
   /// Get team 1
-  Team get team1 => teams.isNotEmpty ? teams[0] : Team(name: 'TBD', shortName: 'TBD');
+  Team get team1 =>
+      teams.isNotEmpty ? teams[0] : Team(name: 'TBD', shortName: 'TBD');
 
   /// Get team 2
-  Team get team2 => teams.length > 1 ? teams[1] : Team(name: 'TBD', shortName: 'TBD');
+  Team get team2 =>
+      teams.length > 1 ? teams[1] : Team(name: 'TBD', shortName: 'TBD');
 
   /// Get team 1 score
   ScoreInfo? get team1Score {
@@ -290,28 +346,27 @@ class Team {
   factory Team.fromCricApi(String teamName, Map<String, dynamic>? teamInfo) {
     String shortName = teamName;
     String? imageUrl;
-    
+
     if (teamInfo != null) {
       shortName = teamInfo['shortname'] as String? ?? teamName;
       imageUrl = teamInfo['img'] as String?;
     }
-    
+
     // Generate short name if not provided
     if (shortName == teamName && teamName.length > 3) {
       // Take first 3 characters or first letters of each word
       final words = teamName.split(' ');
       if (words.length > 1) {
-        shortName = words.map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+        shortName = words
+            .map((w) => w.isNotEmpty ? w[0] : '')
+            .join()
+            .toUpperCase();
       } else {
         shortName = teamName.substring(0, 3).toUpperCase();
       }
     }
 
-    return Team(
-      name: teamName,
-      shortName: shortName,
-      imageUrl: imageUrl,
-    );
+    return Team(name: teamName, shortName: shortName, imageUrl: imageUrl);
   }
 
   /// Create from old RapidAPI format
@@ -321,7 +376,8 @@ class Team {
     // Build image URL from imageId
     String? imageUrl;
     if (imageId != null) {
-      imageUrl = 'https://static.cricbuzz.com/a/img/v1/72x54/i1/c$imageId/team.jpg';
+      imageUrl =
+          'https://static.cricbuzz.com/a/img/v1/72x54/i1/c$imageId/team.jpg';
     }
 
     return Team(
@@ -339,11 +395,7 @@ class Venue {
   final String city;
   final String? country;
 
-  Venue({
-    required this.name,
-    required this.city,
-    this.country,
-  });
+  Venue({required this.name, required this.city, this.country});
 
   factory Venue.fromApiJson(Map<String, dynamic> json) {
     return Venue(
