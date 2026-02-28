@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/features/contest/screens/es_create_team_screen.dart';
+import 'package:fantasy_crick/core/services/location_service.dart';
+import 'package:fantasy_crick/core/services/teams_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONTEST SCREEN — white background, real contests from API
@@ -21,6 +23,11 @@ class _EsContestScreenState extends State<EsContestScreen>
   bool _loading = false;
   String _filter = 'all';
   late TabController _filterTab;
+  String _currencySymbol = '₹';
+
+  int _mainTab = 0; // 0 = Contests, 1 = My Teams
+  List<Map<String, dynamic>> _myTeams = [];
+  bool _loadingTeams = false;
 
   static const _filterLabels = ['all', 'mega', 'head-to-head', 'practice'];
   static const _filterDisplay = ['All', 'Mega', 'H2H', 'Free'];
@@ -35,9 +42,19 @@ class _EsContestScreenState extends State<EsContestScreen>
           _loadContests();
         }
       });
+    _initLocation();
     if (widget.matches.isNotEmpty) {
       _selectedMatch = widget.matches.first;
       _loadContests();
+    }
+  }
+
+  Future<void> _initLocation() async {
+    final data = await LocationService.getLocationData();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = data['currency_symbol'] ?? LocationService.getCurrencySymbol(data['currency']);
+      });
     }
   }
 
@@ -46,27 +63,52 @@ class _EsContestScreenState extends State<EsContestScreen>
 
   Future<void> _loadContests() async {
     if (_selectedMatch == null) return;
-    setState(() => _loading = true);
+    setState(() { _loading = true; _loadingTeams = true; });
     final matchId = _selectedMatch!['match_id'];
     try {
-      final typeParam = _filter == 'all' ? 'all' : _filter;
-      final res = await ApiClient.get('/contests?match_id=$matchId&type=$typeParam&page=1&limit=20');
+      // Fetch all contests across all matches as per user request
+      final res = await ApiClient.get('/contests?type=all&page=1&limit=100');
+      final teams = await TeamsService().getMyTeams(matchId);
+      
       if (!mounted) return;
-      final items = res?['data']?['contests'] ?? res?['data']?['items'] ?? res?['data'] ?? [];
-      setState(() { _contests = items is List ? items : []; _loading = false; });
+      final itemsList = res?['data']?['contests'] ?? res?['data']?['items'] ?? res?['data'] ?? [];
+      
+      List<dynamic> filtered = [];
+      if (itemsList is List) {
+        filtered = itemsList.where((c) {
+          // Categorize based on name since type is private/public
+          if (_filter == 'all') return true;
+          final name = c['name']?.toString().toLowerCase() ?? '';
+          if (_filter == 'mega' && (name.contains('mega') || name.contains('grand') || name.contains('winner'))) return true;
+          if (_filter == 'head-to-head' && (name.contains('head') || name.contains('h2h'))) return true;
+          if (_filter == 'practice' && name.contains('practice')) return true;
+          return false;
+        }).toList();
+      }
+
+      setState(() { 
+        _contests = filtered; 
+        _myTeams = teams;
+        _loading = false; 
+        _loadingTeams = false;
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() { _contests = _fallbackContests(); _loading = false; });
+      setState(() { 
+        _contests = _fallbackContests(); 
+        _loading = false; 
+        _loadingTeams = false;
+      });
     }
   }
 
   List<Map<String, dynamic>> _fallbackContests() => [
     {'name': 'Mega Contest',       'prize_pool': '50 Lakhs', 'total_spots': 200000, 'filled_spots': 123456, 'entry_fee': 49,  'contest_type': 'mega',         'winner_percentage': 50},
-    {'name': 'Head to Head',       'prize_pool': '₹1,000',   'total_spots': 2,      'filled_spots': 1,      'entry_fee': 25,  'contest_type': 'head-to-head', 'winner_percentage': 50},
-    {'name': 'Small League',       'prize_pool': '₹10,000',  'total_spots': 50,     'filled_spots': 45,     'entry_fee': 75,  'contest_type': 'small',        'winner_percentage': 60},
-    {'name': 'Free Practice',      'prize_pool': '₹500',     'total_spots': 500,    'filled_spots': 200,    'entry_fee': 0,   'contest_type': 'practice',     'winner_percentage': 30},
+    {'name': 'Head to Head',       'prize_pool': '${_currencySymbol}1,000',   'total_spots': 2,      'filled_spots': 1,      'entry_fee': 25,  'contest_type': 'head-to-head', 'winner_percentage': 50},
+    {'name': 'Small League',       'prize_pool': '${_currencySymbol}10,000',  'total_spots': 50,     'filled_spots': 45,     'entry_fee': 75,  'contest_type': 'small',        'winner_percentage': 60},
+    {'name': 'Free Practice',      'prize_pool': '${_currencySymbol}500',     'total_spots': 500,    'filled_spots': 200,    'entry_fee': 0,   'contest_type': 'practice',     'winner_percentage': 30},
     {'name': 'Champions League',   'prize_pool': '25 Lakhs', 'total_spots': 100000, 'filled_spots': 80000,  'entry_fee': 199, 'contest_type': 'mega',         'winner_percentage': 40},
-    {'name': 'Classic H2H',        'prize_pool': '₹500',     'total_spots': 2,      'filled_spots': 0,      'entry_fee': 10,  'contest_type': 'head-to-head', 'winner_percentage': 50},
+    {'name': 'Classic H2H',        'prize_pool': '${_currencySymbol}500',     'total_spots': 2,      'filled_spots': 0,      'entry_fee': 10,  'contest_type': 'head-to-head', 'winner_percentage': 50},
   ];
 
   @override
@@ -76,13 +118,49 @@ class _EsContestScreenState extends State<EsContestScreen>
       child: Column(children: [
         // Match selector
         if (widget.matches.isNotEmpty) _matchSelector(),
-        // Filter tab bar
-        _filterBar(),
-        // Contest list
-        Expanded(child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : _contestList()),
+        
+        // Main Tabs (Contests | My Teams)
+        Container(
+          color: Colors.white,
+          child: Row(
+            children: [
+              Expanded(child: _mainTabBtn('Contests', 0)),
+              Expanded(child: _mainTabBtn('My Teams (${_myTeams.length})', 1)),
+            ],
+          ),
+        ),
+        
+        if (_mainTab == 0) ...[
+          // Filter tab bar
+          _filterBar(),
+          // Contest list
+          Expanded(child: _loading
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              : _contestList()),
+        ] else ...[
+          Expanded(child: _loadingTeams
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              : _myTeamsList()),
+        ]
       ]),
+    );
+  }
+
+  Widget _mainTabBtn(String label, int index) {
+    bool sel = _mainTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _mainTab = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: sel ? AppColors.primary : Colors.transparent, width: 2.5)),
+        ),
+        child: Text(label, textAlign: TextAlign.center, style: TextStyle(
+          color: sel ? AppColors.primary : Colors.grey[500],
+          fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+          fontSize: 14,
+        )),
+      ),
     );
   }
 
@@ -161,6 +239,91 @@ class _EsContestScreenState extends State<EsContestScreen>
         itemBuilder: (_, i) => _contestCard(_contests[i] as Map<String, dynamic>? ?? {})));
   }
 
+  // ── MY TEAMS LIST ─────────────────────────────────────────────────────────
+  Widget _myTeamsList() {
+    if (_myTeams.isEmpty) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.shield_outlined, size: 56, color: Colors.grey[300]),
+        const SizedBox(height: 12),
+        Text('No teams created yet', style: TextStyle(color: Colors.grey[500], fontSize: 15)),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () {
+            if (_selectedMatch != null) {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => EsCreateTeamScreen(matchData: _selectedMatch!),
+              )).then((_) => _loadContests());
+            }
+          },
+          icon: const Icon(Icons.add), label: const Text('Create Team'),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
+        ),
+      ]));
+    }
+    return RefreshIndicator(
+      onRefresh: _loadContests,
+      color: AppColors.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 80),
+        itemCount: _myTeams.length,
+        itemBuilder: (_, i) => _teamCard(_myTeams[i]),
+      ),
+    );
+  }
+
+  Widget _teamCard(Map<String, dynamic> team) {
+    final name = team['name']?.toString() ?? 'My Team';
+    final pts = team['points']?.toString() ?? '0.0';
+    final players = team['players'] as List<dynamic>? ?? [];
+    
+    // Find Cap and VC
+    String capName = '-', vcName = '-';
+    for (var p in players) {
+      final pivot = p['pivot'] as Map<String, dynamic>? ?? {};
+      if (pivot['is_captain'] == 1 || pivot['is_captain'] == true) capName = p['name'] ?? '-';
+      if (pivot['is_vice_captain'] == 1 || pivot['is_vice_captain'] == true) vcName = p['name'] ?? '-';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('$pts pts', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('CAPTAIN (2x)', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text(capName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ])),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('VICE CAPTAIN (1.5x)', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text(vcName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ])),
+          ]),
+        ],
+      ),
+    );
+  }
+
   // ── CONTEST CARD ──────────────────────────────────────────────────────────
   Widget _contestCard(Map<String, dynamic> c) {
     final totalSpots  = (c['max_participants'] as num?)?.toInt() ?? (c['total_spots'] as num?)?.toInt() ?? 2;
@@ -168,7 +331,7 @@ class _EsContestScreenState extends State<EsContestScreen>
     final fee         = double.tryParse(c['entry_fee']?.toString() ?? '0')?.toInt() ?? 0;
     final isFree      = fee == 0;
     final prizeAmt    = double.tryParse(c['prize_pool']?.toString() ?? '0')?.toInt() ?? 0;
-    final prize       = prizeAmt > 0 ? '₹${prizeAmt.toString()}' : c['prize_pool']?.toString() ?? '₹0';
+    final prize       = prizeAmt > 0 ? '${_currencySymbol}${prizeAmt.toString()}' : c['prize_pool']?.toString() ?? '${_currencySymbol}0';
     final winners     = double.tryParse(c['winner_percentage']?.toString() ?? '50')?.toInt() ?? 50;
     final spotsLeft   = totalSpots - filledSpots;
     final progress    = totalSpots > 0 ? (filledSpots / totalSpots).clamp(0.0, 1.0) : 0.0;
@@ -203,7 +366,7 @@ class _EsContestScreenState extends State<EsContestScreen>
               const SizedBox(height: 2),
               Row(children: [
                 Text('Prize Pool  ', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                Text(prize.startsWith('₹') ? prize : '₹$prize',
+                Text(prize.startsWith('${_currencySymbol}') ? prize : '${_currencySymbol}$prize',
                   style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 14)),
               ]),
             ])),
@@ -215,7 +378,7 @@ class _EsContestScreenState extends State<EsContestScreen>
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: isFree ? Colors.green.withOpacity(0.5) : AppColors.primary.withOpacity(0.3)),
               ),
-              child: Text(isFree ? 'FREE' : '₹$fee',
+              child: Text(isFree ? 'FREE' : '${_currencySymbol}$fee',
                 style: TextStyle(color: isFree ? Colors.green : AppColors.primary, fontWeight: FontWeight.bold, fontSize: 15)),
             ),
           ]),
@@ -251,7 +414,7 @@ class _EsContestScreenState extends State<EsContestScreen>
               onPressed: spotsLeft > 0 ? () => _join(c) : null,
               icon: const Icon(Icons.group_add_rounded, size: 18),
               label: Text(spotsLeft > 0
-                  ? (isFree ? 'Join Free' : 'Join Contest  ₹$fee')
+                  ? (isFree ? 'Join Free' : 'Join Contest  ${_currencySymbol}$fee')
                   : 'Contest Full',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               style: ElevatedButton.styleFrom(
@@ -292,8 +455,8 @@ class _EsContestScreenState extends State<EsContestScreen>
             const Divider(height: 24),
             _detailRow('Total Spots', c['max_participants']?.toString() ?? c['total_spots']?.toString() ?? '-'),
             _detailRow('Spots Filled', c['current_participants']?.toString() ?? c['filled_spots']?.toString() ?? '-'),
-            _detailRow('Entry Fee', '₹${c['entry_fee']?.toString() ?? '0'}'),
-            _detailRow('Prize Pool', '₹${c['prize_pool']?.toString() ?? '0'}'),
+            _detailRow('Entry Fee', '${_currencySymbol}${c['entry_fee']?.toString() ?? '0'}'),
+            _detailRow('Prize Pool', '${_currencySymbol}${c['prize_pool']?.toString() ?? '0'}'),
             _detailRow('Winners', '${c['winner_percentage']?.toString() ?? '50'}%'),
             _detailRow('Multiple Entries', (c['multiple_entries'] == true) ? 'Allowed' : 'Not Allowed'),
             _detailRow('Contest Type', (c['type']?.toString().toUpperCase() ?? 'PUBLIC')),

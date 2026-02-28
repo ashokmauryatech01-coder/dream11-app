@@ -2,11 +2,12 @@ import 'api_client.dart';
 
 class AuthService {
   /// Login with email + password. Returns token + user on success.
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password, {String? ip}) async {
     final response = await ApiClient.post('/auth/login', {
       'email': email,
       'password': password,
       'user_type': 'user',
+      if (ip != null) 'ip_address': ip,
     });
 
     if (response != null &&
@@ -25,8 +26,9 @@ class AuthService {
     String name,
     String email,
     String phone,
-    String password,
-  ) async {
+    String password, {
+    String? ip,
+  }) async {
     final response = await ApiClient.post('/auth/register', {
       'name': name,
       'email': email,
@@ -34,6 +36,7 @@ class AuthService {
       'password': password,
       'password_confirmation': password,
       'user_type': 'user',
+      if (ip != null) 'ip_address': ip,
     });
 
     if (response != null &&

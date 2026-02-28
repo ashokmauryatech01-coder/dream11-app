@@ -2,72 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
-import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
+import 'package:fantasy_crick/core/services/location_service.dart';
 
-class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+class MobileLoginScreen extends StatefulWidget {
+  const MobileLoginScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  State<MobileLoginScreen> createState() => _MobileLoginScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
+class _MobileLoginScreenState extends State<MobileLoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
-
   bool _loading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
-
+  String _countryCode = '+91';
   final AuthService _authService = AuthService();
 
   @override
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    final data = await LocationService.getLocationData();
+    if (mounted) {
+      setState(() {
+        _countryCode = data['country_calling_code'] ?? '+91';
+      });
+    }
+  }
+
+  @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleSignUp() async {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
+  Future<void> _handleSendOTP() async {
     final phone = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (name.isEmpty ||
-        email.isEmpty ||
-        phone.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
+    if (phone.isEmpty) {
       await BeautyDialog.show(context,
-          title: 'Incomplete Details',
-          message: 'Please fill all fields to create your account.',
-          type: BeautyDialogType.warning);
-      return;
-    }
-
-    if (password != confirmPassword) {
-      await BeautyDialog.show(context,
-          title: 'Password Mismatch',
-          message: 'The passwords you entered do not match.',
-          type: BeautyDialogType.error);
-      return;
-    }
-
-    if (password.length < 6) {
-      await BeautyDialog.show(context,
-          title: 'Weak Password',
-          message: 'Password must be at least 6 characters.',
+          title: 'Enter Phone Number',
+          message: 'Please provide your mobile number to receive an OTP.',
           type: BeautyDialogType.warning);
       return;
     }
@@ -75,33 +54,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _loading = true);
 
     try {
-      await _authService.signUp(name, email, phone, password);
+      final fullPhone = '$_countryCode$phone';
+      await _authService.sendOTP(fullPhone);
 
       if (!mounted) return;
       setState(() => _loading = false);
 
-      await BeautyDialog.show(
+      Navigator.push(
         context,
-        title: 'Account Created! 🎉',
-        message:
-            'Your account is ready. Please verify the OTP sent to $email.',
-        type: BeautyDialogType.success,
-        confirmText: 'Verify OTP',
-        onConfirm: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OtpVerificationScreen(sentTo: email),
-            ),
-          );
-        },
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(sentTo: fullPhone),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
       final msg = e.toString().replaceFirst('Exception: ', '');
       await BeautyDialog.show(context,
-          title: 'Sign Up Failed',
+          title: 'OTP Failed',
           message: msg,
           type: BeautyDialogType.error);
     }
@@ -111,16 +81,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.text),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-
-              // Icon
               Container(
                 width: 90,
                 height: 90,
@@ -128,109 +103,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.person_add_alt_1,
-                  size: 48,
-                  color: AppColors.primary,
-                ),
+                child: const Icon(Icons.phone_android_rounded, size: 48, color: AppColors.primary),
               ),
-              const SizedBox(height: 20),
-
-              const Text(
-                'Create Account',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-              ),
+              const SizedBox(height: 24),
+              const Text('Login with Mobile',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text)),
               const SizedBox(height: 8),
-              const Text(
-                'Join the fantasy cricket world',
-                style: TextStyle(fontSize: 15, color: AppColors.textLight),
-              ),
+              const Text('We will send a 4-digit OTP to verify',
+                style: TextStyle(fontSize: 16, color: AppColors.textLight)),
+              const SizedBox(height: 48),
+              
+              _buildPhoneField(),
+              
               const SizedBox(height: 32),
-
-              _buildTextField(
-                controller: _nameController,
-                label: 'Full Name',
-                hint: 'Enter your full name',
-                prefixIcon: Icons.person_outline,
-              ),
-              const SizedBox(height: 16),
-
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email',
-                hint: 'Enter your email',
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: Icons.email_outlined,
-              ),
-              const SizedBox(height: 16),
-
-              _buildTextField(
-                controller: _phoneController,
-                label: 'Phone Number',
-                hint: 'Enter your phone number',
-                keyboardType: TextInputType.phone,
-                prefixIcon: Icons.phone_outlined,
-              ),
-              const SizedBox(height: 16),
-
-              _buildPasswordField(
-                controller: _passwordController,
-                label: 'Password',
-                hint: 'Create a password',
-                obscure: _obscurePassword,
-                onToggle: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              ),
-              const SizedBox(height: 16),
-
-              _buildPasswordField(
-                controller: _confirmPasswordController,
-                label: 'Confirm Password',
-                hint: 'Confirm your password',
-                obscure: _obscureConfirm,
-                onToggle: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-              const SizedBox(height: 28),
-
               CustomButton(
-                title: 'Create Account',
-                onTap: _handleSignUp,
+                title: 'Continue',
+                onTap: _handleSendOTP,
                 loading: _loading,
               ),
-
-              const SizedBox(height: 24),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Already have an account? ',
-                    style: TextStyle(color: AppColors.textLight),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SignInScreen()),
-                      );
-                    },
-                    child: const Text(
-                      'Sign In',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -238,21 +128,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    TextInputType keyboardType = TextInputType.text,
-    IconData? prefixIcon,
-  }) {
+  Widget _buildPhoneField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text)),
+        const Text('Phone Number',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.text)),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -267,77 +148,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ],
           ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: AppColors.text),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textLight),
-              border: InputBorder.none,
-              prefixIcon: prefixIcon != null
-                  ? Icon(prefixIcon, color: AppColors.textLight)
-                  : null,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required bool obscure,
-    required VoidCallback onToggle,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(_countryCode,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.text)),
               ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscure,
-            style: const TextStyle(color: AppColors.text),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textLight),
-              border: InputBorder.none,
-              prefixIcon:
-                  const Icon(Icons.lock_outline, color: AppColors.textLight),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  obscure
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: AppColors.textLight,
+              Container(width: 1, height: 24, color: AppColors.border),
+              Expanded(
+                child: TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  style: const TextStyle(fontSize: 16, color: AppColors.text),
+                  decoration: const InputDecoration(
+                    hintText: '000 000 0000',
+                    hintStyle: TextStyle(color: AppColors.textLight),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
                 ),
-                onPressed: onToggle,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-            ),
+            ],
           ),
         ),
       ],

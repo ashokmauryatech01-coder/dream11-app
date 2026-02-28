@@ -5,6 +5,7 @@ import 'package:fantasy_crick/core/services/auth_service.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
+import 'package:fantasy_crick/core/services/location_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -24,6 +25,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _loading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  String _countryCode = '+91';
+  String _userIp = '';
 
   final AuthService _authService = AuthService();
 
@@ -75,7 +78,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _loading = true);
 
     try {
-      await _authService.signUp(name, email, phone, password);
+      final fullPhone = '$_countryCode$phone';
+      await _authService.signUp(name, email, fullPhone, password);
 
       if (!mounted) return;
       setState(() => _loading = false);
@@ -168,12 +172,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              _buildTextField(
+              _buildPhoneField(
                 controller: _phoneController,
                 label: 'Phone Number',
                 hint: 'Enter your phone number',
-                keyboardType: TextInputType.phone,
-                prefixIcon: Icons.phone_outlined,
+                countryCode: _countryCode,
               ),
               const SizedBox(height: 16),
 
@@ -338,6 +341,86 @@ class _SignUpScreenState extends State<SignUpScreen> {
               contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 14),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    final data = await LocationService.getLocationData();
+    if (mounted) {
+      setState(() {
+        _countryCode = data['country_calling_code'] ?? '+91';
+        _userIp = data['ip'] ?? '';
+      });
+    }
+  }
+
+  Widget _buildPhoneField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required String countryCode,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  countryCode,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: AppColors.text),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 24,
+                color: AppColors.border,
+              ),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.phone,
+                  style: const TextStyle(color: AppColors.text),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: const TextStyle(color: AppColors.textLight),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

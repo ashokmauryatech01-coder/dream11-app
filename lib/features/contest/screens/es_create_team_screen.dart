@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
+import 'package:fantasy_crick/core/services/teams_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MODEL
@@ -43,6 +44,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
 
   // ── state ──────────────────────────────────────────────────────────────────
   bool _loading = true;
+  bool _submitting = false;
   String? _error;
   List<_Player> _players = [];
   final Set<String> _selected = {};
@@ -771,59 +773,113 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         ])),
         const SizedBox(width: 12),
         GestureDetector(
-          onTap: ready ? _submit : null,
+          onTap: (ready && !_submitting) ? _submit : null,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: BoxDecoration(
-              gradient: ready
+              gradient: (ready && !_submitting)
                   ? const LinearGradient(colors: [Color(0xFF1B5E20), Color(0xFF43A047)])
                   : LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade300]),
               borderRadius: BorderRadius.circular(28),
             ),
-            child: const Text('Create Team 🏏',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            child: _submitting
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('Create Team 🏏',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
           ),
         ),
       ]),
     );
   }
 
-  void _submit() {
-    final cap = _players.firstWhere((p) => p.id == _captainId);
-    final vc  = _players.firstWhere((p) => p.id == _vcId);
-    showDialog(
-      context: context, barrierDismissible: false,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.emoji_events_rounded, size: 64, color: Colors.orange),
-          const SizedBox(height: 16),
-          const Text('Team Created! 🎉',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
-          const SizedBox(height: 16),
-          Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(
-            color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200)),
-            child: Column(children: [
-              _row('Players',       '$_count/11'),
-              _row('Credits Used',  '${_usedCredits.toStringAsFixed(1)} / ${_totalCredits.toStringAsFixed(0)}'),
-              _row('Captain (2x)',  cap.name),
-              _row('Vice-Capt (1.5x)', vc.name),
-            ]),
+  Future<void> _submit() async {
+    if (_captainId == null || _vcId == null) {
+      _snack('Please select Captain and Vice-Captain');
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    try {
+      final matchId = widget.matchData?['match_id'] as int? ?? 1;
+      final playerIds = _selected.map((id) => int.tryParse(id) ?? 0).where((id) => id != 0).toList();
+      final captId = int.tryParse(_captainId!) ?? 0;
+      final viceCaptId = int.tryParse(_vcId!) ?? 0;
+
+      final service = TeamsService();
+      await service.saveTeam(
+        name: "My Team ${DateTime.now().millisecondsSinceEpoch}",
+        matchId: matchId,
+        playerIds: playerIds,
+        captainId: captId,
+        viceCaptainId: viceCaptId,
+      );
+
+      if (!mounted) return;
+      setState(() => _submitting = false);
+
+      final cap = _players.firstWhere((p) => p.id == _captainId);
+      final vc = _players.firstWhere((p) => p.id == _vcId);
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.emoji_events_rounded, size: 64, color: Colors.orange),
+                const SizedBox(height: 16),
+                const Text('Team Created! 🎉', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      _row('Players', '$_count/11'),
+                      _row('Credits Used', '${_usedCredits.toStringAsFixed(1)} / ${_totalCredits.toStringAsFixed(0)}'),
+                      _row('Captain (2x)', cap.name),
+                      _row('Vice-Capt (1.5x)', vc.name),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pop(context); // Close Captain Screen
+                      Navigator.pop(context); // Go back to match details
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity, child: ElevatedButton(
-            onPressed: () { Navigator.pop(context); Navigator.pop(context); },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          )),
-        ])),
-      ),
-    );
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _snack('Error saving team: $e');
+    }
   }
 
   Widget _row(String l, String v) => Padding(

@@ -1,5 +1,6 @@
 import 'package:fantasy_crick/models/cricket_team_model.dart';
 import 'package:fantasy_crick/core/services/cricket_api_service.dart';
+import 'api_client.dart';
 
 /// ============================================================================
 /// TEAMS SERVICE - Updated for CricAPI
@@ -99,6 +100,46 @@ class TeamsService {
   /// Fetch women's cricket teams
   Future<List<CricketTeamModel>> getWomenTeams() async {
     return getAllTeams();
+  }
+
+  /// Fetch matches user joined or created teams for (dummy implementation or API)
+  Future<List<Map<String, dynamic>>> getMyTeams(int matchId) async {
+    try {
+      final response = await ApiClient.get('/teams');
+      if (response != null && response['success'] == true) {
+        final data = response['data']?['teams'] as List<dynamic>? ?? [];
+        return data
+            .where((t) => t['match_id'] == matchId)
+            .map((t) => t as Map<String, dynamic>)
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Save a new team to the backend
+  Future<Map<String, dynamic>> saveTeam({
+    required String name,
+    required int matchId,
+    required List<int> playerIds,
+    required int captainId,
+    required int viceCaptainId,
+  }) async {
+    final response = await ApiClient.post('/teams', {
+      'name': name,
+      'match_id': matchId,
+      'players': playerIds,
+      'captain_id': captainId,
+      'vice_captain_id': viceCaptainId,
+    });
+
+    if (response != null && response['success'] != false) {
+      return response;
+    }
+
+    throw Exception(response?['message'] ?? 'Failed to save team.');
   }
 
   /// Helper to generate short name

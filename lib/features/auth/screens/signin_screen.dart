@@ -3,9 +3,11 @@ import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
 import 'package:fantasy_crick/features/auth/screens/signup_screen.dart';
+import 'package:fantasy_crick/features/auth/screens/mobile_login_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/forgot_password_screen.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
+import 'package:fantasy_crick/core/services/location_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -19,7 +21,23 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _loading = false;
   bool _obscurePassword = true;
+  String _userIp = '';
   final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    final data = await LocationService.getLocationData();
+    if (mounted) {
+      setState(() {
+        _userIp = data['ip'] ?? '';
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -45,7 +63,7 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _loading = true);
 
     try {
-      await _authService.login(email, password);
+      await _authService.login(email, password, ip: _userIp);
 
       if (!mounted) return;
 
@@ -175,7 +193,32 @@ class _SignInScreenState extends State<SignInScreen> {
                 loading: _loading,
               ),
 
-              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Try another way? ",
+                    style: TextStyle(color: AppColors.textLight),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MobileLoginScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'Login with Mobile',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
