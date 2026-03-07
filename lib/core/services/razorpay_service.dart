@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:razorpay_flutter/razorpay_flutter';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:fantasy_crick/core/constants/app_constants.dart';
 
 class RazorpayService {
@@ -49,6 +49,7 @@ class RazorpayService {
       _razorpay.open(options);
     } catch (e) {
       debugPrint('Error opening Razorpay: $e');
+      onPaymentError?.call('Payment initialization failed: $e');
     }
   }
 

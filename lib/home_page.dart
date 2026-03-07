@@ -41,16 +41,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  void _makePayment() {
-    _razorpayService.openPayment(
-      name: 'Segga Sportzz',
-      description: 'Contest Entry Fee',
-      amount: 50.0, // ₹50
-      contact: '9999999999',
-      email: 'user@example.com',
-    );
-  }
-
   void _showMessage(String title, String message, bool isSuccess) {
     showDialog(
       context: context,
@@ -158,28 +148,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   Widget _buildTabContent(String text) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            text,
-            style: const TextStyle(fontSize: 18, color: AppColors.text, fontWeight: FontWeight.bold),
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.pushNamed(context, '/add-cash');
+        },
+        icon: const Icon(Icons.account_balance_wallet),
+        label: const Text('Add Cash to Wallet'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: _makePayment,
-            icon: const Icon(Icons.payment),
-            label: const Text('Pay ₹50 - Demo Payment'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

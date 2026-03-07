@@ -12,9 +12,10 @@ class EsEditProfileScreen extends StatefulWidget {
 
 class _EsEditProfileScreenState extends State<EsEditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameCtrl;
-  late TextEditingController _emailCtrl;
-  late TextEditingController _phoneCtrl;
+  TextEditingController? _nameCtrl;
+  TextEditingController? _emailCtrl;
+  TextEditingController? _phoneCtrl;
+  TextEditingController? _upiCtrl;
   bool _saving = false;
 
   @override
@@ -23,13 +24,15 @@ class _EsEditProfileScreenState extends State<EsEditProfileScreen> {
     _nameCtrl = TextEditingController(text: widget.initialProfile?['name']?.toString() ?? '');
     _emailCtrl = TextEditingController(text: widget.initialProfile?['email']?.toString() ?? '');
     _phoneCtrl = TextEditingController(text: widget.initialProfile?['phone']?.toString() ?? '');
+    _upiCtrl = TextEditingController(text: widget.initialProfile?['upi_id']?.toString() ?? '');
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
-    _phoneCtrl.dispose();
+    _nameCtrl?.dispose();
+    _emailCtrl?.dispose();
+    _phoneCtrl?.dispose();
+    _upiCtrl?.dispose();
     super.dispose();
   }
 
@@ -39,9 +42,10 @@ class _EsEditProfileScreenState extends State<EsEditProfileScreen> {
     
     try {
       final res = await ApiClient.post('/user/profile/update', {
-        'name': _nameCtrl.text.trim(),
-        'email': _emailCtrl.text.trim(),
-        'phone': _phoneCtrl.text.trim(),
+        'name': _nameCtrl?.text.trim() ?? '',
+        'email': _emailCtrl?.text.trim() ?? '',
+        'phone': _phoneCtrl?.text.trim() ?? '',
+        'upi_id': _upiCtrl?.text.trim() ?? '',
       });
       if (!mounted) return;
       
@@ -89,7 +93,7 @@ class _EsEditProfileScreenState extends State<EsEditProfileScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          _nameCtrl.text.isNotEmpty ? _nameCtrl.text[0].toUpperCase() : '?',
+                          _nameCtrl?.text.isNotEmpty == true ? _nameCtrl!.text[0].toUpperCase() : '?',
                           style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
                         ),
                       ),
@@ -128,6 +132,22 @@ class _EsEditProfileScreenState extends State<EsEditProfileScreen> {
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,
                 decoration: _inputDecoration(Icons.phone_rounded, 'Enter your phone number'),
+              ),
+              const SizedBox(height: 20),
+              
+              _inputLabel('UPI ID'),
+              TextFormField(
+                controller: _upiCtrl,
+                decoration: _inputDecoration(Icons.account_balance_wallet_rounded, 'Enter your UPI ID'),
+                validator: (v) {
+                  if (v != null && v.isNotEmpty) {
+                    // Basic UPI ID validation (format: username@bankname)
+                    if (!v.contains('@') || v.split('@').length != 2) {
+                      return 'Enter a valid UPI ID (e.g., username@bankname)';
+                    }
+                  }
+                  return null;
+                },
               ),
               
               const SizedBox(height: 40),

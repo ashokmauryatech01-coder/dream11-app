@@ -4,6 +4,8 @@ import 'package:fantasy_crick/features/splash/screens/splash_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/features/profile/screens/es_how_to_play_screen.dart';
+import 'package:fantasy_crick/features/profile/screens/privacy_policy_screen.dart';
+import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,6 +29,8 @@ class MyApp extends StatelessWidget {
         '/signin': (context) => const SignInScreen(),
         '/home': (context) => const HomeScreen(),
         '/how-to-play': (context) => const EsHowToPlayScreen(),
+        '/add-cash': (context) => const AddCashScreen(),
+        '/privacy-policy': (context) => const PrivacyPolicyScreen(),
       },
     );
   }

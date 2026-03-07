@@ -4,6 +4,7 @@ import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
+import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PROFILE SCREEN  — white background, light cards, real API
@@ -381,27 +382,18 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           'Add Cash',
           'Top up your wallet',
           Colors.green,
-          () {},
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AddCashScreen()),
+            );
+          },
         ),
         _menuItem(
           Icons.arrow_downward_rounded,
           'Withdraw',
           'Withdraw winnings',
           Colors.teal,
-          () {},
-        ),
-        _menuItem(
-          Icons.card_giftcard_rounded,
-          'Refer & Earn',
-          'Get ${LocationService.formatAmount(100, _location)} per referral',
-          Colors.pink,
-          () {},
-        ),
-        _menuItem(
-          Icons.verified_user_rounded,
-          'KYC Verify',
-          'Complete your verification',
-          Colors.indigo,
           () {},
         ),
       ]),
@@ -435,7 +427,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           'Privacy Policy',
           'How we use your data',
           Colors.grey,
-          () {},
+          () {
+            Navigator.pushNamed(context, '/privacy-policy');
+          },
         ),
       ]),
       const SizedBox(height: 14),
@@ -563,7 +557,14 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   );
 
   Widget _walletBtn(String label, Color bg, Color fg) => GestureDetector(
-    onTap: () {},
+    onTap: () {
+      if (label.contains('Add Cash')) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddCashScreen()),
+        );
+      }
+    },
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
