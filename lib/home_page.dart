@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
+import 'package:fantasy_crick/core/services/razorpay_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,17 +11,64 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final RazorpayService _razorpayService = RazorpayService();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initializeRazorpay();
+  }
+
+  void _initializeRazorpay() {
+    _razorpayService.initialize(
+      onPaymentSuccess: (paymentId) {
+        _showMessage('Payment Successful!', 'Payment ID: $paymentId', true);
+      },
+      onPaymentError: (error) {
+        _showMessage('Payment Failed', error, false);
+      },
+      onPaymentExternalWallet: (walletName) {
+        _showMessage('External Wallet', 'Selected wallet: $walletName', true);
+      },
+    );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _razorpayService.dispose();
     super.dispose();
+  }
+
+  void _makePayment() {
+    _razorpayService.openPayment(
+      name: 'Segga Sportzz',
+      description: 'Contest Entry Fee',
+      amount: 50.0, // ₹50
+      contact: '9999999999',
+      email: 'user@example.com',
+    );
+  }
+
+  void _showMessage(String title, String message, bool isSuccess) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        icon: Icon(
+          isSuccess ? Icons.check_circle : Icons.error,
+          color: isSuccess ? Colors.green : Colors.red,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -110,9 +158,28 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   Widget _buildTabContent(String text) {
     return Center(
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 18, color: AppColors.text, fontWeight: FontWeight.bold),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            text,
+            style: const TextStyle(fontSize: 18, color: AppColors.text, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
+            onPressed: _makePayment,
+            icon: const Icon(Icons.payment),
+            label: const Text('Pay ₹50 - Demo Payment'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
