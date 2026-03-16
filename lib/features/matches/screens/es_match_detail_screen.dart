@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
@@ -21,6 +22,10 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
   bool _loadingPoints = false;
   // auto-refresh for live matches
   bool _autoRefresh = false;
+  Timer? _pollingTimer;
+  String? _lastBallId;
+  int? _boundaryScore;
+  bool _showingAnimation = false;
 
   @override
   void initState() {
@@ -39,34 +44,84 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     if (status == 3) {
       _loadScorecard(); // auto-load live scorecard
       _autoRefresh = true;
+      _startPolling();
     }
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted && _isLive) {
+        _loadScorecard(isPolling: true);
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _stopPolling();
     super.dispose();
   }
 
   int get _matchId => widget.matchData['match_id'] as int? ?? 0;
 
-  Future<void> _loadScorecard() async {
+  Future<void> _loadScorecard({bool isPolling = false}) async {
     if (_matchId == 0) return;
-    setState(() => _loadingScorecard = true);
+    if (!isPolling) setState(() => _loadingScorecard = true);
     try {
       final res = await Future.wait([
         EntitySportService.getScorecard(_matchId),
         if (_isLive || _isFinished) EntitySportService.getLiveScore(_matchId),
       ]);
       if (!mounted) return;
+
+      final liveData = res.length > 1 ? res[1] as Map<String, dynamic>? : null;
+      if (liveData != null && liveData.isNotEmpty) {
+        final comms = liveData['commentaries'] as List<dynamic>? ?? [];
+        if (comms.isNotEmpty) {
+          final first = comms.first as Map<String, dynamic>?;
+          if (first != null) {
+            final ballId = "${first['over']}.${first['ball']}";
+            final score = first['score'] as int? ?? 0;
+            
+            // Trigger animation if it's a new 4 or 6
+            if (ballId != _lastBallId && (score == 4 || score == 6)) {
+              _triggerBoundaryAnimation(score);
+            }
+            _lastBallId = ballId;
+          }
+        }
+      }
+
       setState(() {
         _scorecard = res[0];
-        if (res.length > 1) _liveScore = res[1];
+        if (liveData != null) _liveScore = liveData;
         _loadingScorecard = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loadingScorecard = false);
     }
+  }
+
+  void _triggerBoundaryAnimation(int score) {
+    if (_showingAnimation) return;
+    setState(() {
+      _boundaryScore = score;
+      _showingAnimation = true;
+    });
+    // Hide after 3 seconds
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          _showingAnimation = false;
+        });
+      }
+    });
   }
 
   Future<void> _loadPoints() async {
@@ -90,69 +145,85 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1B2033),
-      body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
-          SliverAppBar(
-            expandedHeight: 240,
-            pinned: true,
-            backgroundColor: AppColors.primary,
-            iconTheme: const IconThemeData(color: Colors.white),
-            title: Text(
-              widget.matchData['short_title']?.toString() ?? 'Match Detail',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-            actions: [
-              if (_isLive)
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                  onPressed: _loadScorecard,
-                  tooltip: 'Refresh scorecard',
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFF1B2033),
+          body: NestedScrollView(
+            headerSliverBuilder: (_, __) => [
+              SliverAppBar(
+                expandedHeight: 240,
+                pinned: true,
+                backgroundColor: AppColors.primary,
+                iconTheme: const IconThemeData(color: Colors.white),
+                title: Text(
+                  widget.matchData['short_title']?.toString() ?? 'Match Detail',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: ClipRect(child: _buildHeroHeader()),
-            ),
-            bottom: TabBar(
-              controller: _tabController,
-              indicatorColor: Colors.white,
-              indicatorWeight: 2.5,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+                actions: [
+                  if (_isLive)
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                      onPressed: _loadScorecard,
+                      tooltip: 'Refresh scorecard',
+                    ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: ClipRect(child: _buildHeroHeader()),
+                ),
+                bottom: TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 2.5,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white54,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Match Info'),
+                    Tab(text: 'Scorecard'),
+                    Tab(text: 'Fantasy Pts'),
+                  ],
+                ),
               ),
-              tabs: const [
-                Tab(text: 'Match Info'),
-                Tab(text: 'Scorecard'),
-                Tab(text: 'Fantasy Pts'),
-              ],
+            ],
+            body: TabBarView(
+              controller: _tabController,
+              children: [_matchInfoTab(), _scorecardTab(), _fantasyPointsTab()],
             ),
           ),
-        ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [_matchInfoTab(), _scorecardTab(), _fantasyPointsTab()],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => EsCreateTeamScreen(matchData: widget.matchData),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EsCreateTeamScreen(matchData: widget.matchData),
+              ),
+            ),
+            backgroundColor: AppColors.primary,
+            icon: const Icon(Icons.group_add_rounded, color: Colors.white),
+            label: const Text(
+              'Create Team',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.group_add_rounded, color: Colors.white),
-        label: const Text(
-          'Create Team',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        if (_showingAnimation) _buildBoundaryOverlay(),
+      ],
+    );
+  }
+
+  Widget _buildBoundaryOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black45,
+        child: Center(
+          child: _BoundaryTextAnimation(score: _boundaryScore ?? 4),
         ),
       ),
     );
@@ -1436,6 +1507,126 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           ),
         );
       },
+    );
+  }
+}
+
+class _BoundaryTextAnimation extends StatelessWidget {
+  final int score;
+  const _BoundaryTextAnimation({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    final String text = score == 6 ? "SIX!" : "FOUR!";
+    final List<Color> colors = score == 6
+        ? [Colors.greenAccent, Colors.green.shade800]
+        : [Colors.lightBlueAccent, Colors.blue.shade800];
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: value * 1.5,
+          child: Opacity(
+            opacity: value.clamp(0.0, 1.0),
+            child: child,
+          ),
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: colors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: colors[0].withOpacity(0.5),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 60,
+                fontWeight: FontWeight.w900,
+                fontStyle: FontStyle.italic,
+                letterSpacing: 4,
+                shadows: [
+                  Shadow(
+                    color: Colors.black45,
+                    offset: Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _BlinkingText(
+            text: "SPECTACULAR HIT!",
+            color: colors[0],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BlinkingText extends StatefulWidget {
+  final String text;
+  final Color color;
+  const _BlinkingText({required this.text, required this.color});
+
+  @override
+  State<_BlinkingText> createState() => _BlinkingTextState();
+}
+
+class _BlinkingTextState extends State<_BlinkingText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.2, end: 1.0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Text(
+        widget.text,
+        style: TextStyle(
+          color: widget.color,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2,
+        ),
+      ),
     );
   }
 }
