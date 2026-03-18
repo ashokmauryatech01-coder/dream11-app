@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
+import 'package:fantasy_crick/core/services/wallet_service.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -25,10 +26,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final profile = await ProfileService.getCompleteUserProfile();
       final wallet = await ProfileService.getUserWallets(0); // Will use saved user ID
+      final localBalance = await WalletService.getLocalBalance();
       
       setState(() {
         _userProfile = profile;
         _walletData = wallet;
+        if (_walletData != null) {
+          _walletData!['balance'] = localBalance;
+        } else {
+          _walletData = {'balance': localBalance};
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -196,8 +203,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           'Withdraw',
           'Withdraw Funds',
           isButton: true,
-          onTap: () {
-            Navigator.pushNamed(context, '/withdrawal');
+          onTap: () async {
+            await Navigator.pushNamed(context, '/withdrawal');
+            _loadUserProfile();
           },
         ),
       ],

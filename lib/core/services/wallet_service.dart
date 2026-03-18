@@ -3,8 +3,57 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class WalletService {
-  static const String _baseUrl = 'https://your-api-base-url.com/api/v1'; // Replace with your actual base URL
+  // TODO: Replace with your actual API configuration
+  static const String _baseUrl = 'https://173.208.188.172:8080/api/v1'; // Update with your server IP
   static const String _token = 'your-auth-token'; // Replace with your actual token
+
+  // Update local balance
+  static Future<double> updateLocalBalance(double amount) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentBalanceStr = prefs.getString('wallet_balance') ?? '0.0';
+      double currentBalance = double.tryParse(currentBalanceStr) ?? 0.0;
+      
+      double newBalance = currentBalance + amount;
+      await prefs.setString('wallet_balance', newBalance.toString());
+      
+      // Also update wallet_data if it exists
+      final walletDataStr = prefs.getString('wallet_data');
+      if (walletDataStr != null) {
+        final walletData = jsonDecode(walletDataStr) as Map<String, dynamic>;
+        walletData['balance'] = newBalance;
+        await prefs.setString('wallet_data', jsonEncode(walletData));
+      }
+      
+      return newBalance;
+    } catch (e) {
+      print('Error updating local balance: $e');
+      return 0.0;
+    }
+  }
+
+  // Get local balance
+  static Future<double> getLocalBalance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentBalanceStr = prefs.getString('wallet_balance') ?? '0.0';
+      return double.tryParse(currentBalanceStr) ?? 0.0;
+    } catch (e) {
+      print('Error getting local balance: $e');
+      return 0.0;
+    }
+  }
+
+  // Get auth token from SharedPreferences
+  static Future<String> _getToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('auth_token') ?? _token;
+    } catch (e) {
+      print('Error getting token: $e');
+      return _token;
+    }
+  }
 
   // 1. Create Wallet
   static Future<Map<String, dynamic>?> createWallet({
@@ -13,13 +62,14 @@ class WalletService {
     String description = 'Wallet created',
   }) async {
     try {
+      final token = await _getToken();
       final uri = Uri.parse('$_baseUrl/user/wallets/$userId/create');
       final response = await http.post(
         uri,
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
           'user_id': userId,
@@ -44,14 +94,18 @@ class WalletService {
   // 2. Get Wallet
   static Future<Map<String, dynamic>?> getWallets(int userId) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/get-wallets/$userId');
+      final token = await _getToken();
+      final uri = Uri.parse('$_baseUrl/user/get-wallets/$userId/');
+      _logRequest('GET', uri);
       final response = await http.get(
         uri,
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 15));
+      _logResponse('GET', uri, response);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -240,6 +294,7 @@ class WalletService {
     }
   }
 
+
   // Get saved wallet data
   static Future<Map<String, dynamic>> getSavedWalletData() async {
     try {
@@ -282,6 +337,14 @@ class WalletService {
   }) async {
     try {
       final uri = Uri.parse('$_baseUrl/user/add-funds');
+      _logRequest('POST', uri, body: {
+        'user_id': userId,
+        'wallet_id': walletId,
+        'amount': amount,
+        'payment_id': paymentId,
+        'payment_method': paymentMethod,
+        'description': 'Funds added via $paymentMethod',
+      });
       final response = await http.post(
         uri,
         headers: {
@@ -298,6 +361,7 @@ class WalletService {
           'description': 'Funds added via $paymentMethod',
         }),
       ).timeout(const Duration(seconds: 15));
+      _logResponse('POST', uri, response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -310,5 +374,21 @@ class WalletService {
       print('Error adding funds: $e');
       return null;
     }
+  }
+  static void _logRequest(String method, Uri url, {Map<String, dynamic>? body}) {
+    print('---------------- WALLET_SERVICE API REQUEST ----------------');
+    print('METHOD: $method');
+    print('URL: $url');
+    if (body != null) print('BODY: ${jsonEncode(body)}');
+    print('------------------------------------------------------------');
+  }
+
+  static void _logResponse(String method, Uri url, http.Response response) {
+    print('---------------- WALLET_SERVICE API RESPONSE ---------------');
+    print('METHOD: $method');
+    print('URL: $url');
+    print('STATUS CODE: ${response.statusCode}');
+    print('RESPONSE: ${response.body}');
+    print('------------------------------------------------------------');
   }
 }

@@ -149,8 +149,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget _buildTabContent(String text) {
     return Center(
       child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add-cash');
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/add-cash');
         },
         icon: const Icon(Icons.account_balance_wallet),
         label: const Text('Add Cash to Wallet'),

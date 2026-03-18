@@ -10,6 +10,7 @@ class UserProfileService {
   static Future<Map<String, dynamic>?> getUserProfile(int userId) async {
     try {
       final uri = Uri.parse('$_baseUrl/user/profile/$userId');
+      _logRequest('GET', uri);
       final response = await http.get(
         uri,
         headers: {
@@ -17,6 +18,7 @@ class UserProfileService {
           'Authorization': 'Bearer $_token',
         },
       ).timeout(const Duration(seconds: 15));
+      _logResponse('GET', uri, response);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -100,6 +102,7 @@ class UserProfileService {
         if (avatar != null) 'avatar': avatar,
       };
 
+      _logRequest('POST', uri, body: body);
       final response = await http.post(
         uri,
         headers: {
@@ -109,6 +112,7 @@ class UserProfileService {
         },
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 15));
+      _logResponse('POST', uri, response);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -205,5 +209,22 @@ class UserProfileService {
     } catch (e) {
       print('Error clearing user data: $e');
     }
+  }
+
+  static void _logRequest(String method, Uri url, {Map<String, dynamic>? body}) {
+    print('---------------- USER_PROFILE_SERVICE API REQUEST ----------------');
+    print('METHOD: $method');
+    print('URL: $url');
+    if (body != null) print('BODY: ${jsonEncode(body)}');
+    print('------------------------------------------------------------------');
+  }
+
+  static void _logResponse(String method, Uri url, http.Response response) {
+    print('---------------- USER_PROFILE_SERVICE API RESPONSE ---------------');
+    print('METHOD: $method');
+    print('URL: $url');
+    print('STATUS CODE: ${response.statusCode}');
+    print('RESPONSE: ${response.body}');
+    print('-------------------------------------------------------------------');
   }
 }

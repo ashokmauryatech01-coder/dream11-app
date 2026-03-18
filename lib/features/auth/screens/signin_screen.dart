@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
-import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
-import 'package:fantasy_crick/features/auth/screens/signup_screen.dart';
-import 'package:fantasy_crick/features/auth/screens/mobile_login_screen.dart';
-import 'package:fantasy_crick/features/auth/screens/forgot_password_screen.dart';
-import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
+import 'package:fantasy_crick/common/widgets/custom_button.dart';
+import 'package:fantasy_crick/features/auth/screens/signup_screen.dart';
+import 'package:fantasy_crick/features/home/screens/home_screen.dart';
+import 'package:fantasy_crick/main.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -74,7 +73,7 @@ class _SignInScreenState extends State<SignInScreen> {
         type: BeautyDialogType.success,
         confirmText: 'Continue',
         onConfirm: () {
-          Navigator.of(context).pushAndRemoveUntil(
+          navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const HomeScreen()),
             (route) => false,
           );
@@ -168,6 +167,7 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
 
               // Forgot password link
+              /*
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -184,6 +184,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
               ),
+              */
 
               const SizedBox(height: 8),
 
@@ -193,32 +194,6 @@ class _SignInScreenState extends State<SignInScreen> {
                 loading: _loading,
               ),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Try another way? ",
-                    style: TextStyle(color: AppColors.textLight),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const MobileLoginScreen()),
-                      );
-                    },
-                    child: const Text(
-                      'Login with Mobile',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

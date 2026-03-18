@@ -31,18 +31,45 @@ class ApiClient {
 
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
-    final response = await http.get(url, headers: await getHeaders());
+    _logRequest('GET', url);
+    final response = await http
+        .get(url, headers: await getHeaders())
+        .timeout(const Duration(seconds: 15));
+    _logResponse('GET', url, response);
     return _handleResponse(response);
   }
 
   static Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
     final url = Uri.parse('$baseUrl$endpoint');
-    final response = await http.post(
-      url,
-      headers: await getHeaders(),
-      body: jsonEncode(body),
-    );
+    _logRequest('POST', url, body: body);
+    final response = await http
+        .post(
+          url,
+          headers: await getHeaders(),
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 15));
+    _logResponse('POST', url, response);
     return _handleResponse(response);
+  }
+
+  static void _logRequest(String method, Uri url, {Map<String, dynamic>? body}) {
+    print('---------------- API REQUEST ----------------');
+    print('METHOD: $method');
+    print('URL: $url');
+    if (body != null) {
+      print('BODY: ${jsonEncode(body)}');
+    }
+    print('---------------------------------------------');
+  }
+
+  static void _logResponse(String method, Uri url, http.Response response) {
+    print('---------------- API RESPONSE ---------------');
+    print('METHOD: $method');
+    print('URL: $url');
+    print('STATUS CODE: ${response.statusCode}');
+    print('RESPONSE: ${response.body}');
+    print('---------------------------------------------');
   }
 
   static dynamic _handleResponse(http.Response response) {

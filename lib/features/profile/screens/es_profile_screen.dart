@@ -5,6 +5,7 @@ import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
+import 'package:fantasy_crick/core/services/wallet_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PROFILE SCREEN  — white background, light cards, real API
@@ -55,9 +56,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       if (!mounted) return;
 
       final profileData = results[0] as Map<String, dynamic>?;
+      final localBalance = await WalletService.getLocalBalance();
 
       setState(() {
-        _userObj = profileData?['user'] as Map<String, dynamic>?;
+        _userObj = profileData?['user'] as Map<String, dynamic>? ?? {};
+        _userObj!['wallet_balance'] = localBalance; // Prioritize local balance
+        
         _statsObj = profileData?['stats'] as Map<String, dynamic>?;
         _myTeams = results[1] as List<dynamic>? ?? [];
         _history = results[2] as List<dynamic>? ?? [];
@@ -357,8 +361,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           'Add Cash',
           'Add funds to wallet',
           Colors.green,
-          () {
-            Navigator.pushNamed(context, '/add-cash');
+          () async {
+            await Navigator.pushNamed(context, '/add-cash');
+            _load();
           },
         ),
         _menuItem(
@@ -366,8 +371,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           'Withdraw',
           'Withdraw funds to bank',
           Colors.red,
-          () {
-            Navigator.pushNamed(context, '/withdrawal');
+          () async {
+            await Navigator.pushNamed(context, '/withdrawal');
+            _load();
           },
         ),
         _menuItem(
@@ -393,11 +399,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           'Add Cash',
           'Top up your wallet',
           Colors.green,
-          () {
-            Navigator.push(
+          () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const AddCashScreen()),
             );
+            _load();
           },
         ),
         _menuItem(
@@ -508,12 +515,13 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       );
 
   Widget _walletBtn(String label, Color bg, Color fg) => GestureDetector(
-    onTap: () {
+    onTap: () async {
       if (label.contains('Add Cash')) {
-        Navigator.pushNamed(context, '/add-cash');
+        await Navigator.pushNamed(context, '/add-cash');
       } else if (label.contains('Withdraw')) {
-        Navigator.pushNamed(context, '/withdrawal');
+        await Navigator.pushNamed(context, '/withdrawal');
       }
+      _load();
     },
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

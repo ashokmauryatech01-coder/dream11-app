@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
-import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
-import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
-import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/core/constants/country_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fantasy_crick/main.dart';
+import 'package:fantasy_crick/common/widgets/custom_button.dart';
+import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -98,16 +98,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await BeautyDialog.show(
         context,
         title: 'Account Created! 🎉',
-        message:
-            'Your account is ready. Please verify the OTP sent to $phone.',
+        message: "Welcome! Your account is ready. Please log in to continue.",
         type: BeautyDialogType.success,
-        confirmText: 'Verify OTP',
+        confirmText: 'Go to Login',
         onConfirm: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OtpVerificationScreen(sentTo: phone),
-            ),
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const SignInScreen()),
+            (route) => false,
           );
         },
       );

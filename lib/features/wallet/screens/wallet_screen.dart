@@ -1,6 +1,8 @@
   import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
+import 'package:fantasy_crick/core/services/wallet_service.dart';
+import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -11,11 +13,28 @@ class WalletScreen extends StatefulWidget {
 
 class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  double _balance = 0.0;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadBalance();
+  }
+
+  Future<void> _loadBalance() async {
+    setState(() => _isLoading = true);
+    try {
+      final balance = await WalletService.getLocalBalance();
+      setState(() {
+        _balance = balance;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading balance: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -75,9 +94,9 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                   style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 16),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '₹5,234',
-                  style: TextStyle(color: AppColors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                Text(
+                  _isLoading ? '...' : '₹${_balance.toStringAsFixed(0)}',
+                  style: const TextStyle(color: AppColors.white, fontSize: 32, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -89,7 +108,13 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildActionButton('Add Money', Icons.add, () => _showAddMoneyDialog())),
+              Expanded(child: _buildActionButton('Add Money', Icons.add, () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddCashScreen()),
+                );
+                _loadBalance();
+              })),
               const SizedBox(width: 15),
               Expanded(child: _buildActionButton('Withdraw', Icons.upload, () => _tabController.animateTo(2))),
             ],
@@ -147,46 +172,6 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
     );
   }
 
-  void _showAddMoneyDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Money'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Enter Amount',
-                prefixText: '₹ ',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              BeautyDialog.show(
-                context,
-                title: 'Success',
-                message: 'Money added successfully!',
-                type: BeautyDialogType.success,
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showWithdrawDialog() {
     BeautyDialog.show(

@@ -29,10 +29,11 @@ class AuthService {
     String password, {
     String? ip,
   }) async {
+    final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/register', {
       'name': name,
       'email': email,
-      'phone': phone,
+      'phone': formattedPhone,
       'password': password,
       'password_confirmation': password,
       'user_type': 'user',
@@ -97,8 +98,9 @@ class AuthService {
 
   /// Verify phone/email OTP after registration.
   Future<void> verifyRegistrationOtp(String phone, String otp) async {
+    final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/verify-otp', {
-      'phone': phone,
+      'phone': formattedPhone,
       'user_type': 'user',
       'otp': otp,
     });
@@ -110,8 +112,9 @@ class AuthService {
 
   /// Send login OTP to phone number.
   Future<Map<String, dynamic>> sendOTP(String phone) async {
+    final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/send-otp', {
-      'phone': phone,
+      'phone': formattedPhone,
       'user_type': 'user',
     });
 
@@ -124,8 +127,9 @@ class AuthService {
 
   /// Resend login OTP to phone number.
   Future<Map<String, dynamic>> resendOTP(String phone) async {
+    final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/resend-otp', {
-      'phone': phone,
+      'phone': formattedPhone,
       'user_type': 'user',
     });
 
@@ -138,8 +142,9 @@ class AuthService {
 
   /// Verify phone OTP for login. Returns token + user on success.
   Future<Map<String, dynamic>> verifyOTPLogin(String phone, String otp) async {
+    final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/verify-otp', {
-      'phone': phone,
+      'phone': formattedPhone,
       'otp': otp,
       'user_type': 'user',
     });
@@ -151,6 +156,17 @@ class AuthService {
     }
 
     throw Exception(response?['message'] ?? 'OTP Login verification failed.');
+  }
+
+  static String _formatPhone(String phone) {
+    String p = phone.trim().replaceAll(' ', '').replaceAll('-', '');
+    if (!p.startsWith('+')) {
+      if (p.startsWith('91') && p.length == 12) {
+        return '+$p';
+      }
+      return '+91$p';
+    }
+    return p;
   }
 
   /// Logout and clear stored token.

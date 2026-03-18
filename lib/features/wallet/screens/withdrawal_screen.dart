@@ -20,7 +20,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   double _walletBalance = 0.0;
   bool _isLoading = true;
   bool _isProcessing = false;
-  int? _walletId;
   
   final List<double> _quickAmounts = [100, 200, 500, 1000, 2000, 5000];
   double _selectedAmount = 100.0;
@@ -34,15 +33,22 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   Future<void> _loadWalletData() async {
     setState(() => _isLoading = true);
     try {
+      final localBalance = await WalletService.getLocalBalance();
+      setState(() {
+        _walletBalance = localBalance;
+      });
+
       final savedData = await ProfileService.getSavedUserData();
       final currentUserId = savedData['id'] ?? 0;
       
       final walletData = await WalletService.getWallets(currentUserId);
       if (walletData != null) {
         setState(() {
-          _walletBalance = (walletData['balance'] ?? 0.0).toDouble();
-          _walletId = walletData['id'] as int?;
+          _walletBalance = (walletData['balance'] ?? localBalance).toDouble();
+          // _walletId = walletData['id'] as int?; // Temporarily disabled for dummy mode
         });
+        // Sync local with remote if remote is available
+        await WalletService.saveWalletDataLocally(walletData);
       }
     } catch (e) {
       print('Error loading wallet data: $e');
@@ -83,6 +89,26 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     setState(() => _isProcessing = true);
 
     try {
+      // Simulate withdrawal processing (DUMMY MODE)
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Update local balance
+      final newBalance = await WalletService.updateLocalBalance(-amount);
+      
+      setState(() {
+        _isProcessing = false;
+        _walletBalance = newBalance;
+      });
+
+      _showMessage('Withdrawal Successful!', 
+        'Amount: ₹${amount.toStringAsFixed(2)}\nRecipient: $recipientName\nUPI ID: $upiId\nStatus: Processing\nDesc: $description', 
+        true);
+      
+      // Clear form
+      _clearForm();
+      
+      /* 
+      // REAL WITHDRAWAL INTEGRATION
       final savedData = await ProfileService.getSavedUserData();
       final currentUserId = savedData['id'] ?? 0;
 
@@ -109,6 +135,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
       } else {
         _showMessage('Withdrawal Failed', 'Please try again later', false);
       }
+      */
     } catch (e) {
       setState(() => _isProcessing = false);
       _showMessage('Withdrawal Failed', 'Error: $e', false);
@@ -128,7 +155,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(title),
         content: Text(message),
         icon: Icon(
@@ -137,7 +164,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('OK'),
           ),
         ],

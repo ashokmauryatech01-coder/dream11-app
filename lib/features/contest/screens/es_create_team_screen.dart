@@ -4,7 +4,7 @@ import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/core/services/teams_service.dart';
 import 'package:fantasy_crick/core/services/player_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fantasy_crick/main.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MODEL
@@ -1622,7 +1622,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => Dialog(
+        builder: (dialogContext) => Dialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -1671,9 +1671,11 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Close Captain Screen
-                      Navigator.pop(context); // Go back to match details
+                      Navigator.pop(dialogContext); // Close dialog
+                      // Safe back navigation using the global navigator key
+                      if (navigatorKey.currentState?.canPop() ?? false) {
+                        navigatorKey.currentState?.pop();
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2E7D32),
