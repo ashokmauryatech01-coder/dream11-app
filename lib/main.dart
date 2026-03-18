@@ -8,6 +8,7 @@ import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 import 'package:fantasy_crick/features/profile/screens/user_profile_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/wallet_transaction_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/withdrawal_screen.dart';
+import 'package:fantasy_crick/features/profile/screens/privacy_policy_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,7 +36,7 @@ class MyApp extends StatelessWidget {
         '/user-profile': (context) => const UserProfileScreen(),
         '/wallet-transactions': (context) => const WalletTransactionScreen(),
         '/withdrawal': (context) => const WithdrawalScreen(),
-        '/privacy-policy': (context) => const PrivacyPolicyScreen(),
+        '/privacy-policy': (context) => PrivacyPolicyScreen(),
       },
     );
   }

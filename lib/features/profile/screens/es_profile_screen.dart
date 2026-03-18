@@ -507,6 +507,32 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         ),
       );
 
+  Widget _walletBtn(String label, Color bg, Color fg) => GestureDetector(
+    onTap: () {
+      if (label.contains('Add Cash')) {
+        Navigator.pushNamed(context, '/add-cash');
+      } else if (label.contains('Withdraw')) {
+        Navigator.pushNamed(context, '/withdrawal');
+      }
+    },
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: fg, width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+        ),
+      ),
+    ),
+  );
+
   Widget _walletCard() => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -565,6 +591,8 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         ),
       ],
     ),
+  );
+
   Widget _sectionTitle(String t) => Padding(
     padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
     child: Text(
