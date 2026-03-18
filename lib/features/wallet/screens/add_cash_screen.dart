@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/razorpay_service.dart';
+import 'package:fantasy_crick/core/services/profile_service.dart';
+import 'package:fantasy_crick/core/services/wallet_service.dart';
 
 class AddCashScreen extends StatefulWidget {
   const AddCashScreen({super.key});
@@ -15,19 +17,65 @@ class _AddCashScreenState extends State<AddCashScreen> {
   double _selectedAmount = 50.0;
   final List<double> _quickAmounts = [50, 100, 200, 500, 1000, 2000];
   bool _isProcessing = false;
+  double _walletBalance = 0.0;
+  bool _isLoadingBalance = true;
+  int? _walletId;
 
   @override
   void initState() {
     super.initState();
     _amountController.text = _selectedAmount.toString();
     _initializeRazorpay();
+    _loadWalletBalance();
+  }
+
+  Future<void> _loadWalletBalance() async {
+    setState(() => _isLoadingBalance = true);
+    try {
+      final savedData = await ProfileService.getSavedUserData();
+      final currentUserId = savedData['id'] ?? 0;
+      
+      final walletData = await WalletService.getWallets(currentUserId);
+      if (walletData != null) {
+        setState(() {
+          _walletBalance = (walletData['balance'] ?? 0.0).toDouble();
+          _walletId = walletData['id'] as int?;
+        });
+      }
+    } catch (e) {
+      print('Error loading wallet balance: $e');
+    } finally {
+      setState(() => _isLoadingBalance = false);
+    }
   }
 
   void _initializeRazorpay() {
     _razorpayService.initialize(
-      onPaymentSuccess: (paymentId) {
+      onPaymentSuccess: (paymentId) async {
         setState(() => _isProcessing = false);
-        _showMessage('Payment Successful!', 'Payment ID: $paymentId', true);
+        
+        // Add funds to wallet after successful payment
+        if (_walletId != null) {
+          final savedData = await ProfileService.getSavedUserData();
+          final currentUserId = savedData['id'] ?? 0;
+          
+          final result = await WalletService.addFunds(
+            userId: currentUserId,
+            walletId: _walletId!,
+            amount: _selectedAmount,
+            paymentId: paymentId,
+            paymentMethod: 'razorpay',
+          );
+          
+          if (result != null) {
+            _showMessage('Payment Successful!', 'Payment ID: $paymentId\nFunds added to wallet', true);
+            await _loadWalletBalance(); // Refresh balance
+          } else {
+            _showMessage('Payment Successful', 'Funds will be added shortly', true);
+          }
+        } else {
+          _showMessage('Payment Successful!', 'Payment ID: $paymentId', true);
+        }
       },
       onPaymentError: (error) {
         setState(() => _isProcessing = false);
@@ -142,14 +190,23 @@ class _AddCashScreenState extends State<AddCashScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '₹0',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  _isLoadingBalance
+                      ? const SizedBox(
+                          width: 60,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: AppColors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          '₹${_walletBalance.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ],
               ),
             ),

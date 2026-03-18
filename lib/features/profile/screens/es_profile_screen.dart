@@ -353,11 +353,22 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       _sectionTitle('Quick Actions'),
       _menuCard([
         _menuItem(
-          Icons.groups_rounded,
-          'My Teams',
-          'View your saved teams',
-          Colors.blue,
-          () => _tab.animateTo(1),
+          Icons.account_balance_wallet_rounded,
+          'Add Cash',
+          'Add funds to wallet',
+          Colors.green,
+          () {
+            Navigator.pushNamed(context, '/add-cash');
+          },
+        ),
+        _menuItem(
+          Icons.money_off_rounded,
+          'Withdraw',
+          'Withdraw funds to bank',
+          Colors.red,
+          () {
+            Navigator.pushNamed(context, '/withdrawal');
+          },
         ),
         _menuItem(
           Icons.history_rounded,
@@ -554,35 +565,6 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         ),
       ],
     ),
-  );
-
-  Widget _walletBtn(String label, Color bg, Color fg) => GestureDetector(
-    onTap: () {
-      if (label.contains('Add Cash')) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddCashScreen()),
-        );
-      }
-    },
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: fg.withOpacity(0.7)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: fg == Colors.white ? Colors.white : AppColors.primary,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  );
-
   Widget _sectionTitle(String t) => Padding(
     padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
     child: Text(
