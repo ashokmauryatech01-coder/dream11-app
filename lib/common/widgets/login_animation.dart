@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'cricket_animation.dart';
 
 class LoginAnimation extends StatefulWidget {
@@ -178,15 +179,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen>
             builder: (context, child) {
               return Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.blue.withOpacity(0.1 + _backgroundAnimation.value * 0.2),
-                      Colors.purple.withOpacity(0.1 + _backgroundAnimation.value * 0.1),
-                      Colors.green.withOpacity(0.05 + _backgroundAnimation.value * 0.1),
-                    ],
-                  ),
+                  color: AppColors.secondary.withOpacity(0.05 + _backgroundAnimation.value * 0.1),
                 ),
               );
             },

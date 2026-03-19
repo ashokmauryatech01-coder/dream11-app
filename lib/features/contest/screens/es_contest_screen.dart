@@ -532,14 +532,15 @@ class _EsContestScreenState extends State<EsContestScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
         ),
         child: Column(
           children: [
@@ -613,27 +614,29 @@ class _EsContestScreenState extends State<EsContestScreen> {
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+                      horizontal: 16,
+                      vertical: 10,
                     ),
                     decoration: BoxDecoration(
                       color: isFree
-                          ? Colors.green.withOpacity(0.1)
-                          : AppColors.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isFree
-                            ? Colors.green.withOpacity(0.5)
-                            : AppColors.primary.withOpacity(0.3),
-                      ),
+                          ? AppColors.secondary
+                          : AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isFree ? AppColors.secondary : AppColors.primary).withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Text(
                       isFree
                           ? 'FREE'
                           : LocationService.formatAmount(fee, _location),
-                      style: TextStyle(
-                        color: isFree ? Colors.green : AppColors.primary,
-                        fontWeight: FontWeight.bold,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
                         fontSize: 15,
                       ),
                     ),
@@ -685,35 +688,51 @@ class _EsContestScreenState extends State<EsContestScreen> {
               ),
             ),
 
-            // Join button
+            // Bottom Action (Join Button)
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
               child: SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: spotsLeft > 0 ? () => _join(c) : null,
-                  icon: const Icon(Icons.group_add_rounded, size: 18),
-                  label: Text(
-                    spotsLeft > 0
-                        ? (isFree
-                              ? 'Join Free'
-                              : 'Join Contest  ${LocationService.formatAmount(fee, _location)}')
-                        : 'Contest Full',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                height: 48,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: spotsLeft > 0 
+                      ? (isFree ? AppColors.secondary : AppColors.primary)
+                      : Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: spotsLeft > 0 ? [
+                      BoxShadow(
+                        color: (isFree ? AppColors.secondary : AppColors.primary).withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ] : [],
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey[200],
-                    disabledForegroundColor: Colors.grey[400],
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  child: ElevatedButton(
+                    onPressed: spotsLeft > 0 ? () => _join(c) : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    elevation: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.group_add_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          spotsLeft > 0
+                              ? (isFree ? 'JOIN FREE' : 'JOIN CONTEST')
+                              : 'CONTEST FULL',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

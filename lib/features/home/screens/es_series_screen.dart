@@ -24,7 +24,7 @@ class EsSeriesScreen extends StatelessWidget {
 
     Color statusColor;
     switch (status) {
-      case 'live': statusColor = Colors.red; break;
+      case 'live': statusColor = AppColors.primary; break;
       case 'fixture': statusColor = AppColors.primary; break;
       default: statusColor = AppColors.success;
     }
@@ -43,7 +43,7 @@ class EsSeriesScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: AppColors.primaryGradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  color: AppColors.primary,
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 85, 20, 16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [

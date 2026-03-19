@@ -88,7 +88,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           if (first != null) {
             final ballId = "${first['over']}.${first['ball']}";
             final score = first['score'] as int? ?? 0;
-            
+
             // Trigger animation if it's a new 4 or 6
             if (ballId != _lastBallId && (score == 4 || score == 6)) {
               _triggerBoundaryAnimation(score);
@@ -148,7 +148,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: const Color(0xFF1B2033),
+          backgroundColor: AppColors.background,
           body: NestedScrollView(
             headerSliverBuilder: (_, __) => [
               SliverAppBar(
@@ -167,7 +167,10 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                 actions: [
                   if (_isLive)
                     IconButton(
-                      icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white,
+                      ),
                       onPressed: _loadScorecard,
                       tooltip: 'Refresh scorecard',
                     ),
@@ -209,7 +212,10 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             icon: const Icon(Icons.group_add_rounded, color: Colors.white),
             label: const Text(
               'Create Team',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -483,9 +489,18 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
   );
 
   Widget _infoCard(String title, List<Widget> items) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
     decoration: BoxDecoration(
-      color: const Color(0xFF243052),
-      borderRadius: BorderRadius.circular(14),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,7 +510,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           child: Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.text,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -527,7 +542,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             child: Text(
               val,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.text,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -549,7 +564,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.sports_cricket, size: 60, color: Colors.white12),
+            const Icon(Icons.sports_cricket, size: 60, color: Colors.grey),
             const SizedBox(height: 16),
             const Text(
               'Scorecard',
@@ -562,7 +577,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             const SizedBox(height: 8),
             const Text(
               'Load the live scorecard',
-              style: TextStyle(color: Colors.white38),
+              style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -1427,12 +1442,19 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: const Color(0xFF243052),
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
             border: Border.all(
               color: i == 0
-                  ? AppColors.accent.withOpacity(0.5)
-                  : Colors.transparent,
+                  ? AppColors.primary.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.1),
             ),
           ),
           child: Row(
@@ -1442,7 +1464,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                 child: Text(
                   '${i + 1}',
                   style: TextStyle(
-                    color: i < 3 ? AppColors.accent : Colors.white38,
+                    color: i < 3 ? AppColors.primary : Colors.grey,
                     fontWeight: i < 3 ? FontWeight.bold : FontWeight.normal,
                     fontSize: 12,
                   ),
@@ -1468,17 +1490,14 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                     Text(
                       name,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.text,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
                     ),
                     Text(
                       role.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 10,
-                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 10),
                     ),
                   ],
                 ),
@@ -1529,10 +1548,7 @@ class _BoundaryTextAnimation extends StatelessWidget {
       builder: (context, value, child) {
         return Transform.scale(
           scale: value * 1.5,
-          child: Opacity(
-            opacity: value.clamp(0.0, 1.0),
-            child: child,
-          ),
+          child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
         );
       },
       child: Column(
@@ -1574,10 +1590,7 @@ class _BoundaryTextAnimation extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _BlinkingText(
-            text: "SPECTACULAR HIT!",
-            color: colors[0],
-          ),
+          _BlinkingText(text: "SPECTACULAR HIT!", color: colors[0]),
         ],
       ),
     );

@@ -349,11 +349,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: AppColors.primaryGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.primary,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
@@ -752,6 +748,7 @@ class _MatchCard extends StatelessWidget {
     // Extract team short codes for display
     final teamAFull = (data['teama']?['name'] ?? data['teama']?.toString() ?? 'Team A').toString();
     final teamBFull = (data['teamb']?['name'] ?? data['teamb']?.toString() ?? 'Team B').toString();
+    final matchType = (data['subtitle'] ?? 'T20 Match').toString();
     final teamAShort = teamAFull.length > 3 ? teamAFull.substring(0, 3).toUpperCase() : teamAFull.toUpperCase();
     final teamBShort = teamBFull.length > 3 ? teamBFull.substring(0, 3).toUpperCase() : teamBFull.toUpperCase();
 
@@ -761,45 +758,48 @@ class _MatchCard extends StatelessWidget {
         width: 300,
         margin: const EdgeInsets.only(right: 16, bottom: 10),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
         ),
         child: Column(
           children: [
-            // Top Section
+            // Header (Match Type & Date)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: Colors.grey.withOpacity(0.05),
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   Text(
-                    'T20 Match',
+                  Text(
+                    matchType.toUpperCase(),
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: Colors.grey.shade600,
                       fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   if (isLive)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
@@ -807,7 +807,7 @@ class _MatchCard extends StatelessWidget {
                             width: 6,
                             height: 6,
                             decoration: const BoxDecoration(
-                              color: AppColors.primary,
+                              color: Colors.red,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -815,21 +815,21 @@ class _MatchCard extends StatelessWidget {
                           const Text(
                             'LIVE',
                             style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                         ],
                       ),
                     )
                   else
-                     Text(
+                    Text(
                       startTime.split('T').first,
                       style: TextStyle(
                         color: Colors.grey.shade500,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                 ],
@@ -956,26 +956,34 @@ class _MatchCard extends StatelessWidget {
             ),
             
             // Bottom Action
-            const Divider(height: 1),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: const Text(
-                'JOIN CONTEST',
-                style: TextStyle(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Container(
+                width: double.infinity,
+                height: 48,
+                decoration: BoxDecoration(
                   color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
+                child: const Center(
+                  child: Text(
+                    'JOIN CONTEST',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
             ),
           ],
@@ -1104,7 +1112,7 @@ class _QuickActionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -1117,10 +1125,10 @@ class _QuickActionCard extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.secondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
                 height: 1.2,
               ),
             ),
