@@ -4,7 +4,6 @@ import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
-import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
 import 'package:fantasy_crick/common/widgets/dashboard_animation.dart';
 
@@ -154,13 +153,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     flexibleSpace: FlexibleSpaceBar(
       background: ClipRect(
         child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: AppColors.primaryGradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          color: AppColors.primary,
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -186,8 +179,8 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                         _initial,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
@@ -202,8 +195,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                           _name,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 24,
+                            letterSpacing: -0.8,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -212,8 +206,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                           Text(
                             _email,
                             style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                              color: Colors.white,
+                              fontSize: 13,
+                              letterSpacing: 0.2,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -221,37 +216,46 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                         if (_phone.isNotEmpty)
                           Text(
                             _phone,
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 12,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 13,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         const SizedBox(height: 6),
                         // Wallet balance badge
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: 12,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
-                                Icons.account_balance_wallet,
-                                color: Colors.white,
+                                Icons.account_balance_wallet_rounded,
+                                color: AppColors.primary,
                                 size: 14,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               Text(
                                 _balance,
                                 style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w900,
                                   fontSize: 13,
+                                  letterSpacing: -0.2,
                                 ),
                               ),
                             ],
@@ -287,7 +291,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     ),
     title: const Text(
       'Profile',
-      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w900,
+        fontSize: 22,
+        letterSpacing: -0.5,
+      ),
     ),
     actions: [
       IconButton(
@@ -349,13 +358,13 @@ class _EsProfileScreenState extends State<EsProfileScreen>
               AppColors.primary,
             ),
             const SizedBox(width: 10),
-            _statCard('Wins', _wins, Icons.emoji_events_rounded, Colors.orange),
+            _statCard('Wins', _wins, Icons.emoji_events_rounded, AppColors.secondary),
             const SizedBox(width: 10),
             _statCard(
               'Earnings',
               _earnings,
               Icons.currency_rupee_rounded,
-              Colors.green,
+              AppColors.primary,
             ),
           ],
         ),
@@ -374,7 +383,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           Icons.account_balance_wallet_rounded,
           'Add Cash',
           'Add funds to wallet',
-          Colors.green,
+          AppColors.secondary,
           () async {
             await Navigator.pushNamed(context, '/add-cash');
             _load();
@@ -384,7 +393,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           Icons.money_off_rounded,
           'Withdraw',
           'Withdraw funds to bank',
-          Colors.red,
+          AppColors.primary,
           () async {
             await Navigator.pushNamed(context, '/withdrawal');
             _load();
@@ -394,7 +403,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           Icons.history_rounded,
           'History',
           'Contest & match history',
-          Colors.purple,
+          AppColors.primary,
           () => _tab.animateTo(2),
         ),
         _menuItem(
@@ -403,30 +412,6 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           'See top players',
           Colors.orange,
           () => _tab.animateTo(3),
-        ),
-      ]),
-      const SizedBox(height: 10),
-      _sectionTitle('Account'),
-      _menuCard([
-        _menuItem(
-          Icons.account_balance_wallet_rounded,
-          'Add Cash',
-          'Top up your wallet',
-          Colors.green,
-          () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddCashScreen()),
-            );
-            _load();
-          },
-        ),
-        _menuItem(
-          Icons.arrow_downward_rounded,
-          'Withdraw',
-          'Withdraw winnings',
-          Colors.teal,
-          () {},
         ),
       ]),
       const SizedBox(height: 10),
@@ -513,8 +498,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                 val,
                 style: TextStyle(
                   color: color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: -0.5,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -722,16 +708,17 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -740,16 +727,16 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.sports_cricket_rounded,
                   color: AppColors.primary,
-                  size: 22,
+                  size: 26,
                 ),
               ),
               const SizedBox(width: 14),
@@ -761,9 +748,11 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                       t['name']?.toString() ?? 'My Team',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 16,
+                        color: AppColors.text,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Match #${t['match_id'] ?? '-'}  •  ${players.length} players',
                       style: TextStyle(color: Colors.grey[500], fontSize: 12),
@@ -776,29 +765,29 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
+                      horizontal: 10,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: AppColors.secondary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       t['status']?.toString().toUpperCase() ?? 'ACTIVE',
                       style: const TextStyle(
-                        color: Colors.green,
+                        color: AppColors.secondary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     '${t['points'] ?? '0.0'} pts',
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 15,
                     ),
                   ),
                 ],
@@ -806,7 +795,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
             ],
           ),
           if (captainName.isNotEmpty || viceCaptainName.isNotEmpty) ...[
-            const Divider(height: 20),
+            const SizedBox(height: 16),
+            Container(
+              height: 1,
+              color: Colors.grey.withOpacity(0.08),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 if (captainName.isNotEmpty)
@@ -814,52 +808,89 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                     child: Row(
                       children: [
                         const CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Colors.amber,
+                          radius: 12,
+                          backgroundColor: AppColors.primary,
                           child: Text(
                             'C',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            captainName,
-                            style: const TextStyle(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'CAPTAIN',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                captainName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.text,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
+                const SizedBox(width: 12),
                 if (viceCaptainName.isNotEmpty)
                   Expanded(
                     child: Row(
                       children: [
                         const CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Colors.grey,
+                          radius: 12,
+                          backgroundColor: AppColors.secondary,
                           child: Text(
                             'VC',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            viceCaptainName,
-                            style: const TextStyle(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'VICE CAPTAIN',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                viceCaptainName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.text,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],

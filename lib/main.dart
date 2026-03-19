@@ -47,7 +47,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
         useMaterial3: true,
-        fontFamily: 'Roboto',
       ),
       home: const SplashScreen(),
       routes: {

@@ -54,14 +54,14 @@ class OnGoingMatchScreen extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   match.status,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.red,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,

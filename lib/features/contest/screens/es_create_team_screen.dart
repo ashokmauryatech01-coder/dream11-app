@@ -89,10 +89,10 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     'BOWL': 3,
   };
   static const Map<String, Color> _roleClr = {
-    'WK': Color(0xFF8E24AA),
-    'BAT': Color(0xFF1976D2),
-    'AR': Color(0xFF388E3C),
-    'BOWL': Color(0xFFD32F2F),
+    'WK': Color(0xFFFF187C),
+    'BAT': Color(0xFF63DAB9),
+    'AR': Color(0xFFFF187C),
+    'BOWL': Color(0xFF63DAB9),
   };
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -561,11 +561,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFCE404D), Color(0xFF7E0A13)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.primary,
       ),
       child: Column(
         children: [
@@ -645,7 +641,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                     height: 4,
                     width: constraints.maxWidth * fraction,
                     decoration: BoxDecoration(
-                      color: AppColors.accent,
+                      color: AppColors.secondary,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -683,7 +679,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
             color: count > 0 ? color : Colors.white12,
             shape: BoxShape.circle,
             border: Border.all(
-              color: full ? AppColors.accent : color.withOpacity(0.3),
+              color: full ? AppColors.secondary : color.withOpacity(0.3),
               width: 1.5,
             ),
           ),
@@ -1127,13 +1123,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: BoxDecoration(
-              gradient: _canProceed
-                  ? const LinearGradient(
-                      colors: [AppColors.primary, AppColors.secondary],
-                    )
-                  : LinearGradient(
-                      colors: [Colors.grey.shade400, Colors.grey.shade300],
-                    ),
+              color: _canProceed
+                  ? AppColors.primary
+                  : Colors.grey.shade400,
               borderRadius: BorderRadius.circular(28),
             ),
             child: Text(
@@ -1195,11 +1187,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   Widget _captainHeader() => Container(
     padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
     decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF1B5E20), Color(0xFF388E3C)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
+      color: AppColors.primary,
     ),
     child: Row(
       children: [
@@ -1236,9 +1224,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         ),
         Row(
           children: [
-            _badge('C', Colors.redAccent),
+            _badge('C', AppColors.primary),
             const SizedBox(width: 8),
-            _badge('VC', Colors.blue),
+            _badge('VC', AppColors.secondary),
           ],
         ),
       ],
@@ -1261,9 +1249,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isC
-              ? Colors.redAccent
+              ? AppColors.primary
               : isVC
-              ? Colors.blue
+              ? AppColors.secondary
               : Colors.grey.shade200,
           width: isC || isVC ? 1.5 : 1,
         ),
@@ -1288,13 +1276,13 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                   Positioned(
                     top: -5,
                     right: -5,
-                    child: _badge('C', Colors.redAccent),
+                    child: _badge('C', AppColors.primary),
                   ),
                 if (isVC)
                   Positioned(
                     top: -5,
                     right: -5,
-                    child: _badge('VC', Colors.blue),
+                    child: _badge('VC', AppColors.secondary),
                   ),
               ],
             ),
@@ -1335,8 +1323,8 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                           if (p.runs.isNotEmpty)
                             Text(
                               '${p.runs} runs${p.balls.isNotEmpty ? " (${p.balls}b)" : ""}  SR:${p.strikeRate}',
-                              style: TextStyle(
-                                color: Colors.blue.shade800,
+                              style: const TextStyle(
+                                color: AppColors.text,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1344,8 +1332,8 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                           if (p.wickets.isNotEmpty)
                             Text(
                               '${p.wickets}W  Eco:${p.economy}',
-                              style: TextStyle(
-                                color: Colors.orange.shade800,
+                              style: const TextStyle(
+                                color: AppColors.secondary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1363,7 +1351,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                 _cvBtn(
                   'C',
                   isC,
-                  Colors.redAccent,
+                  AppColors.primary,
                   () => setState(() {
                     if (isC) {
                       _captainId = null;
@@ -1377,7 +1365,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                 _cvBtn(
                   'VC',
                   isVC,
-                  Colors.blue,
+                  AppColors.secondary,
                   () => setState(() {
                     if (isVC) {
                       _vcId = null;
@@ -1509,13 +1497,13 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
               children: [
                 Row(
                   children: [
-                    _badge('C', Colors.redAccent),
+                    _badge('C', AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       cName,
                       style: TextStyle(
                         color: _captainId != null
-                            ? Colors.redAccent
+                            ? AppColors.primary
                             : Colors.grey.shade400,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -1528,13 +1516,13 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    _badge('VC', Colors.blue),
+                    _badge('VC', AppColors.secondary),
                     const SizedBox(width: 8),
                     Text(
                       vName,
                       style: TextStyle(
                         color: _vcId != null
-                            ? Colors.blue
+                            ? AppColors.secondary
                             : Colors.grey.shade400,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -1553,13 +1541,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
-                gradient: (ready && !_submitting)
-                    ? const LinearGradient(
-                        colors: [Color(0xFF1B5E20), Color(0xFF43A047)],
-                      )
-                    : LinearGradient(
-                        colors: [Colors.grey.shade400, Colors.grey.shade300],
-                      ),
+                color: (ready && !_submitting)
+                    ? AppColors.primary
+                    : Colors.grey.shade400,
                 borderRadius: BorderRadius.circular(28),
               ),
               child: _submitting

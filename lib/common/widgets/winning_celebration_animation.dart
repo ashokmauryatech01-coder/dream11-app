@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:lottie/lottie.dart';
+import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'cricket_animation.dart';
 
 class WinningCelebrationAnimation extends StatefulWidget {
@@ -97,7 +98,13 @@ class _WinningCelebrationAnimationState extends State<WinningCelebrationAnimatio
 
   void _generateConfetti() {
     final random = math.Random();
-    final colors = [Colors.red, Colors.blue, Colors.green, Colors.yellow, Colors.orange, Colors.purple];
+    final colors = [
+      AppColors.primary,
+      AppColors.secondary,
+      const Color(0xFFFF187C),
+      const Color(0xFF63DAB9),
+      Colors.white,
+    ];
     
     for (int i = 0; i < 50; i++) {
       _confettiParticles.add(ConfettiParticle(

@@ -63,7 +63,7 @@ class MatchCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.red,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -223,12 +223,8 @@ class MatchCard extends StatelessWidget {
     return Container(
       width: 36,
       height: 36,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,

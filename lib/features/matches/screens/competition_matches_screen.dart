@@ -124,7 +124,7 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
 
   Widget _buildMatchCard(CompetitionMatchModel match) {
     return Card(
-      color: const Color(0xFF243052),
+      color: AppColors.white,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
@@ -151,7 +151,7 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
                       match.shortTitle,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.text,
                         fontSize: 14,
                       ),
                     ),
@@ -163,7 +163,7 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: match.isLive
-                          ? Colors.red
+                          ? AppColors.primary
                           : (match.isCompleted
                                 ? AppColors.success
                                 : AppColors.primary),
@@ -183,7 +183,7 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
               const SizedBox(height: 8),
               Text(
                 match.subtitle,
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
+                style: const TextStyle(color: AppColors.textLight, fontSize: 12),
               ),
               const SizedBox(height: 14),
               Row(
@@ -230,7 +230,7 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
                 child: Text(
                   team.shortName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.text,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -244,7 +244,7 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
             const SizedBox(height: 4),
             Text(
               team.scoresFull,
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+              style: const TextStyle(color: AppColors.textLight, fontSize: 12),
               textAlign: isA ? TextAlign.left : TextAlign.right,
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:lottie/lottie.dart';
+import 'package:fantasy_crick/core/constants/app_colors.dart';
 
 class CricketAnimation extends StatefulWidget {
   final AnimationType type;
@@ -74,6 +75,7 @@ class _CricketAnimationState extends State<CricketAnimation>
 
   @override
   Widget build(BuildContext context) {
+    final cricketWidget = _buildCricketWidget();
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -81,10 +83,11 @@ class _CricketAnimationState extends State<CricketAnimation>
           scale: _scaleAnimation.value,
           child: Transform.rotate(
             angle: _rotationAnimation.value,
-            child: _buildCricketWidget(),
+            child: child,
           ),
         );
       },
+      child: cricketWidget,
     );
   }
 
@@ -156,7 +159,7 @@ class _CricketAnimationState extends State<CricketAnimation>
       height: widget.size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: widget.color ?? Colors.red,
+        color: widget.color ?? AppColors.primary,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -172,7 +175,7 @@ class _CricketAnimationState extends State<CricketAnimation>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            border: Border.all(color: widget.color ?? Colors.red, width: 2),
+            border: Border.all(color: widget.color ?? AppColors.primary, width: 2),
           ),
         ),
       ),
@@ -262,11 +265,11 @@ class _CricketAnimationState extends State<CricketAnimation>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.orange,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.5),
+                  color: AppColors.primary.withOpacity(0.5),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),
@@ -297,11 +300,11 @@ class _CricketAnimationState extends State<CricketAnimation>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.blue,
+              color: AppColors.secondary,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.5),
+                  color: AppColors.secondary.withOpacity(0.5),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),
@@ -332,11 +335,11 @@ class _CricketAnimationState extends State<CricketAnimation>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withOpacity(0.5),
+                  color: AppColors.primary.withOpacity(0.5),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),
