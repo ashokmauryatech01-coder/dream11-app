@@ -3,6 +3,9 @@ import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
 import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
+import 'package:fantasy_crick/features/wallet/screens/withdrawal_screen.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
+import 'package:fantasy_crick/common/widgets/dashboard_animation.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -64,13 +67,15 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBalanceTab(),
-          _buildTransactionsTab(),
-          _buildWithdrawalTab(),
-        ],
+      body: DashboardAnimation(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildBalanceTab(),
+            _buildTransactionsTab(),
+            _buildWithdrawalTab(),
+          ],
+        ),
       ),
     );
   }
@@ -82,21 +87,46 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Total Balance',
-                  style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 16),
+              gradient: const LinearGradient(
+                colors: AppColors.primaryGradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _isLoading ? '...' : '₹${_balance.toStringAsFixed(0)}',
-                  style: const TextStyle(color: AppColors.white, fontSize: 32, fontWeight: FontWeight.bold),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Balance',
+                        style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isLoading ? '...' : '₹${_balance.toStringAsFixed(0)}',
+                        style: const TextStyle(color: AppColors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                const Center(
+                  child: CricketAnimation(
+                    type: AnimationType.coin,
+                    size: 60,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -108,7 +138,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildActionButton('Add Money', Icons.add, () async {
+              Expanded(child: _buildActionButton('ADD MONEY', Icons.add_rounded, () async {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AddCashScreen()),
@@ -116,7 +146,13 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                 _loadBalance();
               })),
               const SizedBox(width: 15),
-              Expanded(child: _buildActionButton('Withdraw', Icons.upload, () => _tabController.animateTo(2))),
+              Expanded(child: _buildActionButton('WITHDRAW', Icons.file_download_outlined, () async {
+                 await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WithdrawalScreen()),
+                );
+                _loadBalance();
+              })),
             ],
           ),
         ],
@@ -158,15 +194,17 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        foregroundColor: AppColors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 0,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: AppColors.white, size: 20),
           const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1)),
         ],
       ),
     );

@@ -5,6 +5,8 @@ import 'package:fantasy_crick/core/services/auth_service.dart';
 import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
+import 'package:fantasy_crick/common/widgets/login_animation.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 
 class MobileLoginScreen extends StatefulWidget {
   const MobileLoginScreen({super.key});
@@ -90,38 +92,50 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+        child: LoginAnimation(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: CricketAnimation(
+                      type: AnimationType.cricketBall,
+                      size: 56,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
-                child: const Icon(Icons.phone_android_rounded, size: 48, color: AppColors.primary),
-              ),
-              const SizedBox(height: 24),
-              const Text('Login with Mobile',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text)),
-              const SizedBox(height: 8),
-              const Text('We will send a 4-digit OTP to verify',
-                style: TextStyle(fontSize: 16, color: AppColors.textLight)),
-              const SizedBox(height: 48),
-              
-              _buildPhoneField(),
-              
-              const SizedBox(height: 32),
-              CustomButton(
-                title: 'Continue',
-                onTap: _handleSendOTP,
-                loading: _loading,
-              ),
-            ],
+                const SizedBox(height: 32),
+                const Text('Login with Mobile',
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.text, letterSpacing: -0.5)),
+                const SizedBox(height: 12),
+                const Text('We will send a 4-digit OTP to verify',
+                  style: TextStyle(fontSize: 16, color: AppColors.textLight, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 48),
+                
+                _buildPhoneField(),
+                
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: CustomButton(
+                    title: 'CONTINUE',
+                    onTap: _handleSendOTP,
+                    loading: _loading,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

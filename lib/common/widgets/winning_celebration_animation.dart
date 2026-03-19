@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:lottie/lottie.dart';
 import 'cricket_animation.dart';
 
 class WinningCelebrationAnimation extends StatefulWidget {
@@ -162,30 +163,33 @@ class _WinningCelebrationAnimationState extends State<WinningCelebrationAnimatio
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Trophy Animation
                 AnimatedBuilder(
                   animation: _trophyAnimation,
                   builder: (context, child) {
                     return Transform.scale(
                       scale: _trophyAnimation.value,
                       child: Container(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(0),
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.amber.withOpacity(0.5),
-                              blurRadius: 30,
-                              spreadRadius: 15,
+                              color: Colors.amber.withOpacity(0.3),
+                              blurRadius: 40,
+                              spreadRadius: 20,
                             ),
                           ],
                         ),
-                        child: CricketAnimation(
-                          type: AnimationType.trophy,
-                          size: 80,
-                          color: Colors.amber,
-                          duration: const Duration(seconds: 1),
+                        child: Lottie.network(
+                          'https://lottie.host/80eeb877-a89e-4e44-8d99-ba8544d6da21/WpU6l4v4S0.json', // Trophy
+                          width: 200,
+                          height: 200,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => CricketAnimation(
+                            type: AnimationType.trophy,
+                            size: 100,
+                            color: Colors.amber,
+                          ),
                         ),
                       ),
                     );
@@ -287,15 +291,20 @@ class _WinningCelebrationAnimationState extends State<WinningCelebrationAnimatio
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CricketAnimation(
-                              type: AnimationType.coin,
-                              size: 30,
-                              color: Colors.white,
-                              duration: const Duration(seconds: 2),
+                            Lottie.network(
+                              'https://lottie.host/9f5064e6-ee06-444f-8360-1436e2f1e2f3/5X2l9c2g8v.json', // Coin/Success
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => CricketAnimation(
+                                type: AnimationType.coin,
+                                size: 30,
+                                color: Colors.white,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Won: ₹${widget.prizeAmount.toStringAsFixed(0)}',
+                              'Added: ₹${widget.prizeAmount.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

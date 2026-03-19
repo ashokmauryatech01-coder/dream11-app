@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
+import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/razorpay_service.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
-import 'package:fantasy_crick/main.dart';
+import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
 
 class AddCashScreen extends StatefulWidget {
   const AddCashScreen({super.key});
@@ -22,6 +22,9 @@ class _AddCashScreenState extends State<AddCashScreen> {
   double _walletBalance = 0.0;
   bool _isLoadingBalance = true;
   int? _walletId;
+  bool _showCelebration = false;
+  double _lastAddedAmount = 0.0;
+  String _userName = 'User';
 
   @override
   void initState() {
@@ -41,6 +44,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
 
       final savedData = await ProfileService.getSavedUserData();
       final currentUserId = savedData['id'] ?? 0;
+      _userName = savedData['name'] ?? 'User';
 
       final walletData = await WalletService.getWallets(currentUserId);
       if (walletData != null) {
@@ -48,7 +52,6 @@ class _AddCashScreenState extends State<AddCashScreen> {
           _walletBalance = (walletData['balance'] ?? localBalance).toDouble();
           _walletId = walletData['id'] as int?;
         });
-        // Sync local with remote if remote is available
         await WalletService.saveWalletDataLocally(walletData);
       }
     } catch (e) {
@@ -63,7 +66,6 @@ class _AddCashScreenState extends State<AddCashScreen> {
       onPaymentSuccess: (paymentId) async {
         setState(() => _isProcessing = false);
 
-        // Add funds to wallet after successful payment
         if (_walletId != null) {
           final savedData = await ProfileService.getSavedUserData();
           final currentUserId = savedData['id'] ?? 0;
@@ -77,12 +79,8 @@ class _AddCashScreenState extends State<AddCashScreen> {
           );
 
           if (result != null) {
-            _showMessage(
-              'Payment Successful!',
-              'Payment ID: $paymentId\nFunds added to wallet',
-              true,
-            );
-            await _loadWalletBalance(); // Refresh balance
+             _handleSuccess(_selectedAmount);
+            await _loadWalletBalance();
           } else {
             _showMessage(
               'Payment Successful',
@@ -103,6 +101,24 @@ class _AddCashScreenState extends State<AddCashScreen> {
         _showMessage('External Wallet', 'Selected wallet: $walletName', true);
       },
     );
+  }
+
+  void _handleSuccess(double amount) {
+    setState(() {
+      _showCelebration = true;
+      _lastAddedAmount = amount;
+    });
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _showCelebration = false);
+        _showMessage(
+          'Success',
+          '₹${amount.toStringAsFixed(0)} added to your wallet!',
+          true,
+        );
+      }
+    });
   }
 
   @override
@@ -148,7 +164,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildCardField(
+                   _buildCardField(
                     label: 'Card Number',
                     hint: 'XXXX XXXX XXXX XXXX',
                     icon: Icons.credit_card,
@@ -160,7 +176,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildCardField(
+                        child:  _buildCardField(
                           label: 'Expiry Date',
                           hint: 'MM / YY',
                           controller: expiryController,
@@ -170,7 +186,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildCardField(
+                        child:  _buildCardField(
                           label: 'CVV',
                           hint: 'XXX',
                           obscure: true,
@@ -217,8 +233,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
   void _processPayment(double amount) async {
     setState(() => _isProcessing = true);
 
-    // Simulate payment and update local balance (DUMMY MODE)
-    await Future.delayed(const Duration(seconds: 2)); // Simulate network delay
+    await Future.delayed(const Duration(seconds: 2));
 
     final newBalance = await WalletService.updateLocalBalance(amount);
 
@@ -227,363 +242,266 @@ class _AddCashScreenState extends State<AddCashScreen> {
       _walletBalance = newBalance;
     });
 
-    _showMessage(
-      'Success',
-      '₹${amount.toStringAsFixed(0)} added to your wallet!',
-      true,
-    );
+    _handleSuccess(amount);
   }
 
   void _showMessage(String title, String message, bool isSuccess) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            if (isSuccess) ...[
-              CricketAnimation(
-                type: AnimationType.trophy,
-                size: 30,
-                color: Colors.amber,
-                duration: const Duration(seconds: 2),
-              ),
-              const SizedBox(width: 12),
-            ],
-            Text(title),
-          ],
-        ),
-        content: Row(
-          children: [
-            if (isSuccess) ...[
-              CricketAnimation(
-                type: AnimationType.coin,
-                size: 40,
-                color: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-              const SizedBox(width: 16),
-            ],
-            Expanded(child: Text(message)),
-          ],
-        ),
-        actions: [
-          if (isSuccess) ...[
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext); // Close dialog
-                // Safe back navigation
-                if (navigatorKey.currentState?.canPop() ?? false) {
-                  navigatorKey.currentState?.pop();
-                }
-              },
-              child: const Text('Done'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog only
-              },
-              child: const Text('Add More'),
-            ),
-          ] else ...[
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ],
-      ),
+    BeautyDialog.show(
+      context,
+      title: title,
+      message: message,
+      type: isSuccess ? BeautyDialogType.success : BeautyDialogType.error,
+      onConfirm: () {
+        if (isSuccess) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        title: const Text('Add Cash'),
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Wallet Balance Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.white,
+            foregroundColor: AppColors.text,
+            elevation: 0,
+            centerTitle: true,
+            title: const Text(
+              'ADD CASH',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 2,
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Current Balance',
-                          style: TextStyle(color: AppColors.white, fontSize: 16),
+            ),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              children: [
+                // Balance Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: AppColors.primaryGradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Current Balance',
+                              style: TextStyle(
+                                color: AppColors.white.withOpacity(0.7),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _isLoadingBalance
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 2))
+                                : Text(
+                                    '₹${_walletBalance.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      color: AppColors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        _isLoadingBalance
-                            ? const SizedBox(
-                                width: 60,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                '₹${_walletBalance.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  color: AppColors.white,
-                                  fontSize: 32,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.account_balance_wallet_rounded,
+                            color: Colors.white, size: 28),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Input Area
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Enter Amount',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
+                        decoration: InputDecoration(
+                          prefixText: '₹ ',
+                          prefixStyle: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold),
+                          enabledBorder: UnderlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade200)),
+                          focusedBorder: const UnderlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: AppColors.primary)),
+                        ),
+                        onChanged: (v) {
+                          final amount = double.tryParse(v);
+                          if (amount != null)
+                            setState(() => _selectedAmount = amount);
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Quick Amounts
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: _quickAmounts.map((amt) {
+                          final selected = _selectedAmount == amt;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedAmount = amt;
+                                _amountController.text = amt.toString();
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? AppColors.primary
+                                    : AppColors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : Colors.grey.shade200),
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                            color: AppColors.primary
+                                                .withOpacity(0.2),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4))
+                                      ]
+                                    : [],
+                              ),
+                              child: Text(
+                                '₹$amt',
+                                style: TextStyle(
+                                  color: selected
+                                      ? AppColors.white
+                                      : AppColors.text,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
                               ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  CricketAnimation(
-                    type: AnimationType.coin,
-                    size: 60,
-                    color: AppColors.white,
-                    duration: const Duration(seconds: 3),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Custom Amount Input
-            const Text(
-              'Enter Amount',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-                decoration: const InputDecoration(
-                  hintText: '0',
-                  hintStyle: TextStyle(color: AppColors.textLight),
-                  prefixText: '₹',
-                  prefixStyle: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                ),
-                onChanged: (value) {
-                  final amount = double.tryParse(value);
-                  if (amount != null) {
-                    setState(() {
-                      _selectedAmount = amount;
-                    });
-                  }
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Minimum amount: ₹50',
-              style: TextStyle(fontSize: 12, color: AppColors.textLight),
-            ),
-            const SizedBox(height: 30),
-
-            // Quick Amount Selection
-            const Text(
-              'Quick Add',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 2.5,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: _quickAmounts.length,
-              itemBuilder: (context, index) {
-                final amount = _quickAmounts[index];
-                final isSelected = _selectedAmount == amount;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedAmount = amount;
-                      _amountController.text = amount.toString();
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : AppColors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '₹${amount.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? AppColors.white : AppColors.text,
-                          ),
-                        ),
-                        if (isSelected) ...[
-                          const SizedBox(width: 8),
-                          CricketAnimation(
-                            type: AnimationType.coin,
-                            size: 20,
-                            color: AppColors.white,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 30),
-
-            // Payment Methods
-            // const Text(
-            //   'Bank Transfer (Recommended)',
-            //   style: TextStyle(
-            //     fontSize: 18,
-            //     fontWeight: FontWeight.bold,
-            //     color: AppColors.text,
-            //   ),
-            // ),
-            // const SizedBox(height: 12),
-            // Container(
-            //   padding: const EdgeInsets.all(20),
-            //   decoration: BoxDecoration(
-            //     color: Colors.blue.withOpacity(0.05),
-            //     borderRadius: BorderRadius.circular(12),
-            //     border: Border.all(color: Colors.blue.withOpacity(0.2)),
-            //   ),
-            //   child: Column(
-            //     crossAxisAlignment: CrossAxisAlignment.start,
-            //     children: [
-            //       _bankDetail('Account Name', 'Pramukh Enterprise'),
-            //       _bankDetail('Bank Name', 'IDBI Bank'),
-            //       _bankDetail('Account Number', '0082102000044688'),
-            //       _bankDetail('IFSC Code', 'IBKL0000082'),
-            //       _bankDetail('Customer ID', '102212061'),
-            //       const Divider(height: 32),
-            //       const Row(
-            //         children: [
-            //           Icon(Icons.info_outline, size: 16, color: Colors.blue),
-            //           SizedBox(width: 8),
-            //           Expanded(
-            //             child: Text(
-            //               'Transfer funds to this account and share the screenshot for instant wallet update.',
-            //               style: TextStyle(
-            //                 fontSize: 12,
-            //                 color: Colors.blueGrey,
-            //                 fontStyle: FontStyle.italic,
-            //               ),
-            //             ),
-            //           ),
-            //         ],
-            //       ),
-            //     ],
-            //   ),
-            // ),
-            // const SizedBox(height: 40),
-
-            // Add Cash Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isProcessing
-                    ? null
-                    : () => _makePayment(_selectedAmount),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isProcessing
-                      ? Colors.grey
-                      : AppColors.primary,
-                  foregroundColor: AppColors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isProcessing
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
                             ),
-                          ),
-                          SizedBox(width: 12),
-                          Text('Processing...'),
-                        ],
-                      )
-                    : Text(
-                        'Add Cash ₹${_selectedAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                          );
+                        }).toList(),
                       ),
-              ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Final CTA
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isProcessing
+                        ? null
+                        : () => _makePayment(_selectedAmount),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: _isProcessing
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'ADD ₹${_selectedAmount.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1),
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (_showCelebration)
+          WinningCelebrationAnimation(
+            winnerName: _userName,
+            prizeAmount: _lastAddedAmount,
+            contestName: 'Wallet Top-up Success',
+            onCelebrationComplete: () {
+              setState(() => _showCelebration = false);
+            },
+          ),
+      ],
     );
   }
 
@@ -635,22 +553,6 @@ class _AddCashScreenState extends State<AddCashScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _bankDetail(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:lottie/lottie.dart';
 
 class CricketAnimation extends StatefulWidget {
   final AnimationType type;
@@ -88,6 +89,45 @@ class _CricketAnimationState extends State<CricketAnimation>
   }
 
   Widget _buildCricketWidget() {
+    String? lottieUrl;
+    switch (widget.type) {
+      case AnimationType.cricketBall:
+        lottieUrl = 'https://lottie.host/7e923ade-37a5-4f40-a359-54817a195325/oP5Wre18iS.json';
+        break;
+      case AnimationType.bat:
+        lottieUrl = 'https://lottie.host/5b2446a8-f860-4ce0-8c24-81e5f884a460/uYy3k4XzH7.json';
+        break;
+      case AnimationType.stumps:
+        lottieUrl = 'https://assets2.lottiefiles.com/packages/lf20_m6cu8yq8.json'; // Search for cricket stumps
+        break;
+      case AnimationType.trophy:
+        lottieUrl = 'https://lottie.host/80eeb877-a89e-4e44-8d99-ba8544d6da21/WpU6l4v4S0.json';
+        break;
+      case AnimationType.coin:
+        lottieUrl = 'https://lottie.host/9f5064e6-ee06-444f-8360-1436e2f1e2f3/5X2l9c2g8v.json';
+        break;
+      case AnimationType.wicket:
+        lottieUrl = 'https://lottie.host/d6be3364-706f-4c54-8c88-f54f1650b868/jA77A6e2vS.json';
+        break;
+      default:
+        break;
+    }
+
+    if (lottieUrl != null) {
+      return Lottie.network(
+        lottieUrl,
+        width: widget.size,
+        height: widget.size,
+        fit: BoxFit.contain,
+        animate: widget.autoPlay,
+        errorBuilder: (context, error, stackTrace) => _buildFallbackWidget(),
+      );
+    }
+
+    return _buildFallbackWidget();
+  }
+
+  Widget _buildFallbackWidget() {
     switch (widget.type) {
       case AnimationType.cricketBall:
         return _buildCricketBall();

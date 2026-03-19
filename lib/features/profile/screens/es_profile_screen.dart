@@ -6,6 +6,7 @@ import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
+import 'package:fantasy_crick/common/widgets/dashboard_animation.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PROFILE SCREEN  — white background, light cards, real API
@@ -111,8 +112,9 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: RefreshIndicator(
+      backgroundColor: AppColors.background,
+      body: DashboardAnimation(
+        child: RefreshIndicator(
         onRefresh: _load,
         color: AppColors.primary,
         child: _loading
@@ -139,6 +141,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                 ),
               ),
       ),
+    ),
     );
   }
 
@@ -153,7 +156,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFFCE404D), Color(0xFF8B1421)],
+              colors: AppColors.primaryGradient,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -286,6 +289,17 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       'Profile',
       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
     ),
+    actions: [
+      IconButton(
+        icon: const Icon(Icons.notifications_none_rounded, color: AppColors.white),
+        onPressed: () {},
+      ),
+      IconButton(
+        icon: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.white),
+        onPressed: () => Navigator.pushNamed(context, '/add-cash'),
+      ),
+      const SizedBox(width: 8),
+    ],
   );
 
   Widget _iconBtn(IconData icon, VoidCallback fn) => GestureDetector(

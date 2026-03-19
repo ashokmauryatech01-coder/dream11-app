@@ -224,7 +224,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen>
                     type: AnimationType.bat,
                     size: 60,
                     color: Colors.brown.withOpacity(0.3),
-                    duration: const Duration(seconds: 1.5),
+                    duration: const Duration(milliseconds: 1500),
                   ),
                 );
               },
@@ -281,9 +281,9 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen>
                     
                     const SizedBox(height: 24),
                     
-                    const Text(
+                    Text(
                       'Welcome Back!',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
@@ -292,7 +292,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen>
                     
                     const SizedBox(height: 8),
                     
-                    const Text(
+                    Text(
                       'Sign in to continue',
                       style: TextStyle(
                         fontSize: 16,
@@ -311,7 +311,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen>
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.grey.shade300),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
                           TextField(
                             decoration: InputDecoration(
@@ -320,7 +320,7 @@ class _AnimatedLoginScreenState extends State<AnimatedLoginScreen>
                               border: InputBorder.none,
                             ),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           TextField(
                             obscureText: true,
                             decoration: InputDecoration(

@@ -5,6 +5,8 @@ import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/features/auth/screens/signup_screen.dart';
+import 'package:fantasy_crick/common/widgets/login_animation.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/main.dart';
 
@@ -98,130 +100,120 @@ class _SignInScreenState extends State<SignInScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 60),
+        child: LoginAnimation(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 60),
 
-              // Logo / Header icon
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.sports_cricket,
-                  size: 48,
-                  color: AppColors.primary,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              const Text(
-                'Welcome Back!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Sign in to continue',
-                style: TextStyle(fontSize: 16, color: AppColors.textLight),
-              ),
-              const SizedBox(height: 40),
-
-              // Email field
-              _buildLabel('Email'),
-              _buildTextField(
-                controller: _emailController,
-                hint: 'Enter your email',
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: Icons.email_outlined,
-              ),
-              const SizedBox(height: 16),
-
-              // Password field
-              _buildLabel('Password'),
-              _buildTextField(
-                controller: _passwordController,
-                hint: 'Enter your password',
-                obscure: _obscurePassword,
-                prefixIcon: Icons.lock_outline,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: AppColors.textLight,
+                // Logo / Header icon
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ),
-
-              // Forgot password link
-              /*
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const ForgotPasswordScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: AppColors.primary),
-                  ),
-                ),
-              ),
-              */
-
-              const SizedBox(height: 8),
-
-              CustomButton(
-                title: 'Sign In',
-                onTap: _handleSignIn,
-                loading: _loading,
-              ),
-
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Don't have an account? ",
-                    style: TextStyle(color: AppColors.textLight),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const SignUpScreen()),
-                      );
-                    },
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  child: const Center(
+                    child: CricketAnimation(
+                      type: AnimationType.cricketBall,
+                      size: 56,
+                      color: AppColors.primary,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
+                ),
+
+                const SizedBox(height: 32),
+
+                const Text(
+                  'Welcome Back!',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.text,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Sign in to your account',
+                  style: TextStyle(fontSize: 16, color: AppColors.textLight, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 48),
+
+                // Email field
+                _buildLabel('Email'),
+                _buildTextField(
+                  controller: _emailController,
+                  hint: 'Enter your email',
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.email_outlined,
+                ),
+                const SizedBox(height: 16),
+
+                // Password field
+                _buildLabel('Password'),
+                _buildTextField(
+                  controller: _passwordController,
+                  hint: 'Enter your password',
+                  obscure: _obscurePassword,
+                  prefixIcon: Icons.lock_outline,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: AppColors.textLight,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: CustomButton(
+                    title: 'SIGN IN',
+                    onTap: _handleSignIn,
+                    loading: _loading,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Don't have an account? ",
+                      style: TextStyle(color: AppColors.textLight),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const SignUpScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -260,7 +252,7 @@ class _SignInScreenState extends State<SignInScreen> {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

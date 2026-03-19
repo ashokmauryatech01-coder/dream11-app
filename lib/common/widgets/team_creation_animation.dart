@@ -22,7 +22,7 @@ class _TeamCreationAnimationState extends State<TeamCreationAnimation>
   late AnimationController _pulseController;
   late AnimationController _rotateController;
   late AnimationController _fadeController;
-  
+
   late Animation<double> _pulseAnimation;
   late Animation<double> _rotateAnimation;
   late Animation<double> _fadeAnimation;
@@ -30,45 +30,35 @@ class _TeamCreationAnimationState extends State<TeamCreationAnimation>
   @override
   void initState() {
     super.initState();
-    
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     _rotateController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     );
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
     _rotateAnimation = Tween<double>(
       begin: 0.0,
       end: 2 * 3.14159,
-    ).animate(CurvedAnimation(
-      parent: _rotateController,
-      curve: Curves.linear,
-    ));
+    ).animate(CurvedAnimation(parent: _rotateController, curve: Curves.linear));
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
     _startAnimations();
   }
@@ -76,7 +66,7 @@ class _TeamCreationAnimationState extends State<TeamCreationAnimation>
   void _startAnimations() {
     _fadeController.forward();
     _rotateController.repeat();
-    
+
     if (widget.isCreating) {
       _pulseController.repeat(reverse: true);
     }
@@ -85,7 +75,7 @@ class _TeamCreationAnimationState extends State<TeamCreationAnimation>
   @override
   void didUpdateWidget(TeamCreationAnimation oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (oldWidget.isCreating != widget.isCreating) {
       if (widget.isCreating) {
         _pulseController.repeat(reverse: true);
@@ -159,7 +149,7 @@ class _TeamCreationAnimationState extends State<TeamCreationAnimation>
                                       size: 40,
                                       color: Colors.blue,
                                     ),
-                                  ),
+                                  );
                                 },
                               ),
                             ),
@@ -194,7 +184,8 @@ class PlayerSelectionAnimation extends StatefulWidget {
   });
 
   @override
-  State<PlayerSelectionAnimation> createState() => _PlayerSelectionAnimationState();
+  State<PlayerSelectionAnimation> createState() =>
+      _PlayerSelectionAnimationState();
 }
 
 class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
@@ -214,18 +205,12 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 1.05,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _borderAnimation = Tween<double>(
       begin: 2.0,
       end: 4.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     if (widget.isSelected) {
       _controller.forward();
@@ -235,7 +220,7 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
   @override
   void didUpdateWidget(PlayerSelectionAnimation oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (oldWidget.isSelected != widget.isSelected) {
       if (widget.isSelected) {
         _controller.forward();
@@ -264,7 +249,9 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
               margin: const EdgeInsets.all(4),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: widget.isSelected ? Colors.blue.withOpacity(0.1) : Colors.white,
+                color: widget.isSelected
+                    ? Colors.blue.withOpacity(0.1)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: widget.isSelected ? Colors.blue : Colors.grey.shade300,
@@ -272,7 +259,7 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.isSelected 
+                    color: widget.isSelected
                         ? Colors.blue.withOpacity(0.2)
                         : Colors.grey.withOpacity(0.1),
                     blurRadius: 8,
@@ -287,7 +274,9 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: widget.isSelected ? Colors.blue : Colors.grey.shade200,
+                      color: widget.isSelected
+                          ? Colors.blue
+                          : Colors.grey.shade200,
                       shape: BoxShape.circle,
                     ),
                     child: widget.isSelected
@@ -299,13 +288,15 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
                           )
                         : Icon(
                             Icons.person,
-                            color: widget.isSelected ? Colors.white : Colors.grey.shade600,
+                            color: widget.isSelected
+                                ? Colors.white
+                                : Colors.grey.shade600,
                             size: 20,
                           ),
                   ),
-                  
+
                   const SizedBox(width: 12),
-                  
+
                   // Player Info
                   Expanded(
                     child: Column(
@@ -315,7 +306,9 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
                           widget.playerName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: widget.isSelected ? Colors.blue : Colors.black87,
+                            color: widget.isSelected
+                                ? Colors.blue
+                                : Colors.black87,
                             fontSize: 14,
                           ),
                         ),
@@ -323,7 +316,10 @@ class _PlayerSelectionAnimationState extends State<PlayerSelectionAnimation>
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: _getRoleColor(widget.role),
                                 borderRadius: BorderRadius.circular(4),
@@ -396,7 +392,7 @@ class _TeamSuccessAnimationState extends State<TeamSuccessAnimation>
   late AnimationController _confettiController;
   late AnimationController _scaleController;
   late AnimationController _fadeController;
-  
+
   late Animation<double> _confettiAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -404,45 +400,34 @@ class _TeamSuccessAnimationState extends State<TeamSuccessAnimation>
   @override
   void initState() {
     super.initState();
-    
+
     _confettiController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
-    _confettiAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _confettiController,
-      curve: Curves.easeOut,
-    ));
+    _confettiAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _confettiController, curve: Curves.easeOut),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
     _startSuccessAnimation();
   }
@@ -455,7 +440,7 @@ class _TeamSuccessAnimationState extends State<TeamSuccessAnimation>
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _confettiController.forward();
     });
-    
+
     Future.delayed(const Duration(milliseconds: 2000), () {
       if (widget.onAnimationComplete != null) {
         widget.onAnimationComplete!();

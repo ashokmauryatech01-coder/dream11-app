@@ -8,6 +8,7 @@ import 'package:fantasy_crick/features/contest/screens/es_create_team_screen.dar
 import 'package:fantasy_crick/core/services/match_service.dart';
 import 'package:fantasy_crick/features/home/screens/es_series_screen.dart';
 import 'package:fantasy_crick/features/profile/screens/es_profile_screen.dart';
+import 'package:fantasy_crick/common/widgets/dashboard_animation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,13 +29,7 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _upcomingMatches = [];
   List<Map<String, dynamic>> _finishedMatches = [];
   List<Map<String, dynamic>> _liveSeries = [];
-  List<Map<String, dynamic>> _leaderboardData = [
-    {'rank': 1, 'name': 'You', 'winnings': '₹5,000', 'matches': 45},
-    {'rank': 2, 'name': 'Player 2', 'winnings': '₹4,200', 'matches': 38},
-    {'rank': 3, 'name': 'Player 3', 'winnings': '₹3,800', 'matches': 32},
-    {'rank': 4, 'name': 'Player 4', 'winnings': '₹2,500', 'matches': 28},
-    {'rank': 5, 'name': 'Player 5', 'winnings': '₹1,200', 'matches': 22},
-  ];
+
 
   late TabController _matchesTabController;
   late TabController _mainTabController;
@@ -99,10 +94,14 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _selectedIndex == 5 ? null : _buildAppBar(),
+      appBar: _selectedIndex == 4 ? null : _buildAppBar(),
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CricketAnimation(
+                type: AnimationType.cricketBall,
+                size: 60,
+                color: AppColors.primary,
+              ),
             )
           : _error != null && _liveMatches.isEmpty && _upcomingMatches.isEmpty
           ? _buildError()
@@ -112,19 +111,30 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   PreferredSizeWidget _buildAppBar() {
-    const titles = ['Home', 'Matches', 'Series', 'Contests', 'Leaderboard', 'Profile'];
+    const titles = ['Home', 'Matches', 'Series', 'Contests', 'Profile'];
     return AppBar(
       backgroundColor: AppColors.primary,
       elevation: 0,
+      centerTitle: false,
       title: Text(
-        titles[_selectedIndex],
-        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+        titles[_selectedIndex].toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.white, 
+          fontWeight: FontWeight.w900,
+          fontSize: 18,
+          letterSpacing: 1.2,
+        ),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: AppColors.white),
-          onPressed: _loadAll,
+          icon: const Icon(Icons.notifications_none_rounded, color: AppColors.white),
+          onPressed: () {},
         ),
+        IconButton(
+          icon: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.white),
+          onPressed: () => Navigator.pushNamed(context, '/add-cash'),
+        ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -135,52 +145,47 @@ class _HomeScreenState extends State<HomeScreen>
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 64,
+          height: 65,
           child: Row(
             children: List.generate(_navItems.length, (i) {
               final selected = i == _selectedIndex;
               return Expanded(
-                child: GestureDetector(
+                child: InkWell(
                   onTap: () => setState(() => _selectedIndex = i),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: selected ? AppColors.primary : Colors.transparent,
-                          width: 2.5,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        padding: EdgeInsets.all(selected ? 8 : 4),
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _navItems[i].icon,
+                          color: selected ? AppColors.primary : AppColors.unselectedIcon,
+                          size: selected ? 24 : 22,
                         ),
                       ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _navItems[i].icon,
-                          color: selected ? AppColors.primary : Colors.grey.shade400,
-                          size: 20,
+                      const SizedBox(height: 2),
+                      Text(
+                        _navItems[i].label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: selected ? AppColors.primary : AppColors.unselectedIcon,
+                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _navItems[i].label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: selected ? AppColors.primary : Colors.grey.shade400,
-                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -234,99 +239,106 @@ class _HomeScreenState extends State<HomeScreen>
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadAll,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeroBanner(),
-            const SizedBox(height: 20),
-
-            // ── Live Matches ──────────────────────────────────
-            _SectionHeader(
-              title: 'Live Matches',
-              count: _liveMatches.length,
-              badgeColor: Colors.red,
-              onSeeAll: () => setState(() {
-                _selectedIndex = 1;
-                _matchesTabController.index = 0;
-              }),
-            ),
-            if (_liveMatches.isEmpty)
-              _buildEmptyInline('No live matches right now')
-            else
-              SizedBox(
-                height: 200, // Increased height for better card display
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12), // Reduced padding
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _liveMatches.length.clamp(0, 10),
-                  itemBuilder: (_, i) => _MatchCard(
-                    data: _liveMatches[i],
-                    isLive: true,
-                    onTap: () => _openMatch(_liveMatches[i]),
+      child: DashboardAnimation(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeroBanner(),
+              const SizedBox(height: 20),
+  
+              // ── Live Matches ──────────────────────────────────
+              _SectionHeader(
+                title: 'Live Matches',
+                count: _liveMatches.length,
+                badgeColor: Colors.red,
+                onSeeAll: () => setState(() {
+                  _selectedIndex = 1;
+                  _matchesTabController.index = 0;
+                }),
+              ),
+              if (_liveMatches.isEmpty)
+                _buildEmptyInline('No live matches right now')
+              else
+                SizedBox(
+                  height: 210, // Increased height to prevent overflow
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    clipBehavior: Clip.none,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _liveMatches.length.clamp(0, 10),
+                    itemBuilder: (_, i) => _MatchCard(
+                      data: _liveMatches[i],
+                      isLive: true,
+                      onTap: () => _openMatch(_liveMatches[i]),
+                    ),
                   ),
                 ),
+  
+              const SizedBox(height: 20),
+  
+              // ── Upcoming Matches ──────────────────────────────
+              _SectionHeader(
+                title: 'Upcoming Matches',
+                count: _upcomingMatches.length,
+                badgeColor: AppColors.primary,
+                onSeeAll: () => setState(() {
+                  _selectedIndex = 1;
+                  _matchesTabController.index = 1;
+                }),
               ),
-
-            const SizedBox(height: 20),
-
-            // ── Upcoming Matches ──────────────────────────────
-            _SectionHeader(
-              title: 'Upcoming Matches',
-              count: _upcomingMatches.length,
-              badgeColor: AppColors.primary,
-              onSeeAll: () => setState(() {
-                _selectedIndex = 1;
-                _matchesTabController.index = 1;
-              }),
-            ),
-            if (_upcomingMatches.isEmpty)
-              _buildEmptyInline('No upcoming matches')
-            else
-              SizedBox(
-                height: 200, // Increased height for better card display
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12), // Reduced padding
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _upcomingMatches.length.clamp(0, 10),
-                  itemBuilder: (_, i) => _MatchCard(
-                    data: _upcomingMatches[i],
-                    isLive: false,
-                    onTap: () => _openMatch(_upcomingMatches[i]),
+              if (_upcomingMatches.isEmpty)
+                _buildEmptyInline('No upcoming matches')
+              else
+                SizedBox(
+                  height: 210, // Increased height to prevent overflow
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    clipBehavior: Clip.none,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _upcomingMatches.length.clamp(0, 10),
+                    itemBuilder: (_, i) => _MatchCard(
+                      data: _upcomingMatches[i],
+                      isLive: false,
+                      onTap: () => _openMatch(_upcomingMatches[i]),
+                    ),
                   ),
                 ),
+  
+              const SizedBox(height: 20),
+  
+              // ── Live Series ───────────────────────────────────
+              _SectionHeader(
+                title: 'Live Series',
+                count: _liveSeries.length,
+                badgeColor: AppColors.accent,
+                onSeeAll: () => setState(() => _selectedIndex = 2),
               ),
-
-            const SizedBox(height: 20),
-
-            // ── Live Series ───────────────────────────────────
-            _SectionHeader(
-              title: 'Live Series',
-              count: _liveSeries.length,
-              badgeColor: AppColors.accent,
-              onSeeAll: () => setState(() => _selectedIndex = 2),
-            ),
-            if (_liveSeries.isNotEmpty)
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                itemCount: _liveSeries.length.clamp(0, 5),
-                itemBuilder: (_, i) => _SeriesCard(
-                  data: _liveSeries[i],
-                  onTap: () => _openSeries(_liveSeries[i]),
-                ),
-              )
-            else
-              _buildEmptyInline('No active series'),
-
-            const SizedBox(height: 24),
-
-            // ── Quick Actions ────────────────────────────────────
-            _buildQuickActions(),
-            const SizedBox(height: 24),
-          ],
+              if (_liveSeries.isNotEmpty)
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  itemCount: _liveSeries.length.clamp(0, 5),
+                  itemBuilder: (_, i) => _SeriesCard(
+                    data: _liveSeries[i],
+                    onTap: () => _openSeries(_liveSeries[i]),
+                  ),
+                )
+              else
+                _buildEmptyInline('No active series'),
+  
+              const SizedBox(height: 24),
+  
+              // ── Quick Actions ────────────────────────────────────
+              _buildQuickActions(),
+              
+              const SizedBox(height: 24),
+  
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
@@ -336,76 +348,89 @@ class _HomeScreenState extends State<HomeScreen>
     final liveCount = _liveMatches.length;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.secondary],
+          colors: AppColors.primaryGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Welcome to',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      'Segga Sportzz',
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+          // Background Animation
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Opacity(
+              opacity: 0.1,
+              child: CricketAnimation(
+                type: AnimationType.trophy,
+                size: 150,
               ),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '$liveCount',
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Text(
-                      'Live',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Create your dream team and win exciting prizes!',
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back,',
+                          style: TextStyle(
+                            color: AppColors.white.withOpacity(0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Text(
+                          'Segga Sportzz',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    _HeaderBadge(count: liveCount, label: 'Live'),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.white.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.flash_on, color: AppColors.warning, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Create your dream team and win prizes!',
+                          style: TextStyle(
+                            color: AppColors.white.withOpacity(0.9),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -662,6 +687,47 @@ Tab _TabLabel(String text, int count, Color badgeColor) {
   );
 }
 
+class _HeaderBadge extends StatelessWidget {
+  final int count;
+  final String label;
+
+  const _HeaderBadge({required this.count, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.white.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count $label',
+            style: const TextStyle(
+              color: AppColors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── MATCH CARD ───────────────────────────────────────────────────────
 class _MatchCard extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -692,156 +758,153 @@ class _MatchCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 280, // Reduced width to eliminate gaps
-        margin: const EdgeInsets.only(right: 8, bottom: 8), // Reduced margin
-        padding: const EdgeInsets.all(16),
+        width: 300,
+        margin: const EdgeInsets.only(right: 16, bottom: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with live indicator
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (isLive)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.3),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      '● LIVE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      startTime,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                
-                // Match type indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'T20',
-                    style: TextStyle(
-                      color: Colors.blue.shade600,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            // Top Section
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                   Text(
+                    'T20 Match',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (isLive)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'LIVE',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                     Text(
+                      startTime.split('T').first,
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              ),
             ),
             
-            const SizedBox(height: 16),
-            
-            // Teams vs section
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+            // Middle Section (Teams)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   // Team A
                   Expanded(
                     child: Column(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 45,
+                          height: 45,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Colors.white,
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Center(
                             child: Text(
                               teamAShort,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                                color: AppColors.secondary,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           teamAFull,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                           textAlign: TextAlign.center,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
                         ),
                       ],
                     ),
                   ),
                   
-                  // VS
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Column(
-                      children: [
-                        Text(
-                          'VS',
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  // VS Section
+                  Column(
+                    children: [
+                      const Text(
+                        'VS',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          fontStyle: FontStyle.italic,
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 30,
-                          height: 2,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(1),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 2),
+                      Container(
+                        width: 40,
+                        height: 1.5,
+                        color: Colors.grey.shade200,
+                      ),
+                    ],
                   ),
                   
                   // Team B
@@ -849,33 +912,41 @@ class _MatchCard extends StatelessWidget {
                     child: Column(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 45,
+                          height: 45,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Colors.white,
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Center(
                             child: Text(
                               teamBShort,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                                color: AppColors.secondary,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           teamBFull,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                           textAlign: TextAlign.center,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
                         ),
                       ],
                     ),
@@ -884,22 +955,25 @@ class _MatchCard extends StatelessWidget {
               ),
             ),
             
-            const SizedBox(height: 12),
-            
-            // Bottom action
+            // Bottom Action
+            const Divider(height: 1),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
               ),
-              child: Text(
-                'View Details',
+              child: const Text(
+                'JOIN CONTEST',
                 style: TextStyle(
-                  color: Colors.blue.shade600,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1012,33 +1086,42 @@ class _QuickActionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 8,
-              spreadRadius: 2,
+              color: color.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
+          border: Border.all(color: color.withOpacity(0.1)),
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 32,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 28,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: color,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+                color: AppColors.secondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
               ),
             ),
           ],

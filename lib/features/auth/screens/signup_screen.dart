@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fantasy_crick/main.dart';
 import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
+import 'package:fantasy_crick/common/widgets/login_animation.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -84,7 +86,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final fullPhone = '$_countryCode$phone';
       await _authService.signUp(name, email, fullPhone, password);
 
-      // Save user country/currency preferences locally
       final prefs = await SharedPreferences.getInstance();
       if (_countryData != null) {
         await prefs.setString('user_country_code', _countryData!.code);
@@ -120,129 +121,161 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    final data = await LocationService.getLocationData();
+    if (mounted) {
+      setState(() {
+        _countryCode = data['country_calling_code'] ?? '+91';
+        _userIp = data['ip'] ?? '';
+        
+        final countryCode = data['country_code'];
+        if (countryCode != null) {
+          _countryData = CountryConstants.countries.firstWhere(
+            (c) => c.code == countryCode,
+            orElse: () => CountryConstants.countries.firstWhere((c) => c.code == "IN"),
+          );
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // Icon
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_add_alt_1,
-                  size: 48,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text(
-                'Create Account',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Join the fantasy cricket world',
-                style: TextStyle(fontSize: 15, color: AppColors.textLight),
-              ),
-              const SizedBox(height: 32),
-
-              _buildTextField(
-                controller: _nameController,
-                label: 'Full Name',
-                hint: 'Enter your full name',
-                prefixIcon: Icons.person_outline,
-              ),
-              const SizedBox(height: 16),
-
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email',
-                hint: 'Enter your email',
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: Icons.email_outlined,
-              ),
-              const SizedBox(height: 16),
-
-              _buildPhoneField(
-                controller: _phoneController,
-                label: 'Phone Number',
-                hint: 'Enter your phone number',
-                countryCode: _countryCode,
-              ),
-              const SizedBox(height: 16),
-
-              _buildPasswordField(
-                controller: _passwordController,
-                label: 'Password',
-                hint: 'Create a password',
-                obscure: _obscurePassword,
-                onToggle: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              ),
-              const SizedBox(height: 16),
-
-              _buildPasswordField(
-                controller: _confirmPasswordController,
-                label: 'Confirm Password',
-                hint: 'Confirm your password',
-                obscure: _obscureConfirm,
-                onToggle: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-              const SizedBox(height: 28),
-
-              CustomButton(
-                title: 'Create Account',
-                onTap: _handleSignUp,
-                loading: _loading,
-              ),
-
-              const SizedBox(height: 24),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Already have an account? ',
-                    style: TextStyle(color: AppColors.textLight),
+        child: LoginAnimation(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+  
+                // Icon
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SignInScreen()),
-                      );
-                    },
-                    child: const Text(
-                      'Sign In',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  child: const Center(
+                    child: CricketAnimation(
+                      type: AnimationType.cricketBall,
+                      size: 56,
+                      color: AppColors.primary,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
+                ),
+                const SizedBox(height: 24),
+  
+                const Text(
+                  'Create Account',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.text,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Join the fantasy cricket world',
+                  style: TextStyle(fontSize: 16, color: AppColors.textLight, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 48),
+
+                _buildTextField(
+                  controller: _nameController,
+                  label: 'Full Name',
+                  hint: 'Enter your full name',
+                  prefixIcon: Icons.person_outline,
+                ),
+                const SizedBox(height: 16),
+
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'Email',
+                  hint: 'Enter your email',
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.email_outlined,
+                ),
+                const SizedBox(height: 16),
+
+                _buildPhoneField(
+                  controller: _phoneController,
+                  label: 'Phone Number',
+                  hint: 'Enter your phone number',
+                  countryCode: _countryCode,
+                ),
+                const SizedBox(height: 16),
+
+                _buildPasswordField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  hint: 'Create a password',
+                  obscure: _obscurePassword,
+                  onToggle: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+                const SizedBox(height: 16),
+
+                _buildPasswordField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm Password',
+                  hint: 'Confirm your password',
+                  obscure: _obscureConfirm,
+                  onToggle: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+                const SizedBox(height: 40),
+  
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: CustomButton(
+                    title: 'CREATE ACCOUNT',
+                    onTap: _handleSignUp,
+                    loading: _loading,
+                  ),
+                ),
+  
+                const SizedBox(height: 32),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Already have an account? ',
+                      style: TextStyle(color: AppColors.textLight),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SignInScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Sign In',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -272,7 +305,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -321,7 +354,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -353,31 +386,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ],
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _initLocation();
-  }
-
-  Future<void> _initLocation() async {
-    final data = await LocationService.getLocationData();
-    if (mounted) {
-      setState(() {
-        _countryCode = data['country_calling_code'] ?? '+91';
-        _userIp = data['ip'] ?? '';
-        
-        // Find country data in constants
-        final countryCode = data['country_code'];
-        if (countryCode != null) {
-          _countryData = CountryConstants.countries.firstWhere(
-            (c) => c.code == countryCode,
-            orElse: () => CountryConstants.countries.firstWhere((c) => c.code == "IN"),
-          );
-        }
-      });
-    }
   }
 
   void _showCountryPicker() {
@@ -418,7 +426,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),

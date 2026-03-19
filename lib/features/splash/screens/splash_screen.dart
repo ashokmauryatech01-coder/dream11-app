@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
@@ -38,38 +39,45 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primary,
       body: Container(
         decoration: const BoxDecoration(
-          color: AppColors.primary,
+          gradient: LinearGradient(
+            colors: AppColors.primaryGradient,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.sports_cricket, color: AppColors.white, size: 80),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CricketAnimation(
+                type: AnimationType.cricketBall,
+                size: 150,
+                color: AppColors.white,
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Segga Sportzz',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.white,
+                  letterSpacing: 2,
                 ),
-                const SizedBox(height: 30),
-                const Text(
-                  'Segga Sportzz',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
-                    letterSpacing: 1.5,
-                  ),
+              ),
+              Text(
+                'YOUR FANTASY, OUR WORLD',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.white.withOpacity(0.7),
+                  letterSpacing: 3,
                 ),
-                const SizedBox(height: 50),
-                const CircularProgressIndicator(color: AppColors.white),
-              ],
-            ),
+              ),
+              const SizedBox(height: 100),
+            ],
           ),
         ),
       ),
