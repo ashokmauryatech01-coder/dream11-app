@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
@@ -208,24 +209,37 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          const Text(
-                            'Available Balance',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 16,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Available Balance',
+                                  style: TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '₹${_walletBalance.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '₹${_walletBalance.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          const SizedBox(width: 20),
+                          CricketAnimation(
+                            type: AnimationType.coin,
+                            size: 50,
+                            color: AppColors.white,
+                            duration: const Duration(seconds: 3),
                           ),
                         ],
                       ),
@@ -338,15 +352,27 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                                 color: isSelected ? AppColors.primary : AppColors.border,
                               ),
                             ),
-                            child: Center(
-                              child: Text(
-                                '₹${amount.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected ? AppColors.white : AppColors.text,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '₹${amount.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? AppColors.white : AppColors.text,
+                                  ),
                                 ),
-                              ),
+                                if (isSelected) ...[
+                                  const SizedBox(width: 8),
+                                  CricketAnimation(
+                                    type: AnimationType.coin,
+                                    size: 20,
+                                    color: AppColors.white,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         );

@@ -4,23 +4,23 @@ import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 import 'package:fantasy_crick/features/matches/screens/competition_matches_screen.dart';
 
 class EsSeriesScreen extends StatelessWidget {
-  final Map<String, dynamic> seriesData;
-  const EsSeriesScreen({super.key, required this.seriesData});
+  final Map<String, dynamic>? seriesData;
+  const EsSeriesScreen({super.key, this.seriesData});
 
   @override
   Widget build(BuildContext context) {
-    final title = seriesData['title']?.toString() ?? '';
-    final abbr = seriesData['abbr']?.toString() ?? '';
-    final season = seriesData['season']?.toString() ?? '';
-    final status = seriesData['status']?.toString() ?? '';
-    final category = seriesData['category']?.toString() ?? '';
-    final type = seriesData['type']?.toString() ?? '';
-    final format = seriesData['match_format']?.toString() ?? '';
-    final total = seriesData['total_matches']?.toString() ?? '0';
-    final country = seriesData['country']?.toString() ?? '';
-    final dateStart = seriesData['datestart']?.toString() ?? '';
-    final dateEnd = seriesData['dateend']?.toString() ?? '';
-    final cid = seriesData['cid'] as int?;
+    final title = seriesData?['title']?.toString() ?? '';
+    final abbr = seriesData?['abbr']?.toString() ?? '';
+    final season = seriesData?['season']?.toString() ?? '';
+    final status = seriesData?['status']?.toString() ?? '';
+    final category = seriesData?['category']?.toString() ?? '';
+    final type = seriesData?['type']?.toString() ?? '';
+    final format = seriesData?['match_format']?.toString() ?? '';
+    final total = seriesData?['total_matches']?.toString() ?? '0';
+    final country = seriesData?['country']?.toString() ?? '';
+    final dateStart = seriesData?['datestart']?.toString() ?? '';
+    final dateEnd = seriesData?['dateend']?.toString() ?? '';
+    final cid = seriesData?['cid'] as int?;
 
     Color statusColor;
     switch (status) {

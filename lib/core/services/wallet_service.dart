@@ -44,6 +44,17 @@ class WalletService {
     }
   }
 
+  // Clear local balance
+  static Future<void> clearLocalBalance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('wallet_balance');
+      print('Local balance cleared');
+    } catch (e) {
+      print('Error clearing local balance: $e');
+    }
+  }
+
   // Get auth token from SharedPreferences
   static Future<String> _getToken() async {
     try {

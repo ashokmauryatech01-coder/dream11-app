@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/razorpay_service.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
@@ -238,11 +239,33 @@ class _AddCashScreenState extends State<AddCashScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        icon: Icon(
-          isSuccess ? Icons.check_circle : Icons.error,
-          color: isSuccess ? Colors.green : Colors.red,
+        title: Row(
+          children: [
+            if (isSuccess) ...[
+              CricketAnimation(
+                type: AnimationType.trophy,
+                size: 30,
+                color: Colors.amber,
+                duration: const Duration(seconds: 2),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Text(title),
+          ],
+        ),
+        content: Row(
+          children: [
+            if (isSuccess) ...[
+              CricketAnimation(
+                type: AnimationType.coin,
+                size: 40,
+                color: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+              const SizedBox(width: 16),
+            ],
+            Expanded(child: Text(message)),
+          ],
         ),
         actions: [
           if (isSuccess) ...[
@@ -303,31 +326,44 @@ class _AddCashScreenState extends State<AddCashScreen> {
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  const Text(
-                    'Current Balance',
-                    style: TextStyle(color: AppColors.white, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  _isLoadingBalance
-                      ? const SizedBox(
-                          width: 60,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: AppColors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          '₹${_walletBalance.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Current Balance',
+                          style: TextStyle(color: AppColors.white, fontSize: 16),
                         ),
+                        const SizedBox(height: 8),
+                        _isLoadingBalance
+                            ? const SizedBox(
+                                width: 60,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                '₹${_walletBalance.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  CricketAnimation(
+                    type: AnimationType.coin,
+                    size: 60,
+                    color: AppColors.white,
+                    duration: const Duration(seconds: 3),
+                  ),
                 ],
               ),
             ),
@@ -427,15 +463,27 @@ class _AddCashScreenState extends State<AddCashScreen> {
                             : AppColors.border,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        '₹${amount.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? AppColors.white : AppColors.text,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '₹${amount.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? AppColors.white : AppColors.text,
+                          ),
                         ),
-                      ),
+                        if (isSelected) ...[
+                          const SizedBox(width: 8),
+                          CricketAnimation(
+                            type: AnimationType.coin,
+                            size: 20,
+                            color: AppColors.white,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 );

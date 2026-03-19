@@ -13,6 +13,12 @@ import 'package:fantasy_crick/features/profile/screens/privacy_policy_screen.dar
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
+  // Add error handling for Flutter web
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('Flutter Error: ${details.exception}');
+    print('Stack: ${details.stack}');
+  };
+  
   runApp(const MyApp());
 }
 
@@ -21,6 +27,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Set error widget builder
+    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+      return Container(
+        color: Colors.white,
+        child: Center(
+          child: Text(
+            'Error occurred. Please restart the app.',
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    };
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'Segga Sportzz',
