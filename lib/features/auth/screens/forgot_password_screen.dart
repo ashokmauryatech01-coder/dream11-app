@@ -4,6 +4,7 @@ import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
+import 'dart:async';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -30,6 +31,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _obscureConfirm = true;
 
   final AuthService _authService = AuthService();
+  
+  // Timer related
+  Timer? _resendTimer;
+  int _secondsRemaining = 60;
+  bool _canResend = false;
+
+  void _startResendTimer() {
+    _resendTimer?.cancel();
+    setState(() {
+      _secondsRemaining = 60;
+      _canResend = false;
+    });
+    
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          _canResend = true;
+          _resendTimer?.cancel();
+        }
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -38,6 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _confirmPasswordController.dispose();
     for (final c in _otpControllers) { c.dispose(); }
     for (final f in _otpFocusNodes) { f.dispose(); }
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -74,6 +105,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _loading = false;
         _otpSent = true;
       });
+      
+      _startResendTimer(); // Start timer when screen switches to Reset section
 
       await BeautyDialog.show(context,
           title: 'OTP Sent',
@@ -126,7 +159,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await _authService.resetPassword(
         _emailController.text.trim(),
-        otp,
+        otp, // Using the collected OTP/Token
         newPassword,
         confirmPassword,
       );
@@ -387,10 +420,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
         Center(
           child: TextButton(
-            onPressed: _sendOTP,
-            child: const Text(
-              "Didn't receive code? Resend",
-              style: TextStyle(color: AppColors.primary),
+            onPressed: _canResend ? _sendOTP : null,
+            child: Text(
+              _canResend ? "Didn't receive code? Resend" : "Resend in ${_secondsRemaining}s",
+              style: TextStyle(
+                color: _canResend ? AppColors.primary : AppColors.textLight.withOpacity(0.5),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),

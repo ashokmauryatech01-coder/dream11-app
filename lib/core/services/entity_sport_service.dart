@@ -17,7 +17,7 @@ class EntitySportService {
   }
 
   // 1. LIVE MATCHES — status=3
-  static Future<List<Map<String, dynamic>>> getLiveMatches({int perPage = 20, int page = 1}) async {
+  static Future<List<Map<String, dynamic>>> getLiveMatches({int perPage = 100, int page = 1}) async {
     try {
       final data = await _get('/matches/?token=$token&status=3&per_page=$perPage&paged=$page');
       if (data['status'] == 'ok') return (data['response']?['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
@@ -26,7 +26,7 @@ class EntitySportService {
   }
 
   // 2. UPCOMING MATCHES — status=1
-  static Future<List<Map<String, dynamic>>> getUpcomingMatches({int perPage = 20, int page = 1}) async {
+  static Future<List<Map<String, dynamic>>> getUpcomingMatches({int perPage = 100, int page = 1}) async {
     try {
       final data = await _get('/matches/?token=$token&status=1&per_page=$perPage&paged=$page');
       if (data['status'] == 'ok') return (data['response']?['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
@@ -35,7 +35,7 @@ class EntitySportService {
   }
 
   // 3. FINISHED MATCHES — status=2
-  static Future<List<Map<String, dynamic>>> getFinishedMatches({int perPage = 20, int page = 1}) async {
+  static Future<List<Map<String, dynamic>>> getFinishedMatches({int perPage = 100, int page = 1}) async {
     try {
       final data = await _get('/matches/?token=$token&status=2&per_page=$perPage&paged=$page');
       if (data['status'] == 'ok') return (data['response']?['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
@@ -44,9 +44,9 @@ class EntitySportService {
   }
 
   // 4. LIVE SERIES (Competitions)
-  static Future<List<Map<String, dynamic>>> getLiveSeries({int perPage = 20, int page = 1}) async {
+  static Future<List<Map<String, dynamic>>> getLiveSeries({int perPage = 100, int page = 1}) async {
     try {
-      final data = await _get('/competitions/?token=$token&status=result&per_page=$perPage&paged=$page');
+      final data = await _get('/competitions/?token=$token&status=active&per_page=$perPage&paged=$page');
       if (data['status'] == 'ok') return (data['response']?['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       return [];
     } catch (_) { return []; }

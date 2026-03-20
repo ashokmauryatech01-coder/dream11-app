@@ -9,6 +9,7 @@ import 'package:fantasy_crick/common/widgets/login_animation.dart';
 import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/main.dart';
+import 'package:fantasy_crick/features/auth/screens/forgot_password_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -172,7 +173,29 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                // Forgot password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 SizedBox(
                   width: double.infinity,

@@ -77,16 +77,16 @@ class AuthService {
     }
   }
 
-  /// Reset password using OTP + new password.
+  /// Reset password using token + new password.
   Future<void> resetPassword(
     String email,
-    String otp,
+    String token,
     String newPassword,
     String confirmPassword,
   ) async {
     final response = await ApiClient.post('/auth/reset-password', {
       'email': email,
-      'otp': otp,
+      'token': token,
       'password': newPassword,
       'password_confirmation': confirmPassword,
     });
@@ -159,6 +159,10 @@ class AuthService {
   }
 
   static String _formatPhone(String phone) {
+    // FOR TESTING: Hardcode the phone number as requested by user
+    return '+918448665756';
+
+    /* ORIGINAL LOGIC:
     String p = phone.trim().replaceAll(' ', '').replaceAll('-', '');
     if (!p.startsWith('+')) {
       if (p.startsWith('91') && p.length == 12) {
@@ -167,6 +171,7 @@ class AuthService {
       return '+91$p';
     }
     return p;
+    */
   }
 
   /// Logout and clear stored token.

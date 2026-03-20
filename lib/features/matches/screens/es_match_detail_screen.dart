@@ -17,9 +17,9 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
   late TabController _tabController;
   Map<String, dynamic>? _scorecard;
   Map<String, dynamic>? _liveScore;
-  Map<String, dynamic>? _fantasyPoints;
+  Map<String, dynamic>? _squad;
   bool _loadingScorecard = false;
-  bool _loadingPoints = false;
+  bool _loadingSquad = false;
   // auto-refresh for live matches
   bool _autoRefresh = false;
   Timer? _pollingTimer;
@@ -35,10 +35,8 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
       if (_tabController.indexIsChanging) return;
       if (_tabController.index == 1 && _scorecard == null && !_loadingScorecard)
         _loadScorecard();
-      if (_tabController.index == 2 &&
-          _fantasyPoints == null &&
-          !_loadingPoints)
-        _loadPoints();
+      if (_tabController.index == 2 && _squad == null && !_loadingSquad)
+        _loadSquad();
     });
     final status = widget.matchData['status'] as int? ?? 0;
     if (status == 3) {
@@ -124,14 +122,15 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     });
   }
 
-  Future<void> _loadPoints() async {
+
+  Future<void> _loadSquad() async {
     if (_matchId == 0) return;
-    setState(() => _loadingPoints = true);
-    final data = await EntitySportService.getFantasyPoints(_matchId);
+    setState(() => _loadingSquad = true);
+    final data = await EntitySportService.getFantasySquad(_matchId);
     if (!mounted) return;
     setState(() {
-      _fantasyPoints = data;
-      _loadingPoints = false;
+      _squad = data;
+      _loadingSquad = false;
     });
   }
 
@@ -142,6 +141,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
   int get _status => widget.matchData['status'] as int? ?? 0;
   bool get _isLive => _status == 3;
   bool get _isFinished => _status == 2;
+  bool get _isUpcoming => _status == 1;
 
   @override
   Widget build(BuildContext context) {
@@ -191,14 +191,18 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                   tabs: const [
                     Tab(text: 'Match Info'),
                     Tab(text: 'Scorecard'),
-                    Tab(text: 'Fantasy Pts'),
+                    Tab(text: 'Squad'),
                   ],
                 ),
               ),
             ],
             body: TabBarView(
               controller: _tabController,
-              children: [_matchInfoTab(), _scorecardTab(), _fantasyPointsTab()],
+              children: [
+                _matchInfoTab(),
+                _scorecardTab(),
+                _squadTab(),
+              ],
             ),
           ),
           floatingActionButton: FloatingActionButton.extended(
@@ -555,6 +559,32 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
 
   // ── SCORECARD TAB ─────────────────────────────────────────────────────────
   Widget _scorecardTab() {
+    if (_isUpcoming) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.timer_outlined, size: 64, color: Colors.grey.withOpacity(0.5)),
+            const SizedBox(height: 16),
+            const Text(
+              'Match Not Started Yet',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'The scorecard will be available once the match begins.',
+              style: TextStyle(color: Colors.white54, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_loadingScorecard)
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -1364,25 +1394,20 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     );
   }
 
-  // ── FANTASY POINTS TAB ───────────────────────────────────────────────────
-  Widget _fantasyPointsTab() {
-    if (_loadingPoints)
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
-    if (_fantasyPoints == null) {
+  // ── SQUAD TAB ─────────────────────────────────────────────────────────────
+  Widget _squadTab() {
+    if (_loadingSquad) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+    if (_squad == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.star_border_rounded,
-              size: 60,
-              color: Colors.white12,
-            ),
+            const Icon(Icons.people_outline, size: 60, color: Colors.grey),
             const SizedBox(height: 16),
             const Text(
-              'Fantasy Points',
+              'Match Squad',
               style: TextStyle(
                 color: Colors.white70,
                 fontWeight: FontWeight.bold,
@@ -1391,14 +1416,14 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             ),
             const SizedBox(height: 8),
             const Text(
-              'View fantasy points for each player',
-              style: TextStyle(color: Colors.white38),
+              'Load player lists for this match',
+              style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: _loadPoints,
+              onPressed: _loadSquad,
               icon: const Icon(Icons.download_rounded),
-              label: const Text('Load Points'),
+              label: const Text('Load Squad'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -1409,125 +1434,125 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
       );
     }
 
-    final players =
-        (_fantasyPoints!['players'] as List<dynamic>?)
-            ?.cast<Map<String, dynamic>>() ??
-        [];
-    if (players.isEmpty) {
-      return const Center(
-        child: Text(
-          'No fantasy data yet',
-          style: TextStyle(color: Colors.white38),
-        ),
-      );
+    final tA = _squad!['teama'];
+    final tB = _squad!['teamb'];
+    List<Map<String, dynamic>> teamsList = [];
+
+    if (tA is Map) teamsList.add(tA.cast<String, dynamic>());
+    if (tB is Map) teamsList.add(tB.cast<String, dynamic>());
+
+    if (teamsList.isEmpty) {
+      final rawTeams = _squad!['teams'];
+      if (rawTeams is Map) {
+        rawTeams.forEach((key, value) {
+          if (value is Map) teamsList.add(value.cast<String, dynamic>());
+        });
+      } else if (rawTeams is List) {
+        teamsList = rawTeams.cast<Map<String, dynamic>>();
+      }
     }
 
-    // Sort by points desc
-    final sorted = [...players]
-      ..sort((a, b) {
-        final pa = (a['fantasy_player_rating'] as num?)?.toDouble() ?? 0;
-        final pb = (b['fantasy_player_rating'] as num?)?.toDouble() ?? 0;
-        return pb.compareTo(pa);
-      });
+    if (teamsList.isEmpty) {
+      return Center(
+          child: Text('No squad data yet',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16)));
+    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
-      itemCount: sorted.length,
-      itemBuilder: (_, i) {
-        final p = sorted[i];
-        final pts = (p['fantasy_player_rating'] as num?)?.toDouble() ?? 0;
-        final name = p['name']?.toString() ?? p['title']?.toString() ?? '';
-        final role = p['role']?.toString() ?? '';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: i == 0
-                  ? AppColors.primary.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.1),
-            ),
-          ),
-          child: Row(
+    return RefreshIndicator(
+      onRefresh: _loadSquad,
+      color: AppColors.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+        itemCount: teamsList.length,
+        itemBuilder: (_, i) {
+          final tdata = teamsList[i];
+          final fallbackName = (i == 0) ? (_teamA['name'] ?? _teamA['short_name'] ?? 'TEAM A') : (_teamB['name'] ?? _teamB['short_name'] ?? 'TEAM B');
+          final teamName = (tdata['name'] ?? tdata['title'] ?? tdata['short_name'] ?? tdata['team_name'] ?? fallbackName).toString();
+          final players = (tdata['players'] is List ? tdata['players'] as List : 
+                          (tdata['squad'] is List ? tdata['squad'] as List : 
+                          (tdata['squads'] is List ? tdata['squads'] as List : [])));
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 24,
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                 child: Text(
-                  '${i + 1}',
-                  style: TextStyle(
-                    color: i < 3 ? AppColors.primary : Colors.grey,
-                    fontWeight: i < 3 ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.2),
-                radius: 18,
-                child: Text(
-                  name.isNotEmpty ? name[0] : '?',
+                  teamName.toUpperCase(),
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    Text(
-                      role.toUpperCase(),
-                      style: const TextStyle(color: Colors.grey, fontSize: 10),
-                    ),
-                  ],
-                ),
+              ...players.map((p) => _playerRow(p as Map<String, dynamic>)),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _playerRow(Map<String, dynamic> p) {
+    final name = p['name']?.toString() ?? p['title']?.toString() ?? '';
+    final role = p['role']?.toString() ?? '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            radius: 16,
+            child: Text(
+              name.isNotEmpty ? name[0] : '?',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: pts >= 50
-                      ? AppColors.success.withOpacity(0.2)
-                      : AppColors.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${pts.toStringAsFixed(1)} pts',
-                  style: TextStyle(
-                    color: pts >= 50 ? AppColors.success : AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: AppColors.text,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
                 ),
-              ),
-            ],
+                Text(
+                  role.toUpperCase(),
+                  style: const TextStyle(color: Colors.grey, fontSize: 10),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
+
+  // Fantasy points tab removed
 }
 
 class _BoundaryTextAnimation extends StatelessWidget {

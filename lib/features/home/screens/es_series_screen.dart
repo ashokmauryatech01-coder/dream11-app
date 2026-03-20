@@ -5,17 +5,27 @@ import 'package:fantasy_crick/features/matches/screens/competition_matches_scree
 
 class EsSeriesScreen extends StatelessWidget {
   final Map<String, dynamic>? seriesData;
-  const EsSeriesScreen({super.key, this.seriesData});
+  final List<Map<String, dynamic>>? seriesList;
+
+  const EsSeriesScreen({super.key, this.seriesData, this.seriesList});
 
   @override
   Widget build(BuildContext context) {
+    if (seriesData == null && seriesList != null) {
+      return _buildListView(context);
+    }
+    
+    if (seriesData == null) {
+      return const Center(child: Text('No series data selected', style: TextStyle(color: Colors.grey)));
+    }
+
     final title = seriesData?['title']?.toString() ?? '';
     final abbr = seriesData?['abbr']?.toString() ?? '';
     final season = seriesData?['season']?.toString() ?? '';
     final status = seriesData?['status']?.toString() ?? '';
     final category = seriesData?['category']?.toString() ?? '';
-    final type = seriesData?['type']?.toString() ?? '';
-    final format = seriesData?['match_format']?.toString() ?? '';
+    final type = seriesData?['type']?.toString() ?? seriesData?['category']?.toString() ?? '';
+    final format = seriesData?['match_format']?.toString() ?? seriesData?['game_format']?.toString() ?? '';
     final total = seriesData?['total_matches']?.toString() ?? '0';
     final country = seriesData?['country']?.toString() ?? '';
     final dateStart = seriesData?['datestart']?.toString() ?? '';
@@ -24,9 +34,14 @@ class EsSeriesScreen extends StatelessWidget {
 
     Color statusColor;
     switch (status) {
-      case 'live': statusColor = AppColors.primary; break;
-      case 'fixture': statusColor = AppColors.primary; break;
-      default: statusColor = AppColors.success;
+      case 'live':
+        statusColor = AppColors.primary;
+        break;
+      case 'fixture':
+        statusColor = AppColors.primary;
+        break;
+      default:
+        statusColor = AppColors.success;
     }
 
     return Scaffold(
@@ -39,57 +54,98 @@ class EsSeriesScreen extends StatelessWidget {
             pinned: true,
             backgroundColor: AppColors.primary,
             iconTheme: const IconThemeData(color: Colors.white),
-            title: Text(abbr.isNotEmpty ? abbr : title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            title: Text(abbr.isNotEmpty ? abbr : title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16)),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 85, 20, 16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-                  Row(children: [
-                    Container(width: 48, height: 48,
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.sports_cricket, color: Colors.white, size: 26)),
-                    const SizedBox(width: 14),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2),
-                      const SizedBox(height: 4),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
                       Row(children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: statusColor.withOpacity(0.8), borderRadius: BorderRadius.circular(8)),
-                          child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('$total matches · $format'.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.sports_cricket,
+                                color: Colors.white, size: 26)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(title,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                  maxLines: 2),
+                              const SizedBox(height: 4),
+                              Row(children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                      color: statusColor.withOpacity(0.8),
+                                      borderRadius: BorderRadius.circular(8)),
+                                  child: Text(status.toUpperCase(),
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 8),
+                                Text('$total matches · $format'.toUpperCase(),
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 11)),
+                              ]),
+                            ])),
                       ]),
-                    ])),
-                  ]),
-                ]),
+                    ]),
               ),
             ),
           ),
 
           // Info grid
-          SliverToBoxAdapter(child: Padding(
+          SliverToBoxAdapter(
+              child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(children: [
               // Stats grid
               Row(children: [
-                _StatBox(label: 'Category', value: category, icon: Icons.category),
+                _StatBox(
+                    label: 'Category', value: category, icon: Icons.category),
                 const SizedBox(width: 10),
                 _StatBox(label: 'Type', value: type, icon: Icons.emoji_events),
                 const SizedBox(width: 10),
-                _StatBox(label: 'Format', value: format.toUpperCase(), icon: Icons.sports_cricket),
+                _StatBox(
+                    label: 'Format',
+                    value: format.toUpperCase(),
+                    icon: Icons.sports_cricket),
               ]),
               const SizedBox(height: 10),
               Row(children: [
-                _StatBox(label: 'Country', value: country.toUpperCase(), icon: Icons.flag),
+                _StatBox(
+                    label: 'Country',
+                    value: country.toUpperCase(),
+                    icon: Icons.flag),
                 const SizedBox(width: 10),
-                _StatBox(label: 'Season', value: season, icon: Icons.calendar_today),
+                _StatBox(
+                    label: 'Season', value: season, icon: Icons.calendar_today),
                 const SizedBox(width: 10),
-                _StatBox(label: 'Matches', value: total, icon: Icons.format_list_numbered),
+                _StatBox(
+                    label: 'Matches',
+                    value: total,
+                    icon: Icons.format_list_numbered),
               ]),
 
               const SizedBox(height: 14),
@@ -102,16 +158,28 @@ class EsSeriesScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.05), blurRadius: 6)
+                    ],
                   ),
                   child: Row(children: [
-                    const Icon(Icons.date_range, color: AppColors.primary, size: 20),
+                    const Icon(Icons.date_range,
+                        color: AppColors.primary, size: 20),
                     const SizedBox(width: 12),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Tournament Period', style: TextStyle(color: AppColors.textLight, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      Text('$dateStart → $dateEnd', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.text, fontSize: 14)),
-                    ]),
+                    Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Tournament Period',
+                              style: TextStyle(
+                                  color: AppColors.textLight, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text('$dateStart → $dateEnd',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.text,
+                                  fontSize: 14)),
+                        ]),
                   ]),
                 ),
 
@@ -122,22 +190,26 @@ class EsSeriesScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => CompetitionMatchesScreen(
-                        competitionId: cid,
-                        competitionName: title,
-                        competitionAbbr: abbr,
-                        season: season,
-                      ),
-                    )),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CompetitionMatchesScreen(
+                            competitionId: cid,
+                            competitionName: title,
+                            competitionAbbr: abbr,
+                            season: season,
+                          ),
+                        )),
                     icon: const Icon(Icons.list_alt),
                     label: Text('View $total Matches'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                   ),
                 ),
@@ -145,6 +217,55 @@ class EsSeriesScreen extends StatelessWidget {
           )),
         ],
       ),
+    );
+  }
+
+  Widget _buildListView(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: seriesList!.length,
+      itemBuilder: (context, index) {
+        final data = seriesList![index];
+        final title = data['title']?.toString() ?? 'Unknown Series';
+        final matches = data['total_matches']?.toString() ?? '0';
+        final format = (data['match_format'] ?? data['game_format'] ?? '').toString();
+        
+        return GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => EsSeriesScreen(seriesData: data),
+          )),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.emoji_events_outlined, color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Text('$matches Matches · $format', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

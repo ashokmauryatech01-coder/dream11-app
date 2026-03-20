@@ -9,6 +9,8 @@ class WinningCelebrationAnimation extends StatefulWidget {
   final double prizeAmount;
   final String contestName;
   final VoidCallback? onCelebrationComplete;
+  final bool showTrophy;
+  final String? successIcon; // optional lottie url for success icon
 
   const WinningCelebrationAnimation({
     super.key,
@@ -16,6 +18,8 @@ class WinningCelebrationAnimation extends StatefulWidget {
     required this.prizeAmount,
     required this.contestName,
     this.onCelebrationComplete,
+    this.showTrophy = true,
+    this.successIcon,
   });
 
   @override
@@ -170,38 +174,62 @@ class _WinningCelebrationAnimationState extends State<WinningCelebrationAnimatio
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                AnimatedBuilder(
-                  animation: _trophyAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _trophyAnimation.value,
-                      child: Container(
-                        padding: const EdgeInsets.all(0),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.amber.withOpacity(0.3),
-                              blurRadius: 40,
-                              spreadRadius: 20,
+                if (widget.showTrophy)
+                  AnimatedBuilder(
+                    animation: _trophyAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _trophyAnimation.value,
+                        child: Container(
+                          padding: const EdgeInsets.all(0),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.amber.withOpacity(0.3),
+                                blurRadius: 40,
+                                spreadRadius: 20,
+                              ),
+                            ],
+                          ),
+                          child: Lottie.network(
+                            'https://lottie.host/80eeb877-a89e-4e44-8d99-ba8544d6da21/WpU6l4v4S0.json', // Trophy
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => CricketAnimation(
+                              type: AnimationType.trophy,
+                              size: 100,
+                              color: Colors.amber,
                             ),
-                          ],
-                        ),
-                        child: Lottie.network(
-                          'https://lottie.host/80eeb877-a89e-4e44-8d99-ba8544d6da21/WpU6l4v4S0.json', // Trophy
-                          width: 200,
-                          height: 200,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => CricketAnimation(
-                            type: AnimationType.trophy,
-                            size: 100,
-                            color: Colors.amber,
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  )
+                else
+                  // Simple Success Icon (Checkmark)
+                  AnimatedBuilder(
+                    animation: _trophyAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _trophyAnimation.value,
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Lottie.network(
+                            'https://lottie.host/68291461-897c-4735-9c86-9a2f7c0a6b16/zC1GCHsE5t.json', // Success Check
+                            repeat: false,
+                            errorBuilder: (context, e, s) => const Icon(Icons.check_circle, size: 80, color: Colors.green),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 
                 const SizedBox(height: 30),
                 

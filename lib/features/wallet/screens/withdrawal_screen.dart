@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
@@ -148,47 +147,69 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // Balance Card
+                        // Premium Withdrawal Balance Card
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: AppColors.primaryGradient,
+                              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)], // Deep Royal Blue
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.2),
+                                color: const Color(0xFF1E3C72).withOpacity(0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
                             ],
                           ),
-                          child: Row(
+                          child: Stack(
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Available Balance',
-                                      style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.w500),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '₹${_walletBalance.toStringAsFixed(2)}',
-                                      style: const TextStyle(color: AppColors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
+                              Positioned(
+                                right: -15,
+                                bottom: -15,
+                                child: Icon(
+                                  Icons.payments_rounded,
+                                  size: 90,
+                                  color: Colors.white.withOpacity(0.08),
                                 ),
                               ),
-                              const CricketAnimation(
-                                type: AnimationType.coin,
-                                size: 50,
-                                color: Colors.white,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.2),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 16),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              'Withdrawable Balance',
+                                              style: TextStyle(color: AppColors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          '₹${_walletBalance.toStringAsFixed(2)}',
+                                          style: const TextStyle(color: AppColors.white, fontSize: 36, fontWeight: FontWeight.w900),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_upward_rounded, color: Colors.white70, size: 32),
+                                ],
                               ),
                             ],
                           ),
@@ -283,14 +304,15 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           child: ElevatedButton(
                             onPressed: _isProcessing ? null : _processWithdrawal,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error, 
+                              backgroundColor: const Color(0xFFD32F2F), // Premium Alert Red
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              elevation: 8,
+                              shadowColor: const Color(0xFFD32F2F).withOpacity(0.3),
                             ),
                             child: _isProcessing
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text('WITHDRAW FUNDS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text('CONFIRM WITHDRAWAL', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                           ),
                         ),
                       ],
@@ -300,10 +322,18 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
         ),
         if (_showCelebration)
           WinningCelebrationAnimation(
-            winnerName: "Withdrawal Successful!",
+            winnerName: "Withdrawal Request Sent",
             prizeAmount: _lastWithdrawnAmount,
-            contestName: "Funds are on the way",
-            onCelebrationComplete: () => setState(() => _showCelebration = false),
+            contestName: "Funds will reach your account soon",
+            showTrophy: false,
+            onCelebrationComplete: () {
+              setState(() => _showCelebration = false);
+              _showMessage(
+                'Request Received',
+                'Your withdrawal of ₹${_lastWithdrawnAmount.toStringAsFixed(0)} is being processed.',
+                true,
+              );
+            },
           ),
       ],
     );

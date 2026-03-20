@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:fantasy_crick/models/live_score_model.dart';
 import 'package:fantasy_crick/core/services/api_client.dart';
+import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 
 class ApiResult<T> {
   final T? data;
@@ -39,13 +40,49 @@ class LiveScoreService {
     }
 
     try {
+      // Try EntitySport first - Fetch Live, Upcoming, and Finished
+      final esResults = await Future.wait([
+        EntitySportService.getLiveMatches(),
+        EntitySportService.getUpcomingMatches(),
+        EntitySportService.getFinishedMatches(),
+      ]);
+      
+      final esMatches = [...esResults[0], ...esResults[1], ...esResults[2]];
+
+      if (esMatches.isNotEmpty) {
+        final matches = esMatches.map((m) {
+          final teama = m['teama'] as Map<String, dynamic>? ?? {};
+          final teamb = m['teamb'] as Map<String, dynamic>? ?? {};
+          final comp = m['competition'] as Map<String, dynamic>? ?? {};
+          
+          return CricScoreMatch(
+            id: m['match_id']?.toString() ?? '',
+            dateTimeGMT: m['date_start'] ?? '',
+            matchType: comp['type']?.toString().toLowerCase() ?? 't20',
+            status: m['status_note'] ?? m['title'] ?? '',
+            matchState: m['status']?.toString() == '3' ? 'live' : (m['status']?.toString() == '2' ? 'result' : 'fixture'),
+            team1Name: teama['name'] ?? 'T1',
+            team2Name: teamb['name'] ?? 'T2',
+            team1ShortName: teama['short_name'] ?? 'T1',
+            team2ShortName: teamb['short_name'] ?? 'T2',
+            team1Score: teama['scores'] ?? '',
+            team2Score: teamb['scores'] ?? '',
+            team1Img: teama['logo_url'] ?? '',
+            team2Img: teamb['logo_url'] ?? '',
+            seriesName: comp['title'] ?? '',
+          );
+        }).toList();
+        _cache[cacheKey] = _CacheEntry(matches);
+        return ApiResult.success(matches);
+      }
+
       final response = await ApiClient.get('/cricket/live-matches');
       final dataList = response['data'] as List<dynamic>? ?? [];
       final matches = dataList.map((m) => CricScoreMatch.fromJson(m as Map<String, dynamic>)).toList();
       _cache[cacheKey] = _CacheEntry(matches);
       return ApiResult.success(matches);
     } catch (e) {
-      return ApiResult.failure('Failed to fetch live scores: ${e.toString()}');
+      return ApiResult.failure('Failed to fetch scores: ${e.toString()}');
     }
   }
 

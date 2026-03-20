@@ -139,17 +139,65 @@ class MatchModel {
     );
   }
 
+  /// Create a MatchModel from Entity Sport API response
+  factory MatchModel.fromEntitySport(Map<String, dynamic> json) {
+    final statusInt = json['status'] is int ? json['status'] : int.tryParse(json['status']?.toString() ?? '1') ?? 1;
+    final isLive = statusInt == 3;
+    final isEnded = statusInt == 2;
+
+    final teamA = json['teama'] as Map<String, dynamic>? ?? {};
+    final teamB = json['teamb'] as Map<String, dynamic>? ?? {};
+    final venue = json['venue'] as Map<String, dynamic>? ?? {};
+    final competition = json['competition'] as Map<String, dynamic>? ?? {};
+
+    return MatchModel(
+      id: json['match_id']?.toString() ?? '',
+      teams: [
+        Team(
+          name: teamA['name'] ?? 'Team A',
+          shortName: teamA['short_name'] ?? 'T1',
+          imageUrl: teamA['logo_url'],
+        ),
+        Team(
+          name: teamB['name'] ?? 'Team B',
+          shortName: teamB['short_name'] ?? 'T2',
+          imageUrl: teamB['logo_url'],
+        ),
+      ],
+      venue: Venue(
+        name: venue['name'] ?? 'TBD',
+        city: venue['location'] ?? '',
+      ),
+      dateTime: json['date_start'] != null
+          ? DateTime.tryParse(json['date_start']) ?? DateTime.now()
+          : DateTime.now(),
+      format: competition['type'] ?? 'T20',
+      status: json['status_note'] ?? json['status_str'] ?? '',
+      seriesName: competition['title'] ?? 'Cricket Match',
+      matchDesc: json['subtitle'] ?? json['title'] ?? '',
+      matchStarted: isLive || isEnded,
+      matchEnded: isEnded,
+      fantasyEnabled: true,
+      score: [], 
+    );
+  }
+
   /// Create a MatchModel from the new custom backend response
   factory MatchModel.fromNewApi(Map<String, dynamic> json) {
     final status = json['status']?.toString().toLowerCase() ?? 'upcoming';
-    final isLive = status == 'live';
+    final isLive = status == 'live' || status == '3';
     final isEnded =
         status == 'finished' ||
         status == 'completed' ||
+        status == '2' ||
         json['status_text']?.toString().contains('Won') == true;
 
+    if (json.containsKey('match_id')) {
+      return MatchModel.fromEntitySport(json);
+    }
+
     return MatchModel(
-      id: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? json['match_id']?.toString() ?? '',
       teams: [
         Team(
           name: json['team1_code'] ?? 'T1',
@@ -180,13 +228,14 @@ class MatchModel {
       ),
       dateTime: json['time'] != null
           ? DateTime.parse(json['time'])
-          : DateTime.now(),
-      format: 'T20', // Default or parse from title
+          : (json['date_start'] != null ? DateTime.parse(json['date_start']) : DateTime.now()),
+      format: (json['competition']?['type'] ?? 'T20').toString().toUpperCase(),
       status: json['status_text'] ?? status,
-      score: [], // Could be parsed if scores were in a better format
+      score: [],
       matchStarted: isLive || isEnded,
       matchEnded: isEnded,
       matchDesc: json['title'] ?? 'Cricket Match',
+      seriesName: json['competition']?['title'],
     );
   }
 

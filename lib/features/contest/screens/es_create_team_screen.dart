@@ -20,8 +20,8 @@ class _Player {
   final double rating;
   final String battingStyle;
   final String bowlingStyle;
-  // filled from scorecard
   String runs = '', balls = '', strikeRate = '', wickets = '', economy = '';
+  final bool isPlaying;
 
   _Player({
     required this.id,
@@ -34,6 +34,7 @@ class _Player {
     required this.rating,
     required this.battingStyle,
     required this.bowlingStyle,
+    this.isPlaying = false,
   });
 }
 
@@ -107,9 +108,20 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
 
   String get _filterRole => _roles[_tabIndex];
 
-  List<_Player> get _filtered => _filterRole == 'ALL'
-      ? _players
-      : _players.where((p) => p.role == _filterRole).toList();
+  List<_Player> get _playingFiltered {
+    // Stale objects in memory after hot reload might have null for the new isPlaying field
+    final playing = _players.where((p) {
+      try { return (p as dynamic).isPlaying == true; } catch(_) { return false; }
+    }).toList();
+    
+    // If no one is marked as playing yet (lineup not out), show everyone
+    final pool = playing.isEmpty ? _players : playing;
+    
+    if (_filterRole == 'ALL') return pool;
+    return pool.where((p) => p.role == _filterRole).toList();
+  }
+
+  List<_Player> get _filtered => _playingFiltered;
 
   bool _canAdd(_Player p) {
     if (_selected.contains(p.id)) return false;
@@ -174,9 +186,12 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     final shortB = teambRaw?['short_name']?.toString() ?? 'TM B';
 
     try {
-      // 1. Try NEW API first
-      final customPlayers = await PlayerService.getPlayersByMatch(matchId);
-      if (customPlayers.isNotEmpty) {
+      final isEntitySport = widget.matchData?.containsKey('match_id') ?? false;
+
+      // 1. Try NEW API ONLY for internal matches
+      if (!isEntitySport) {
+        final customPlayers = await PlayerService.getPlayersByMatch(matchId);
+        if (customPlayers.isNotEmpty) {
         final List<_Player> players = [];
         for (final p in customPlayers) {
           // Map team code or fallback to A/B
@@ -193,12 +208,13 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           }
           players.add(_fromRaw(p, tShort, {}));
         }
-        if (players.isNotEmpty && mounted) {
-          setState(() {
-            _players = players;
-            _loading = false;
-          });
-          return;
+          if (players.isNotEmpty && mounted) {
+            setState(() {
+              _players = players;
+              _loading = false;
+            });
+            return;
+          }
         }
       }
 
@@ -340,6 +356,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           p['batting_style']?.toString() ?? p['batting_type']?.toString() ?? '',
       bowlingStyle:
           p['bowling_style']?.toString() ?? p['bowling_type']?.toString() ?? '',
+      isPlaying: p['playing_status']?.toString() == '1' || 
+                 p['is_playing'] == true || 
+                 p['playing_11'] == true,
     );
 
     // Attach scorecard stats if available
@@ -447,6 +466,78 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       return;
     }
     setState(() => _selected.add(p.id));
+  }
+
+  void _showRulesPopup() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Selection Rules',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _ruleRow('11 Players', 'Total to be selected'),
+            _ruleRow('Max 7 Players', 'From a single team'),
+            const Divider(height: 32),
+            const Text(
+              'Role Constraints:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ruleRow('WK (Keeper)', '1 - 4'),
+            _ruleRow('BAT (Batsman)', '3 - 6'),
+            _ruleRow('AR (All-rounder)', '1 - 4'),
+            _ruleRow('BOWL (Bowler)', '3 - 6'),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _ruleRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black)),
+        ],
+      ),
+    );
   }
 
   void _snack(String msg) {
@@ -596,9 +687,22 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                         fontSize: 15,
                       ),
                     ),
-                    const Text(
-                      'Select 11 Players',
-                      style: TextStyle(color: Colors.white60, fontSize: 11),
+                    Row(
+                      children: [
+                        const Text(
+                          'Select 11 Players',
+                          style: TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: _showRulesPopup,
+                          child: const Icon(
+                            Icons.help_outline,
+                            color: Colors.white60,
+                            size: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -668,7 +772,11 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   Widget _roleBadge(String role) {
     final count = _rc(role);
     final color = _roleClr[role]!;
-    final full = count >= (_maxRole[role] ?? 6);
+    final min = _minRole[role] ?? 1;
+    final max = _maxRole[role] ?? 6;
+    final full = count >= max;
+    final isInvalid = _count == 11 && (count < min || count > max);
+
     return Column(
       children: [
         AnimatedContainer(
@@ -676,10 +784,10 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: count > 0 ? color : Colors.white12,
+            color: isInvalid ? Colors.red : (count > 0 ? color : Colors.white12),
             shape: BoxShape.circle,
             border: Border.all(
-              color: full ? AppColors.secondary : color.withOpacity(0.3),
+              color: isInvalid ? Colors.redAccent : (full ? AppColors.secondary : color.withOpacity(0.3)),
               width: 1.5,
             ),
           ),
@@ -687,7 +795,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
             child: Text(
               '$count',
               style: TextStyle(
-                color: count > 0 ? Colors.white : Colors.white38,
+                color: (count > 0 || isInvalid) ? Colors.white : Colors.white38,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
@@ -751,9 +859,13 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         fontSize: 12,
       ),
       tabs: _roles.map((r) {
+        final playing = _players.where((p) {
+          try { return (p as dynamic).isPlaying == true; } catch(_) { return false; }
+        }).toList();
+        final pool = playing.isEmpty ? _players : playing;
         final cnt = r == 'ALL'
-            ? _players.length
-            : _players.where((p) => p.role == r).length;
+            ? pool.length
+            : pool.where((p) => p.role == r).length;
         return Tab(
           child: Text(
             '${_roleLabels[r]}\n($cnt)',
@@ -1129,7 +1241,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
               borderRadius: BorderRadius.circular(28),
             ),
             child: Text(
-              _canProceed ? 'Next →' : 'Select ${11 - _count} more',
+              _canProceed 
+                  ? 'Next →' 
+                  : (_count == 11 ? 'Check Roles' : 'Select ${11 - _count} more'),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

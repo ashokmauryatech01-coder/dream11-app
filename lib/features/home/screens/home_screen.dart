@@ -617,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen>
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadAll,
-      child: const EsSeriesScreen(),
+      child: EsSeriesScreen(seriesList: _liveSeries),
     );
   }
 
@@ -749,8 +749,11 @@ class _MatchCard extends StatelessWidget {
     final teamAFull = (data['teama']?['name'] ?? data['teama']?.toString() ?? 'Team A').toString();
     final teamBFull = (data['teamb']?['name'] ?? data['teamb']?.toString() ?? 'Team B').toString();
     final matchType = (data['subtitle'] ?? 'T20 Match').toString();
+    final seriesName = (data['competition']?['title'] ?? 'Cricket Match').toString();
     final teamAShort = teamAFull.length > 3 ? teamAFull.substring(0, 3).toUpperCase() : teamAFull.toUpperCase();
     final teamBShort = teamBFull.length > 3 ? teamBFull.substring(0, 3).toUpperCase() : teamBFull.toUpperCase();
+    final teamALogo = data['teama']?['logo_url']?.toString();
+    final teamBLogo = data['teamb']?['logo_url']?.toString();
 
     return GestureDetector(
       onTap: onTap,
@@ -771,7 +774,6 @@ class _MatchCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Header (Match Type & Date)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -782,30 +784,45 @@ class _MatchCard extends StatelessWidget {
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Expanded(
+                    child: Text(
+                      seriesName.toUpperCase(),
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     matchType.toUpperCase(),
                     style: TextStyle(
                       color: Colors.grey.shade600,
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.5,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (isLive)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: Colors.red.withOpacity(0.3)),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 6,
-                            height: 6,
+                            width: 5,
+                            height: 5,
                             decoration: const BoxDecoration(
                               color: Colors.red,
                               shape: BoxShape.circle,
@@ -816,7 +833,7 @@ class _MatchCard extends StatelessWidget {
                             'LIVE',
                             style: TextStyle(
                               color: Colors.red,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -828,7 +845,7 @@ class _MatchCard extends StatelessWidget {
                       startTime.split('T').first,
                       style: TextStyle(
                         color: Colors.grey.shade500,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -861,14 +878,30 @@ class _MatchCard extends StatelessWidget {
                             border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Center(
-                            child: Text(
-                              teamAShort,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: AppColors.secondary,
-                              ),
-                            ),
+                            child: teamALogo != null && teamALogo.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(45),
+                                    child: Image.network(
+                                      teamALogo,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Text(
+                                        teamAShort,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: AppColors.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    teamAShort,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -927,14 +960,30 @@ class _MatchCard extends StatelessWidget {
                             border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Center(
-                            child: Text(
-                              teamBShort,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: AppColors.secondary,
-                              ),
-                            ),
+                            child: teamBLogo != null && teamBLogo.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(45),
+                                    child: Image.network(
+                                      teamBLogo,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Text(
+                                        teamBShort,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: AppColors.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    teamBShort,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -1006,7 +1055,7 @@ class _SeriesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = (data['name'] ?? 'Unknown Series').toString();
+    final name = (data['title'] ?? data['name'] ?? 'Unknown Series').toString();
     final matches = (data['total_matches'] ?? 0).toString();
     final startDate = (data['date_start'] ?? 'Unknown').toString();
 

@@ -5,13 +5,20 @@ import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
+import 'dart:async';
 
 class OtpVerificationScreen extends StatefulWidget {
   /// Email or phone that the OTP was sent to (shown to the user)
   final String? sentTo;
   final bool isLogin;
+  final Map<String, String>? registrationData;
 
-  const OtpVerificationScreen({super.key, this.sentTo, this.isLogin = false});
+  const OtpVerificationScreen({
+    super.key, 
+    this.sentTo, 
+    this.isLogin = false, 
+    this.registrationData
+  });
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -24,11 +31,47 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   bool _loading = false;
   final AuthService _authService = AuthService();
+  
+  // Timer related
+  Timer? _resendTimer;
+  int _secondsRemaining = 60;
+  bool _canResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startResendTimer();
+  }
+
+  void _startResendTimer() {
+    _resendTimer?.cancel();
+    setState(() {
+      _secondsRemaining = 60;
+      _canResend = false;
+    });
+    
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          _canResend = true;
+          _resendTimer?.cancel();
+        }
+      });
+    });
+  }
 
   @override
   void dispose() {
     for (final c in _controllers) { c.dispose(); }
     for (final f in _focusNodes) { f.dispose(); }
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -67,6 +110,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         await _authService.verifyOTPLogin(widget.sentTo!, otp);
       } else {
         await _authService.verifyRegistrationOtp(widget.sentTo ?? '', otp);
+        
+        // If it was a registration flow, now perform the actual sign up
+        if (widget.registrationData != null) {
+          final data = widget.registrationData!;
+          await _authService.signUp(
+            data['name']!,
+            data['email']!,
+            data['phone']!,
+            data['password']!,
+          );
+        }
       }
 
       if (!mounted) return;
@@ -74,8 +128,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
       await BeautyDialog.show(
         context,
-        title: widget.isLogin ? 'Login Verified! 🎉' : 'Verified! 🎉',
-        message: widget.isLogin ? "You're successfully logged in." : 'Your account has been verified successfully.',
+        title: widget.isLogin ? 'Login Verified! 🎉' : 'Account Created! 🎉',
+        message: widget.isLogin 
+            ? "You're successfully logged in." 
+            : 'Your account has been verified and created successfully.',
         type: BeautyDialogType.success,
         confirmText: 'Go to Home',
         onConfirm: () {
@@ -99,6 +155,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> _handleResend() async {
+    if (!_canResend) return;
+
     // Clear all OTP boxes
     for (final c in _controllers) { c.clear(); }
     _focusNodes[0].requestFocus();
@@ -108,6 +166,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         await _authService.resendOTP(widget.sentTo!);
       }
       
+      _startResendTimer(); // Reset timer on success
+
       if (!mounted) return;
       await BeautyDialog.show(
         context,
@@ -244,11 +304,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     style: TextStyle(color: AppColors.textLight),
                   ),
                   GestureDetector(
-                    onTap: _handleResend,
-                    child: const Text(
-                      'Resend OTP',
+                    onTap: _canResend ? _handleResend : null,
+                    child: Text(
+                      _canResend ? 'Resend OTP' : 'Resend in ${_secondsRemaining}s',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: _canResend ? AppColors.primary : AppColors.textLight.withOpacity(0.5),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

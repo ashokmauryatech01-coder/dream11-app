@@ -4,9 +4,8 @@ import 'package:fantasy_crick/core/services/auth_service.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/core/constants/country_constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fantasy_crick/main.dart';
 import 'package:fantasy_crick/common/widgets/custom_button.dart';
+import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/common/widgets/login_animation.dart';
 import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
@@ -81,40 +80,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     setState(() => _loading = true);
+    
+    final fullPhone = '$_countryCode$phone';
 
     try {
-      final fullPhone = '$_countryCode$phone';
-      await _authService.signUp(name, email, fullPhone, password);
+      // 1. Send OTP first to verify the number
+      await _authService.sendOTP(fullPhone);
 
-      final prefs = await SharedPreferences.getInstance();
-      if (_countryData != null) {
-        await prefs.setString('user_country_code', _countryData!.code);
-        await prefs.setString('user_currency', _countryData!.currency);
-        await prefs.setString('user_currency_symbol', _countryData!.currencySymbol);
-      }
-
-      if (!mounted) return;
       setState(() => _loading = false);
 
-      await BeautyDialog.show(
+      if (!mounted) return;
+
+      // 2. Navigate to OTP screen with registration data
+      Navigator.push(
         context,
-        title: 'Account Created! 🎉',
-        message: "Welcome! Your account is ready. Please log in to continue.",
-        type: BeautyDialogType.success,
-        confirmText: 'Go to Login',
-        onConfirm: () {
-          navigatorKey.currentState?.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const SignInScreen()),
-            (route) => false,
-          );
-        },
+        MaterialPageRoute(
+          builder: (context) => OtpVerificationScreen(
+            sentTo: fullPhone,
+            isLogin: false,
+            registrationData: {
+              'name': name,
+              'email': email,
+              'phone': fullPhone,
+              'password': password,
+            },
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
       final msg = e.toString().replaceFirst('Exception: ', '');
       await BeautyDialog.show(context,
-          title: 'Sign Up Failed',
+          title: 'Failed to send OTP',
           message: msg,
           type: BeautyDialogType.error);
     }

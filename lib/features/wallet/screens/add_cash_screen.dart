@@ -285,65 +285,85 @@ class _AddCashScreenState extends State<AddCashScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: Column(
               children: [
-                // Balance Card
+                // Premium Balance Card
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: AppColors.primaryGradient,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withRed(220),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                        color: AppColors.primary.withOpacity(0.35),
+                        blurRadius: 25,
+                        offset: const Offset(0, 12),
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Stack(
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Current Balance',
-                              style: TextStyle(
-                                color: AppColors.white.withOpacity(0.7),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _isLoadingBalance
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2))
-                                : Text(
-                                    '₹${_walletBalance.toStringAsFixed(0)}',
-                                    style: const TextStyle(
-                                      color: AppColors.white,
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                          ],
+                      Positioned(
+                        right: -20,
+                        top: -20,
+                        child: Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 100,
+                          color: Colors.white.withOpacity(0.08),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.account_balance_wallet_rounded,
-                            color: Colors.white, size: 28),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Current Balance',
+                                style: TextStyle(
+                                  color: AppColors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _isLoadingBalance
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
+                              : Text(
+                                  '₹${_walletBalance.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 38,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                        ],
                       ),
                     ],
                   ),
@@ -471,20 +491,26 @@ class _AddCashScreenState extends State<AddCashScreen> {
                         ? null
                         : () => _makePayment(_selectedAmount),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
+                      backgroundColor: const Color(0xFF00C853), // Modern Emerald Green
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
+                          borderRadius: BorderRadius.circular(20)),
+                      elevation: 8,
+                      shadowColor: const Color(0xFF00C853).withOpacity(0.4),
                     ),
                     child: _isProcessing
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
                         : Text(
-                            'ADD ₹${_selectedAmount.toStringAsFixed(0)}',
+                            'PROCEED TO PAY ₹${_selectedAmount.toStringAsFixed(0)}',
                             style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 1),
+                                letterSpacing: 1.2),
                           ),
                   ),
                 ),
@@ -497,6 +523,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
             winnerName: _userName,
             prizeAmount: _lastAddedAmount,
             contestName: 'Wallet Top-up Success',
+            showTrophy: false,
             onCelebrationComplete: () {
               setState(() => _showCelebration = false);
             },
