@@ -39,21 +39,24 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  static Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
+  static Future<dynamic> post(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     final url = Uri.parse('$baseUrl$endpoint');
     _logRequest('POST', url, body: body);
     final response = await http
-        .post(
-          url,
-          headers: await getHeaders(),
-          body: jsonEncode(body),
-        )
+        .post(url, headers: await getHeaders(), body: jsonEncode(body))
         .timeout(const Duration(seconds: 15));
     _logResponse('POST', url, response);
     return _handleResponse(response);
   }
 
-  static void _logRequest(String method, Uri url, {Map<String, dynamic>? body}) {
+  static void _logRequest(
+    String method,
+    Uri url, {
+    Map<String, dynamic>? body,
+  }) {
     print('---------------- API REQUEST ----------------');
     print('METHOD: $method');
     print('URL: $url');
@@ -79,7 +82,24 @@ class ApiClient {
       }
       return null;
     } else {
-      throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      String errorMessage = 'Request failed (${response.statusCode})';
+      try {
+        if (response.body.isNotEmpty) {
+          final body = jsonDecode(response.body);
+          if (body is Map) {
+            errorMessage =
+                body['message']?.toString() ??
+                body['error']?.toString() ??
+                body['msg']?.toString() ??
+                errorMessage;
+          }
+        }
+      } catch (_) {
+        if (response.body.isNotEmpty && response.body.length < 100) {
+          errorMessage = response.body;
+        }
+      }
+      throw Exception(errorMessage);
     }
   }
 }

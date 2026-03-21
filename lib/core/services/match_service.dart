@@ -1,4 +1,3 @@
-import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 import 'package:fantasy_crick/models/match_model.dart';
 
@@ -7,66 +6,45 @@ class MatchService {
   Future<List<MatchModel>> getLiveMatches() async {
     try {
       final matches = await EntitySportService.getLiveMatches();
-      if (matches.isNotEmpty) {
-        return matches.map((m) => MatchModel.fromEntitySport(m)).toList();
-      }
-      
-      // Fallback to internal API
-      final internalMatches = await getMatches('all');
-      return _convertToModels(internalMatches.where((m) => m['status'] == 3).toList());
-    } catch (_) {
-      final matches = await getMatches('all');
-      return _convertToModels(matches.where((m) => m['status'] == 3).toList());
+      return matches.map((m) => MatchModel.fromEntitySport(m)).toList();
+    } catch (e) {
+      print('MatchService: Error in getLiveMatches: $e');
+      return [];
     }
   }
 
   Future<List<MatchModel>> getUpcomingMatches() async {
     try {
       final matches = await EntitySportService.getUpcomingMatches();
-      if (matches.isNotEmpty) {
-        return matches.map((m) => MatchModel.fromEntitySport(m)).toList();
-      }
-      
-      final internalMatches = await getMatches('all');
-      return _convertToModels(internalMatches.where((m) => m['status'] == 1).toList());
-    } catch (_) {
-      final matches = await getMatches('all');
-      return _convertToModels(matches.where((m) => m['status'] == 1).toList());
+      return matches.map((m) => MatchModel.fromEntitySport(m)).toList();
+    } catch (e) {
+      print('MatchService: Error in getUpcomingMatches: $e');
+      return [];
     }
   }
 
   Future<List<MatchModel>> getFinishedMatches() async {
     try {
       final matches = await EntitySportService.getFinishedMatches();
-      if (matches.isNotEmpty) {
-        return matches.map((m) => MatchModel.fromEntitySport(m)).toList();
-      }
-      
-      final internalMatches = await getMatches('all');
-      return _convertToModels(internalMatches.where((m) => m['status'] == 2).toList());
-    } catch (_) {
-      final matches = await getMatches('all');
-      return _convertToModels(matches.where((m) => m['status'] == 2).toList());
+      return matches.map((m) => MatchModel.fromEntitySport(m)).toList();
+    } catch (e) {
+      print('MatchService: Error in getFinishedMatches: $e');
+      return [];
     }
   }
 
-  List<MatchModel> _convertToModels(List<Map<String, dynamic>> maps) {
-    return maps
-        .map((m) => MatchModel.fromNewApi(m['raw'] as Map<String, dynamic>? ?? m))
-        .toList();
-  }
-
-  // Static methods for general use
+  // Static methods for general use — NOW ENTITY SPORT ONLY
   static Future<List<Map<String, dynamic>>> getMatches(String type) async {
     try {
       if (type == 'all' || type == 'live' || type == 'upcoming' || type == 'finished') {
         List<Map<String, dynamic>> matches = [];
         
         if (type == 'all') {
+          // Parallelize but wrap each to ensure partial success
           final results = await Future.wait([
-            EntitySportService.getLiveMatches(),
-            EntitySportService.getUpcomingMatches(),
-            EntitySportService.getFinishedMatches(),
+            EntitySportService.getLiveMatches().catchError((_) => <Map<String, dynamic>>[]),
+            EntitySportService.getUpcomingMatches().catchError((_) => <Map<String, dynamic>>[]),
+            EntitySportService.getFinishedMatches().catchError((_) => <Map<String, dynamic>>[]),
           ]);
           matches = [...results[0], ...results[1], ...results[2]];
         } else if (type == 'live') {
@@ -85,20 +63,9 @@ class MatchService {
           }).toList();
         }
       }
-
-      // Fallback to internal API
-      final response = await ApiClient.get(
-        '/matches?type=$type&page=1&limit=50',
-      );
-      final list = response?['data']?['matches'] as List<dynamic>? ?? [];
-      return list.map((m) {
-        final map = m as Map<String, dynamic>;
-        final transformed = _transformMatch(map);
-        transformed['raw'] = map;
-        return transformed;
-      }).toList();
+      return [];
     } catch (e) {
-      print('Error fetching matches: $e');
+      print('MatchService: Error fetching matches from EntitySport: $e');
       return [];
     }
   }
@@ -128,8 +95,8 @@ class MatchService {
     }
 
     return {
-      'match_id': m['id'] ?? m['match_id'],
-      'id': m['id'] ?? m['match_id'],
+      'match_id': m['additional_match_id'] ?? m['id'] ?? m['match_id'],
+      'id': m['additional_match_id'] ?? m['id'] ?? m['match_id'],
       'title': m['title'],
       'status': statusInt,
       'status_str': statusStr,

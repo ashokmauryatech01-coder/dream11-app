@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class WalletService {
   // TODO: Replace with your actual API configuration
-  static const String _baseUrl = 'https://173.208.188.172:8080/api/v1'; // Update with your server IP
+  static const String _baseUrl = 'http://173.208.188.172:8080/api/v1'; // Changed to http as per user request
   static const String _token = 'your-auth-token'; // Replace with your actual token
 
   // Update local balance
@@ -136,22 +136,36 @@ class WalletService {
     required int userId,
     required int walletId,
     required double balance,
+    required dynamic transactionId,
   }) async {
     try {
+      final token = await _getToken();
       final uri = Uri.parse('$_baseUrl/user/recharge-wallet');
+      final body = {
+        'user_id': userId,
+        'wallet_id': walletId,
+        'balance': balance,
+        'transaction_id': transactionId,
+      };
+      
+      print('\n--- SENDING RECHARGE POST DATA ---');
+      print('URL: $uri');
+      print('BODY: ${jsonEncode(body)}');
+      print('----------------------------------\n');
+      
+      _logRequest('POST', uri, body: body);
+      
       final response = await http.post(
         uri,
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
+          'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'user_id': userId,
-          'wallet_id': walletId,
-          'balance': balance,
-        }),
+        body: jsonEncode(body),
       ).timeout(const Duration(seconds: 15));
+      
+      _logResponse('POST', uri, response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;

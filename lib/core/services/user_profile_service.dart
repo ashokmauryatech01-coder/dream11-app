@@ -83,23 +83,27 @@ class UserProfileService {
     }
   }
 
-  // Update user profile
   static Future<Map<String, dynamic>?> updateUserProfile({
     required int userId,
-    String? fullName,
+    String? name,
     String? email,
     String? phone,
     String? upiId,
-    String? avatar,
+    String? password,
+    String? passwordConfirmation,
+    String? userType = 'user',
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/update-profile/$userId');
+      final uri = Uri.parse('$_baseUrl/user/profile-update');
       final body = {
-        if (fullName != null) 'full_name': fullName,
+        'user_id': userId,
+        if (name != null) 'name': name,
         if (email != null) 'email': email,
         if (phone != null) 'phone': phone,
         if (upiId != null) 'upi_id': upiId,
-        if (avatar != null) 'avatar': avatar,
+        if (password != null) 'password': password,
+        if (passwordConfirmation != null) 'password_confirmation': passwordConfirmation,
+        'user_type': userType,
       };
 
       _logRequest('POST', uri, body: body);
@@ -172,12 +176,16 @@ class UserProfileService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_data', jsonEncode(userData));
-      await prefs.setInt('user_id', userData['id'] ?? 0);
-      await prefs.setString('user_name', userData['full_name'] ?? '');
-      await prefs.setString('user_email', userData['email'] ?? '');
-      await prefs.setString('user_phone', userData['phone'] ?? '');
-      await prefs.setString('user_upi_id', userData['upi_id'] ?? '');
-      await prefs.setString('wallet_balance', (userData['wallet_balance'] ?? 0).toString());
+      
+      // Handle nested user data if present
+      final user = userData.containsKey('user') ? userData['user'] : userData;
+      
+      await prefs.setInt('user_id', user['id'] ?? 0);
+      await prefs.setString('user_name', user['name'] ?? user['full_name'] ?? '');
+      await prefs.setString('user_email', user['email'] ?? '');
+      await prefs.setString('user_phone', user['phone'] ?? '');
+      await prefs.setString('user_upi_id', user['upi_id'] ?? '');
+      await prefs.setString('wallet_balance', (userData['wallet_balance'] ?? user['wallet_balance'] ?? 0).toString());
     } catch (e) {
       print('Error saving user data locally: $e');
     }

@@ -17,7 +17,7 @@ class CompetitionService {
   }) async {
     try {
       final url = Uri.parse(
-        '$_baseUrl/competitions/$cid/matches/?token=$_token&per_page=$perPage&paged=$page',
+        '$_baseUrl/competitions/$cid/matches?token=$_token&per_page=$perPage&paged=$page',
       );
 
       final response = await http.get(

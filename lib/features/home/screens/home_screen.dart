@@ -50,8 +50,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _loadAll() async {
+    final bool hasData = _liveMatches.isNotEmpty || _upcomingMatches.isNotEmpty || _liveSeries.isNotEmpty;
     setState(() {
-      _loading = true;
+      _loading = !hasData;
       _error = null;
     });
     try {
@@ -262,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildEmptyInline('No live matches right now')
               else
                 SizedBox(
-                  height: 210, // Increased height to prevent overflow
+                  height: 160, 
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     clipBehavior: Clip.none,
@@ -292,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildEmptyInline('No upcoming matches')
               else
                 SizedBox(
-                  height: 210, // Increased height to prevent overflow
+                  height: 160, 
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     clipBehavior: Clip.none,
@@ -737,6 +738,52 @@ class _MatchCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Widget _resolveLogo(String? url, String code) {
+    if (url != null && url.isNotEmpty) {
+      String finalUrl = url;
+      final codeMap = {
+        'IND': 'https://flagcdn.com/w160/in.png',
+        'AUS': 'https://flagcdn.com/w160/au.png',
+        'SRL': 'https://flagcdn.com/w160/lk.png',
+        'SL': 'https://flagcdn.com/w160/lk.png',
+        'NZ': 'https://flagcdn.com/w160/nz.png',
+        'PAK': 'https://flagcdn.com/w160/pk.png',
+        'SA': 'https://flagcdn.com/w160/za.png',
+        'ENG': 'https://flagcdn.com/w160/gb.png',
+        'WI': 'https://flagcdn.com/w160/jm.png',
+        'AFG': 'https://flagcdn.com/w160/af.png',
+        'ADL': 'https://flagcdn.com/w160/au.png',
+        'PRS': 'https://flagcdn.com/w160/au.png',
+      };
+      
+      String? mapped = codeMap[url.toUpperCase()] ?? codeMap[code.toUpperCase()];
+      if (mapped != null) finalUrl = mapped;
+
+      if (finalUrl.startsWith('http')) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(45),
+          child: Image.network(
+            finalUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _shortName(code),
+          ),
+        );
+      }
+    }
+    return _shortName(code);
+  }
+
+  Widget _shortName(String code) {
+    return Text(
+      code,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 13,
+        color: AppColors.secondary,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Extract team names properly from JSON data
@@ -878,30 +925,7 @@ class _MatchCard extends StatelessWidget {
                             border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Center(
-                            child: teamALogo != null && teamALogo.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(45),
-                                    child: Image.network(
-                                      teamALogo,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Text(
-                                        teamAShort,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: AppColors.secondary,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : Text(
-                                    teamAShort,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: AppColors.secondary,
-                                    ),
-                                  ),
+                            child: _resolveLogo(teamALogo, teamAShort),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -960,30 +984,7 @@ class _MatchCard extends StatelessWidget {
                             border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Center(
-                            child: teamBLogo != null && teamBLogo.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(45),
-                                    child: Image.network(
-                                      teamBLogo,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Text(
-                                        teamBShort,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: AppColors.secondary,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : Text(
-                                    teamBShort,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: AppColors.secondary,
-                                    ),
-                                  ),
+                            child: _resolveLogo(teamBLogo, teamBShort),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -1004,37 +1005,7 @@ class _MatchCard extends StatelessWidget {
               ),
             ),
             
-            // Bottom Action
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Container(
-                width: double.infinity,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    'JOIN CONTEST',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
+            // Bottom Action Removed as per user request
           ],
         ),
       ),

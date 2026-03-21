@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
-import 'package:fantasy_crick/features/contest/screens/es_create_team_screen.dart';
 
 class EsMatchDetailScreen extends StatefulWidget {
   final Map<String, dynamic> matchData;
@@ -66,7 +65,12 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     super.dispose();
   }
 
-  int get _matchId => widget.matchData['match_id'] as int? ?? 0;
+  int get _matchId {
+    final rawId = widget.matchData['match_id'] ?? widget.matchData['id'];
+    if (rawId == null) return 0;
+    if (rawId is int) return rawId;
+    return int.tryParse(rawId.toString()) ?? 0;
+  }
 
   Future<void> _loadScorecard({bool isPolling = false}) async {
     if (_matchId == 0) return;
@@ -203,23 +207,6 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                 _scorecardTab(),
                 _squadTab(),
               ],
-            ),
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => EsCreateTeamScreen(matchData: widget.matchData),
-              ),
-            ),
-            backgroundColor: AppColors.primary,
-            icon: const Icon(Icons.group_add_rounded, color: Colors.white),
-            label: const Text(
-              'Create Team',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
             ),
           ),
         ),
@@ -1434,28 +1421,59 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
       );
     }
 
+    // Try to extract teams list from various possible structures
+    final List<Map<String, dynamic>> teamsList = [];
+    
+    // 1. Try teama and teamb
     final tA = _squad!['teama'];
     final tB = _squad!['teamb'];
-    List<Map<String, dynamic>> teamsList = [];
-
     if (tA is Map) teamsList.add(tA.cast<String, dynamic>());
     if (tB is Map) teamsList.add(tB.cast<String, dynamic>());
 
+    // 2. Try 'teams' key (Map or List)
     if (teamsList.isEmpty) {
       final rawTeams = _squad!['teams'];
       if (rawTeams is Map) {
-        rawTeams.forEach((key, value) {
-          if (value is Map) teamsList.add(value.cast<String, dynamic>());
-        });
+        rawTeams.forEach((_, v) { if (v is Map) teamsList.add(v.cast<String, dynamic>()); });
       } else if (rawTeams is List) {
-        teamsList = rawTeams.cast<Map<String, dynamic>>();
+        teamsList.addAll(rawTeams.whereType<Map<String, dynamic>>());
       }
+    }
+
+    // 3. Try 'squad' or 'squads' key if still empty
+    if (teamsList.isEmpty) {
+      final squad = _squad!['squad'] ?? _squad!['squads'];
+      if (squad is List) {
+          // If it's a flat list of players, we might need a dummy team
+          teamsList.add({'name': 'Match Squad', 'players': squad});
+      } else if (squad is Map) {
+          squad.forEach((_, v) { if (v is Map) teamsList.add(v.cast<String, dynamic>()); });
+      }
+    }
+
+    // 4. Try 'fantasy_squad' (New endpoint structure)
+    if (teamsList.isEmpty && _squad!.containsKey('fantasy_squad')) {
+        final fs = _squad!['fantasy_squad'];
+        if (fs is Map) {
+             fs.forEach((_, v) { if (v is Map) teamsList.add(v.cast<String, dynamic>()); });
+        }
     }
 
     if (teamsList.isEmpty) {
       return Center(
-          child: Text('No squad data yet',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16)));
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey.shade400, size: 48),
+            const SizedBox(height: 16),
+            Text('No squad data yet',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+            const SizedBox(height: 8),
+            const Text('Squads are usually announced 30 mins before the match.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(

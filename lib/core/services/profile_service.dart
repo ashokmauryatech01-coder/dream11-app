@@ -50,30 +50,40 @@ class ProfileService {
 
   /// Update user profile
   static Future<Map<String, dynamic>?> updateProfile({
-    String? fullName,
+    String? name,
     String? email,
     String? phone,
     String? upiId,
+    String? password,
+    String? passwordConfirmation,
+    String? userType,
   }) async {
     try {
       final savedData = await UserProfileService.getSavedUserData();
-      final currentUserId = savedData['id'] ?? 0;
+      
+      final user = savedData.containsKey('user') ? savedData['user'] : savedData;
+      final currentUserId = user['id'] ?? 0;
       
       final res = await UserProfileService.updateUserProfile(
         userId: currentUserId,
-        fullName: fullName,
+        name: name,
         email: email,
         phone: phone,
         upiId: upiId,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+        userType: userType,
       );
 
       if (res != null) {
         // Update local data
         final updatedData = Map<String, dynamic>.from(savedData);
-        if (fullName != null) updatedData['full_name'] = fullName;
-        if (email != null) updatedData['email'] = email;
-        if (phone != null) updatedData['phone'] = phone;
-        if (upiId != null) updatedData['upi_id'] = upiId;
+        final userData = updatedData.containsKey('user') ? updatedData['user'] : updatedData;
+        
+        if (name != null) userData['name'] = name;
+        if (email != null) userData['email'] = email;
+        if (phone != null) userData['phone'] = phone;
+        if (upiId != null) userData['upi_id'] = upiId;
         
         await UserProfileService.saveUserDataLocally(updatedData);
       }

@@ -4,6 +4,7 @@ import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/razorpay_service.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
 
 class AddCashScreen extends StatefulWidget {
@@ -25,6 +26,8 @@ class _AddCashScreenState extends State<AddCashScreen> {
   bool _showCelebration = false;
   double _lastAddedAmount = 0.0;
   String _userName = 'User';
+  String? _userEmail;
+  String? _userPhone;
 
   @override
   void initState() {
@@ -42,20 +45,69 @@ class _AddCashScreenState extends State<AddCashScreen> {
         _walletBalance = localBalance;
       });
 
-      final savedData = await ProfileService.getSavedUserData();
-      final currentUserId = savedData['id'] ?? 0;
-      _userName = savedData['name'] ?? 'User';
+      var savedData = await ProfileService.getSavedUserData();
+      debugPrint('AddCashScreen: Loaded saved user data: $savedData');
 
-      final walletData = await WalletService.getWallets(currentUserId);
-      if (walletData != null) {
-        setState(() {
-          _walletBalance = (walletData['balance'] ?? localBalance).toDouble();
-          _walletId = walletData['id'] as int?;
-        });
-        await WalletService.saveWalletDataLocally(walletData);
+      var user = savedData.containsKey('user') ? savedData['user'] : savedData;
+
+      // Robust ID parsing
+      int parseId(dynamic id) {
+        if (id == null) return 0;
+        if (id is int) return id;
+        if (id is String) return int.tryParse(id) ?? 0;
+        return 0;
+      }
+
+      var currentUserId = parseId(user['id']);
+      debugPrint('AddCashScreen: Initial Current User ID: $currentUserId');
+
+      if (currentUserId == 0) {
+        debugPrint(
+          'AddCashScreen: User ID not found locally, fetching from server...',
+        );
+        final profileData = await ProfileService.getProfile();
+        if (profileData != null) {
+          debugPrint('AddCashScreen: Profile fetched: $profileData');
+          await ProfileService.saveUserDataLocally(profileData);
+          savedData = profileData;
+          user = savedData.containsKey('user') ? savedData['user'] : savedData;
+          currentUserId = parseId(user['id']);
+          debugPrint('AddCashScreen: Updated Current User ID: $currentUserId');
+        }
+      }
+
+      if (currentUserId == 0) {
+        debugPrint('AddCashScreen: ID still 0, checking direct prefs...');
+        final prefs = await SharedPreferences.getInstance();
+        currentUserId = prefs.getInt('user_id') ?? 0;
+      }
+
+      _userName = user['name'] ?? user['full_name'] ?? 'User';
+      _userEmail = user['email'];
+      _userPhone = user['phone'];
+
+      debugPrint('AddCashScreen: Final ID for wallet fetch: $currentUserId');
+
+      if (currentUserId != 0) {
+        final walletData = await WalletService.getWallets(currentUserId);
+        debugPrint('AddCashScreen: Wallet data response: $walletData');
+        if (walletData != null) {
+          setState(() {
+            _walletBalance =
+                double.tryParse(walletData['balance']?.toString() ?? '0') ??
+                0.0;
+            _walletId = parseId(walletData['id']);
+          });
+          debugPrint(
+            'AddCashScreen: Wallet ID set to: $_walletId, Balance: $_walletBalance',
+          );
+          await WalletService.saveWalletDataLocally(walletData);
+        }
+      } else {
+        debugPrint('AddCashScreen: ERROR - User ID is 0 after all attempts');
       }
     } catch (e) {
-      print('Error loading wallet balance: $e');
+      debugPrint('AddCashScreen: Error in _loadWalletBalance: $e');
     } finally {
       setState(() => _isLoadingBalance = false);
     }
@@ -64,32 +116,91 @@ class _AddCashScreenState extends State<AddCashScreen> {
   void _initializeRazorpay() {
     _razorpayService.initialize(
       onPaymentSuccess: (paymentId) async {
-        setState(() => _isProcessing = false);
+        debugPrint('\n--- RAZORPAY PAYMENT SUCCESS ---');
+        debugPrint('Razorpay Payment ID: $paymentId');
+        setState(() => _isProcessing = true);
 
-        if (_walletId != null) {
+        try {
           final savedData = await ProfileService.getSavedUserData();
-          final currentUserId = savedData['id'] ?? 0;
+          debugPrint('Success Flow: Saved Data: $savedData');
 
-          final result = await WalletService.addFunds(
-            userId: currentUserId,
-            walletId: _walletId!,
-            amount: _selectedAmount,
-            paymentId: paymentId,
-            paymentMethod: 'razorpay',
-          );
+          final userObj = savedData.containsKey('user')
+              ? savedData['user']
+              : savedData;
 
-          if (result != null) {
-             _handleSuccess(_selectedAmount);
-            await _loadWalletBalance();
+          // Robust ID parsing
+          int parseId(dynamic id) {
+            if (id == null) return 0;
+            if (id is int) return id;
+            if (id is String) return int.tryParse(id) ?? 0;
+            return 0;
+          }
+
+          var currentUserId = parseId(userObj['id']);
+
+          if (currentUserId == 0) {
+            final prefs = await SharedPreferences.getInstance();
+            currentUserId = prefs.getInt('user_id') ?? 0;
+          }
+
+          debugPrint('Success Flow: Identified User ID: $currentUserId');
+
+          if (_walletId == null) {
+            debugPrint('Success Flow: Wallet ID missing, fetching...');
+            final walletData = await WalletService.getWallets(currentUserId);
+            debugPrint('Success Flow: Wallet Fetch Response: $walletData');
+            if (walletData != null) {
+              _walletId = parseId(walletData['id']);
+            }
+          }
+
+          debugPrint('Success Flow: Wallet ID: $_walletId');
+
+          if (currentUserId != 0 && _walletId != null) {
+            debugPrint('Success Flow: ATTEMPTING RECHARGE API CALL');
+            debugPrint(
+              'Success Flow: URL: http://173.208.188.172:8080/api/v1/user/recharge-wallet',
+            );
+            debugPrint(
+              'Success Flow: Payload: {user_id: $currentUserId, wallet_id: $_walletId, balance: $_selectedAmount, transaction_id: $paymentId}',
+            );
+
+            final result = await WalletService.rechargeWallet(
+              userId: currentUserId,
+              walletId: _walletId!,
+              balance: _selectedAmount,
+              // Using a static single-digit ID as requested for testing
+              transactionId:
+                  5, // DateTime.now().millisecondsSinceEpoch.toString(),
+            );
+
+            debugPrint('Success Flow: Recharge API Response: $result');
+
+            if (result != null) {
+              _handleSuccess(_selectedAmount);
+              await _loadWalletBalance();
+            } else {
+              _showMessage(
+                'Payment Success',
+                'Funds will be added shortly.',
+                true,
+              );
+            }
           } else {
+            debugPrint(
+              'Success Flow: ERROR - Missing data. UID: $currentUserId, WID: $_walletId',
+            );
             _showMessage(
-              'Payment Successful',
-              'Funds will be added shortly',
+              'Payment Captured',
+              'Wallet sync delayed. Please refresh.',
               true,
             );
           }
-        } else {
-          _showMessage('Payment Successful!', 'Payment ID: $paymentId', true);
+        } catch (e) {
+          debugPrint('Success Flow: CRITICAL ERROR: $e');
+        } finally {
+          setState(() => _isProcessing = false);
+          debugPrint('--- SUCCESS FLOW COMPLETED ---\n');
         }
       },
       onPaymentError: (error) {
@@ -133,116 +244,16 @@ class _AddCashScreenState extends State<AddCashScreen> {
       _showMessage('Invalid Amount', 'Minimum amount is ₹50', false);
       return;
     }
-    _showCardDialog(amount);
-  }
 
-  void _showCardDialog(double amount) {
-    final TextEditingController cardController = TextEditingController();
-    final TextEditingController expiryController = TextEditingController();
-    final TextEditingController cvvController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          bool isFormValid = cardController.text.length >= 16 &&
-              expiryController.text.length >= 4 &&
-              cvvController.text.length >= 3;
-
-          void updateState() {
-            setDialogState(() {
-              isFormValid = cardController.text.replaceAll(' ', '').length >= 16 &&
-                  expiryController.text.replaceAll('/', '').replaceAll(' ', '').length >= 4 &&
-                  cvvController.text.length >= 3;
-            });
-          }
-
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Enter Card Details'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   _buildCardField(
-                    label: 'Card Number',
-                    hint: 'XXXX XXXX XXXX XXXX',
-                    icon: Icons.credit_card,
-                    controller: cardController,
-                    onChanged: (v) => updateState(),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child:  _buildCardField(
-                          label: 'Expiry Date',
-                          hint: 'MM / YY',
-                          controller: expiryController,
-                          onChanged: (v) => updateState(),
-                          keyboardType: TextInputType.datetime,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child:  _buildCardField(
-                          label: 'CVV',
-                          hint: 'XXX',
-                          obscure: true,
-                          controller: cvvController,
-                          onChanged: (v) => updateState(),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-              ),
-              ElevatedButton(
-                onPressed: isFormValid
-                    ? () {
-                        Navigator.pop(context);
-                        _processPayment(amount);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isFormValid ? AppColors.primary : Colors.grey.shade300,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  disabledForegroundColor: Colors.grey.shade500,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text('Pay ₹${amount.toStringAsFixed(0)}'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  void _processPayment(double amount) async {
     setState(() => _isProcessing = true);
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    final newBalance = await WalletService.updateLocalBalance(amount);
-
-    setState(() {
-      _isProcessing = false;
-      _walletBalance = newBalance;
-    });
-
-    _handleSuccess(amount);
+    _razorpayService.openPayment(
+      name: 'Segga Sportz',
+      description: 'Add cash to wallet',
+      amount: amount,
+      email: _userEmail,
+      contact: _userPhone,
+    );
   }
 
   void _showMessage(String title, String message, bool isSuccess) {
@@ -353,7 +364,10 @@ class _AddCashScreenState extends State<AddCashScreen> {
                                   width: 24,
                                   height: 24,
                                   child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2))
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : Text(
                                   '₹${_walletBalance.toStringAsFixed(0)}',
                                   style: const TextStyle(
@@ -408,15 +422,16 @@ class _AddCashScreenState extends State<AddCashScreen> {
                         decoration: InputDecoration(
                           prefixText: '₹ ',
                           prefixStyle: const TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold),
+                            color: AppColors.primary,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                           enabledBorder: UnderlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: Colors.grey.shade200)),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
                           focusedBorder: const UnderlineInputBorder(
-                              borderSide:
-                                  BorderSide(color: AppColors.primary)),
+                            borderSide: BorderSide(color: AppColors.primary),
+                          ),
                         ),
                         onChanged: (v) {
                           final amount = double.tryParse(v);
@@ -442,23 +457,28 @@ class _AddCashScreenState extends State<AddCashScreen> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: selected
                                     ? AppColors.primary
                                     : AppColors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: selected
-                                        ? AppColors.primary
-                                        : Colors.grey.shade200),
+                                  color: selected
+                                      ? AppColors.primary
+                                      : Colors.grey.shade200,
+                                ),
                                 boxShadow: selected
                                     ? [
                                         BoxShadow(
-                                            color: AppColors.primary
-                                                .withOpacity(0.2),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4))
+                                          color: AppColors.primary.withOpacity(
+                                            0.2,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
                                       ]
                                     : [],
                               ),
@@ -491,10 +511,13 @@ class _AddCashScreenState extends State<AddCashScreen> {
                         ? null
                         : () => _makePayment(_selectedAmount),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00C853), // Modern Emerald Green
+                      backgroundColor: const Color(
+                        0xFF00C853,
+                      ), // Modern Emerald Green
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       elevation: 8,
                       shadowColor: const Color(0xFF00C853).withOpacity(0.4),
                     ),
@@ -503,14 +526,17 @@ class _AddCashScreenState extends State<AddCashScreen> {
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2),
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
                         : Text(
                             'PROCEED TO PAY ₹${_selectedAmount.toStringAsFixed(0)}',
                             style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                   ),
                 ),
@@ -528,57 +554,6 @@ class _AddCashScreenState extends State<AddCashScreen> {
               setState(() => _showCelebration = false);
             },
           ),
-      ],
-    );
-  }
-
-  Widget _buildCardField({
-    required String label,
-    required String hint,
-    IconData? icon,
-    bool obscure = false,
-    TextEditingController? controller,
-    Function(String)? onChanged,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textLight,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border.withOpacity(0.5)),
-          ),
-          child: TextField(
-            controller: controller,
-            onChanged: onChanged,
-            obscureText: obscure,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-              prefixIcon: icon != null
-                  ? Icon(icon, size: 20, color: Colors.grey)
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }

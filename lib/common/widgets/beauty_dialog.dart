@@ -6,109 +6,51 @@ enum BeautyDialogType { success, error, warning, info }
 class BeautyDialog {
   static Future<void> show(
     BuildContext context, {
-    required String title,
+    String? title,
     required String message,
     BeautyDialogType type = BeautyDialogType.info,
     String confirmText = 'OK',
     VoidCallback? onConfirm,
-  }) {
+  }) async {
     final colors = _dialogColors(type);
+    
+    // Clean up message
+    String cleanMessage = message.replaceFirst('Exception: ', '').trim();
+    if (cleanMessage.isEmpty) cleanMessage = 'Unknown error occurred';
 
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(colors.icon, color: Colors.white, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                cleanMessage,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
                 ),
-              ],
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    color: colors.primary,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(colors.icon, color: AppColors.white, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  child: Column(
-                    children: [
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.text,
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            onConfirm?.call();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colors.primary,
-                            foregroundColor: AppColors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(
-                            confirmText,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+          ],
+        ),
+        backgroundColor: colors.primary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        action: onConfirm != null
+            ? SnackBarAction(
+                label: confirmText,
+                textColor: Colors.white,
+                onPressed: onConfirm,
+              )
+            : null,
+      ),
     );
   }
 

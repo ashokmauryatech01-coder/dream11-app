@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/razorpay_service.dart';
+import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -42,22 +43,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   void _showMessage(String title, String message, bool isSuccess) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        icon: Icon(
-          isSuccess ? Icons.check_circle : Icons.error,
-          color: isSuccess ? Colors.green : Colors.red,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+    BeautyDialog.show(
+      context,
+      title: title,
+      message: message,
+      type: isSuccess ? BeautyDialogType.success : BeautyDialogType.error,
     );
   }
 

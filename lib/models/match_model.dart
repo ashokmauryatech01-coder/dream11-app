@@ -141,7 +141,9 @@ class MatchModel {
 
   /// Create a MatchModel from Entity Sport API response
   factory MatchModel.fromEntitySport(Map<String, dynamic> json) {
-    final statusInt = json['status'] is int ? json['status'] : int.tryParse(json['status']?.toString() ?? '1') ?? 1;
+    final statusInt = json['status'] is int
+        ? json['status']
+        : int.tryParse(json['status']?.toString() ?? '1') ?? 1;
     final isLive = statusInt == 3;
     final isEnded = statusInt == 2;
 
@@ -164,10 +166,7 @@ class MatchModel {
           imageUrl: teamB['logo_url'],
         ),
       ],
-      venue: Venue(
-        name: venue['name'] ?? 'TBD',
-        city: venue['location'] ?? '',
-      ),
+      venue: Venue(name: venue['name'] ?? 'TBD', city: venue['location'] ?? ''),
       dateTime: json['date_start'] != null
           ? DateTime.tryParse(json['date_start']) ?? DateTime.now()
           : DateTime.now(),
@@ -178,7 +177,7 @@ class MatchModel {
       matchStarted: isLive || isEnded,
       matchEnded: isEnded,
       fantasyEnabled: true,
-      score: [], 
+      score: [],
     );
   }
 
@@ -197,7 +196,11 @@ class MatchModel {
     }
 
     return MatchModel(
-      id: json['id']?.toString() ?? json['match_id']?.toString() ?? '',
+      id:
+          json['additional_match_id']?.toString() ??
+          json['id']?.toString() ??
+          json['match_id']?.toString() ??
+          '',
       teams: [
         Team(
           name: json['team1_code'] ?? 'T1',
@@ -228,7 +231,9 @@ class MatchModel {
       ),
       dateTime: json['time'] != null
           ? DateTime.parse(json['time'])
-          : (json['date_start'] != null ? DateTime.parse(json['date_start']) : DateTime.now()),
+          : (json['date_start'] != null
+                ? DateTime.parse(json['date_start'])
+                : DateTime.now()),
       format: (json['competition']?['type'] ?? 'T20').toString().toUpperCase(),
       status: json['status_text'] ?? status,
       score: [],
