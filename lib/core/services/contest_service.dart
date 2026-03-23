@@ -2,14 +2,27 @@ import 'package:fantasy_crick/models/contest_model.dart';
 import 'package:fantasy_crick/core/services/api_client.dart';
 
 class ContestService {
+  Future<List<ContestModel>> getAllContests() async {
+    try {
+      final response = await ApiClient.get('/contests?type=all&page=1&limit=100');
+      final data = response['data']?['contests'] ?? 
+                   response['data']?['items'] ?? 
+                   response['data'] as List<dynamic>? ?? [];
+      
+      if (data.isEmpty) return _getMockContests();
+      return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return _getMockContests();
+    }
+  }
+
   Future<List<ContestModel>> getFeaturedContests() async {
     try {
       final response = await ApiClient.get('/contests?type=mega');
-      final data = response['data'] as List<dynamic>? ?? [];
-      if (data.isEmpty) {
-        // Fallback mock data if API is empty or down for local demo
-        return _getMockContests();
-      }
+      final data = response['data']?['contests'] ?? 
+                   response['data']?['items'] ?? 
+                   response['data'] as List<dynamic>? ?? [];
+      if (data.isEmpty) return _getMockContests();
       return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
     } catch (_) {
       return _getMockContests();
@@ -19,11 +32,13 @@ class ContestService {
   Future<List<ContestModel>> getContestsForMatch(String matchId) async {
     try {
       final response = await ApiClient.get('/contests?match_id=$matchId&type=all');
-      final data = response['data']?['contests'] as List<dynamic>? ?? 
+      final data = response['data']?['contests'] ?? 
+                   response['data']?['items'] ?? 
                    response['data'] as List<dynamic>? ?? [];
+      if (data.isEmpty) return [];
       return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
     } catch (_) {
-      return _getMockContests();
+      return [];
     }
   }
 

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
-import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/features/contest/screens/es_create_team_screen.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/core/services/teams_service.dart';
+import 'package:fantasy_crick/core/services/contest_service.dart';
+import 'package:fantasy_crick/models/contest_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONTEST SCREEN — white background, real contests from API
@@ -18,7 +19,7 @@ class EsContestScreen extends StatefulWidget {
 
 class _EsContestScreenState extends State<EsContestScreen> {
   Map<String, dynamic>? _selectedMatch;
-  List<dynamic> _contests = [];
+  List<ContestModel> _contests = [];
   bool _loading = false;
   Map<String, dynamic>? _location;
 
@@ -56,21 +57,17 @@ class _EsContestScreenState extends State<EsContestScreen> {
       _loading = true;
       _loadingTeams = true;
     });
-    final matchId = _selectedMatch!['match_id'];
+    final matchId = int.tryParse(_selectedMatch!['match_id']?.toString() ?? '0') ?? 0;
     try {
+      final contestService = ContestService();
       // Fetch all contests across all matches as per user request
-      final res = await ApiClient.get('/contests?type=all&page=1&limit=100');
+      final contests = await contestService.getAllContests();
       final teams = await TeamsService().getMyTeams(matchId);
 
       if (!mounted) return;
-      List<dynamic> itemsList =
-          res?['data']?['contests'] ??
-          res?['data']?['items'] ??
-          res?['data'] ??
-          [];
 
       setState(() {
-        _contests = itemsList;
+        _contests = contests;
         _myTeams = teams;
         _loading = false;
         _loadingTeams = false;
@@ -78,69 +75,12 @@ class _EsContestScreenState extends State<EsContestScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _contests = _fallbackContests();
+        _contests = []; // Mock contests are already returned by ContestService on error
         _loading = false;
         _loadingTeams = false;
       });
     }
   }
-
-  List<Map<String, dynamic>> _fallbackContests() => [
-    {
-      'name': 'Mega Contest',
-      'prize_pool': 5000000,
-      'total_spots': 200000,
-      'filled_spots': 123456,
-      'entry_fee': 49,
-      'contest_type': 'mega',
-      'winner_percentage': 50,
-    },
-    {
-      'name': 'Head to Head',
-      'prize_pool': 1000,
-      'total_spots': 2,
-      'filled_spots': 1,
-      'entry_fee': 25,
-      'contest_type': 'head-to-head',
-      'winner_percentage': 50,
-    },
-    {
-      'name': 'Small League',
-      'prize_pool': 10000,
-      'total_spots': 50,
-      'filled_spots': 45,
-      'entry_fee': 75,
-      'contest_type': 'small',
-      'winner_percentage': 60,
-    },
-    {
-      'name': 'Free Practice',
-      'prize_pool': 500,
-      'total_spots': 500,
-      'filled_spots': 200,
-      'entry_fee': 0,
-      'contest_type': 'practice',
-      'winner_percentage': 30,
-    },
-    {
-      'name': 'Champions League',
-      'prize_pool': 2500000,
-      'total_spots': 100000,
-      'filled_spots': 80000,
-      'entry_fee': 199,
-      'contest_type': 'mega',
-      'winner_percentage': 40,
-    },
-    {
-      'name': 'Classic H2H',
-      'prize_pool': 500,
-      'total_spots': 2,
-      'filled_spots': 0,
-      'entry_fee': 10,
-      'contest_type': 'head-to-head',
-      'winner_percentage': 50,
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -148,8 +88,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
       color: Colors.grey[50],
       child: Column(
         children: [
-          // Match selector
-          if (widget.matches.isNotEmpty) _matchSelector(),
+          // Match selector removed as per user request
 
           // Main Tabs (Contests | My Teams)
           Container(
@@ -219,88 +158,6 @@ class _EsContestScreenState extends State<EsContestScreen> {
   }
 
   // ── MATCH SELECTOR ────────────────────────────────────────────────────────
-  Widget _matchSelector() => Container(
-    color: Colors.white,
-    padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SELECT MATCH',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 34,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: widget.matches.length,
-            itemBuilder: (_, i) {
-              final m = widget.matches[i];
-              final sel = _selectedMatch?['match_id'] == m['match_id'];
-              final a =
-                  (m['teama'] as Map<String, dynamic>?)?['short_name'] ?? '';
-              final b =
-                  (m['teamb'] as Map<String, dynamic>?)?['short_name'] ?? '';
-              final isLive = (m['status'] as int? ?? 0) == 3;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedMatch = m;
-                    _contests = [];
-                  });
-                  _loadContests();
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.primary : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: sel ? AppColors.primary : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isLive)
-                        Container(
-                          width: 5,
-                          height: 5,
-                          margin: const EdgeInsets.only(right: 5),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      Text(
-                        '$a vs $b',
-                        style: TextStyle(
-                          color: sel ? Colors.white : Colors.grey[700],
-                          fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    ),
-  );
 
   // ── CONTEST LIST ──────────────────────────────────────────────────────────
   Widget _contestList() {
@@ -339,7 +196,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 80),
         itemCount: _contests.length,
         itemBuilder: (_, i) =>
-            _contestCard(_contests[i] as Map<String, dynamic>? ?? {}),
+            _contestCard(_contests[i]),
       ),
     );
   }
@@ -564,29 +421,19 @@ class _EsContestScreenState extends State<EsContestScreen> {
   }
 
   // ── CONTEST CARD ──────────────────────────────────────────────────────────
-  Widget _contestCard(Map<String, dynamic> c) {
-    final totalSpots =
-        (c['max_participants'] as num?)?.toInt() ??
-        (c['total_spots'] as num?)?.toInt() ??
-        2;
-    final filledSpots =
-        (c['current_participants'] as num?)?.toInt() ??
-        (c['filled_spots'] as num?)?.toInt() ??
-        0;
-    final fee =
-        double.tryParse(c['entry_fee']?.toString() ?? '0')?.toInt() ?? 0;
+  Widget _contestCard(ContestModel c) {
+    final totalSpots = c.maxTeams;
+    final filledSpots = c.currentTeams;
+    final fee = c.entryFee.toInt();
     final isFree = fee == 0;
-    final prize = LocationService.formatAmount(c['prize_pool'] ?? 0, _location);
-    final winners =
-        double.tryParse(c['winner_percentage']?.toString() ?? '50')?.toInt() ??
-        50;
+    final prize = LocationService.formatAmount(c.prizePool, _location);
+    final winners = c.winnerPercentage;
     final spotsLeft = totalSpots - filledSpots;
     final progress = totalSpots > 0
         ? (filledSpots / totalSpots).clamp(0.0, 1.0)
         : 0.0;
-    final name = c['name']?.toString() ?? 'Contest';
-    final isGuaranteed =
-        c['is_guaranteed'] as bool? ?? c['guaranteed'] as bool? ?? false;
+    final name = c.name;
+    final isGuaranteed = c.isGuaranteed;
 
     Color progressColor = progress >= 0.9
         ? Colors.red
@@ -811,7 +658,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     );
   }
 
-  void _join(Map<String, dynamic> contest) {
+  void _join(ContestModel contest) {
     if (_selectedMatch == null) return;
     Navigator.push(
       context,
@@ -821,7 +668,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
     );
   }
 
-  void _showContestDetails(BuildContext ctx, Map<String, dynamic> c) {
+  void _showContestDetails(BuildContext ctx, ContestModel c) {
     showModalBottomSheet(
       context: ctx,
       backgroundColor: Colors.white,
@@ -848,39 +695,31 @@ class _EsContestScreenState extends State<EsContestScreen> {
             const Divider(height: 24),
             _detailRow(
               'Total Spots',
-              c['max_participants']?.toString() ??
-                  c['total_spots']?.toString() ??
-                  '-',
+              c.maxTeams.toString(),
             ),
             _detailRow(
               'Spots Filled',
-              c['current_participants']?.toString() ??
-                  c['filled_spots']?.toString() ??
-                  '-',
+              c.currentTeams.toString(),
             ),
             _detailRow(
               'Entry Fee',
-              LocationService.formatAmount(c['entry_fee'], _location),
+              LocationService.formatAmount(c.entryFee.toInt(), _location),
             ),
             _detailRow(
               'Prize Pool',
-              LocationService.formatAmount(c['prize_pool'], _location),
+              LocationService.formatAmount(c.prizePool.toInt(), _location),
             ),
             _detailRow(
               'Winners',
-              '${c['winner_percentage']?.toString() ?? '50'}%',
+              '${c.winnerPercentage}%',
             ),
             _detailRow(
               'Multiple Entries',
-              (c['multiple_entries'] == true) ? 'Allowed' : 'Not Allowed',
-            ),
-            _detailRow(
-              'Contest Type',
-              (c['type']?.toString().toUpperCase() ?? 'PUBLIC'),
+              (c.multipleTeams) ? 'Allowed' : 'Not Allowed',
             ),
             _detailRow(
               'Guaranteed',
-              (c['is_guaranteed'] == true || c['guaranteed'] == true)
+              (c.isGuaranteed)
                   ? 'Yes'
                   : 'No',
             ),
