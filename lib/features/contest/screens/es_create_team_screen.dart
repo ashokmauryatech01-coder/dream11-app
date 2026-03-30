@@ -4,6 +4,9 @@ import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/core/services/teams_service.dart';
 import 'package:fantasy_crick/core/services/player_service.dart';
+import 'package:fantasy_crick/core/services/contest_service.dart';
+import 'package:fantasy_crick/core/services/user_profile_service.dart';
+import 'package:fantasy_crick/models/contest_model.dart';
 import 'package:fantasy_crick/main.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,7 +46,8 @@ class _Player {
 // ─────────────────────────────────────────────────────────────────────────────
 class EsCreateTeamScreen extends StatefulWidget {
   final Map<String, dynamic>? matchData;
-  const EsCreateTeamScreen({super.key, this.matchData});
+  final ContestModel? contest;
+  const EsCreateTeamScreen({super.key, this.matchData, this.contest});
 
   @override
   State<EsCreateTeamScreen> createState() => _EsCreateTeamScreenState();
@@ -55,6 +59,8 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
   bool _loading = true;
   bool _submitting = false;
   String? _error;
+  int? _matchRequestId; // The match ID we were asked to use from the contest
+  Map<String, dynamic>? _matchInfo; // Full match details from API
   List<_Player> _players = [];
   final Set<String> _selected = {};
   String? _captainId;
@@ -170,13 +176,26 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       _error = null;
     });
 
-    // Safely parse match ID to handle string or int from different API versions
-    final rawMid = widget.matchData?['match_id'] ?? widget.matchData?['id'];
-    final matchId = int.tryParse(rawMid?.toString() ?? '') ?? 1;
+    _matchInfo = widget.matchData;
+    final rawMid = _matchInfo?['match_id'] ?? _matchInfo?['id'];
+    _matchRequestId = int.tryParse(rawMid?.toString() ?? '') ?? 1;
+    final matchId = _matchRequestId!;
     print('Loading squad for match: $matchId');
 
-    final teamaRaw = widget.matchData?['teama'] as Map<String, dynamic>?;
-    final teambRaw = widget.matchData?['teamb'] as Map<String, dynamic>?;
+    // If match data is incomplete, fetch full info first
+    if (_matchInfo == null || !_matchInfo!.containsKey('teama') || !_matchInfo!.containsKey('teamb')) {
+      try {
+        final info = await EntitySportService.getMatchInfo(matchId);
+        if (info.isNotEmpty) {
+          _matchInfo = info;
+        }
+      } catch (e) {
+        print('Error fetching missing match info: $e');
+      }
+    }
+
+    final teamaRaw = _matchInfo?['teama'] as Map<String, dynamic>?;
+    final teambRaw = _matchInfo?['teamb'] as Map<String, dynamic>?;
 
     // Safety parse for team IDs
     final tidA = int.tryParse(teamaRaw?['team_id']?.toString() ?? '');
@@ -554,10 +573,10 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
 
   String _getTitle() {
     final a =
-        (widget.matchData?['teama'] as Map?)?.tryString('short_name') ??
+        (_matchInfo?['teama'] as Map?)?.tryString('short_name') ??
         'Team A';
     final b =
-        (widget.matchData?['teamb'] as Map?)?.tryString('short_name') ??
+        (_matchInfo?['teamb'] as Map?)?.tryString('short_name') ??
         'Team B';
     return '$a vs $b';
   }
@@ -1693,8 +1712,12 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     setState(() => _submitting = true);
 
     try {
-      final rawMid = widget.matchData?['match_id'] ?? widget.matchData?['id'];
-      final matchId = int.tryParse(rawMid?.toString() ?? '') ?? 1;
+      // Use the ID from the contest if it was passed, otherwise use whatever matchId we resolved
+      final matchId = widget.contest != null 
+          ? (int.tryParse(widget.contest!.matchId) ?? _matchRequestId ?? 1)
+          : (_matchRequestId ?? 1);
+      
+      print('DEBUG: Saving team for matchId: $matchId');
       final playerIds = _selected
           .map((id) => int.tryParse(id) ?? 0)
           .where((id) => id != 0)
@@ -1703,7 +1726,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       final viceCaptId = int.tryParse(_vcId!) ?? 0;
 
       final service = TeamsService();
-      await service.saveTeam(
+      final teamRes = await service.saveTeam(
         name: _teamNameCtrl.text.isEmpty ? "My Team" : _teamNameCtrl.text,
         matchId: matchId,
         playerIds: playerIds,
@@ -1711,11 +1734,48 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         viceCaptainId: viceCaptId,
       );
 
+      // Join contest if provided
+      if (widget.contest != null) {
+        try {
+          final userId = await UserProfileService.getSavedUserId();
+          if (userId <= 0) throw Exception("User ID not found. Please log in again.");
+          
+          final dynamic rawTeamId = teamRes['data']?['id'] ?? teamRes['id'] ?? teamRes['team_id'];
+          final teamId = rawTeamId?.toString() ?? '1';
+          print('DEBUG: Team saved successfully. Extracted Team ID: $teamId');
+
+          await ContestService().joinContest(
+            contestId: widget.contest!.id,
+            teamId: teamId,
+            teamName: _teamNameCtrl.text.isEmpty ? "My Team" : _teamNameCtrl.text,
+            userId: userId,
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Team created & joined contest! 🏆'),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } catch (e) {
+          print('Error joining contest after team creation: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Join failed: ${e.toString().replaceAll('Exception: ', '')}'),
+                backgroundColor: AppColors.primary,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+
       if (!mounted) return;
       setState(() => _submitting = false);
-
-      final cap = _players.firstWhere((p) => p.id == _captainId);
-      final vc = _players.firstWhere((p) => p.id == _vcId);
 
       showDialog(
         context: context,
@@ -1731,9 +1791,9 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(
-                  Icons.emoji_events_rounded,
+                  Icons.check_circle_outline_rounded,
                   size: 64,
-                  color: Colors.orange,
+                  color: Colors.green,
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -1744,52 +1804,56 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                     fontSize: 22,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      _row('Players', '$_count/11'),
-                      _row(
-                        'Credits Used',
-                        '${_usedCredits.toStringAsFixed(1)} / ${_totalCredits.toStringAsFixed(0)}',
-                      ),
-                      _row('Captain (2x)', cap.name),
-                      _row('Vice-Capt (1.5x)', vc.name),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                Text(
+                  _teamNameCtrl.text,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
+                
+                // JOIN CONTEST BUTTON (IF CONTEST PROVIDED)
+                if (widget.contest != null)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(dialogContext); // Close dialog
+                        // Back to contests screen
+                        if (navigatorKey.currentState?.canPop() ?? false) {
+                           navigatorKey.currentState?.pop();
+                        }
+                      },
+                      icon: const Icon(Icons.emoji_events_rounded),
+                      label: const Text('Join Contest 🏆'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                
+                if (widget.contest != null) const SizedBox(height: 12),
+
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(dialogContext); // Close dialog
-                      // Safe back navigation using the global navigator key
                       if (navigatorKey.currentState?.canPop() ?? false) {
                         navigatorKey.currentState?.pop();
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      foregroundColor: Colors.white,
+                    style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Awesome!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    child: const Text('Done'),
                   ),
                 ),
               ],

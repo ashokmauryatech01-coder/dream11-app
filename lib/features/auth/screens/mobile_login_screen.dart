@@ -65,7 +65,10 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(sentTo: fullPhone),
+          builder: (_) => OtpVerificationScreen(
+            sentTo: fullPhone,
+            isLogin: true,
+          ),
         ),
       );
     } catch (e) {

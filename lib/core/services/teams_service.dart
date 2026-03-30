@@ -1,6 +1,7 @@
 import 'package:fantasy_crick/models/cricket_team_model.dart';
 import 'package:fantasy_crick/core/services/cricket_api_service.dart';
-import 'api_client.dart';
+import 'package:fantasy_crick/core/services/api_client.dart';
+import 'user_profile_service.dart';
 
 /// ============================================================================
 /// TEAMS SERVICE - Updated for CricAPI
@@ -109,11 +110,33 @@ class TeamsService {
   /// Fetch matches user joined or created teams for (dummy implementation or API)
   Future<List<Map<String, dynamic>>> getMyTeams(int matchId) async {
     try {
-      final response = await ApiClient.get('/teams');
+      final userId = await UserProfileService.getSavedUserId();
+      if (userId == 0) return [];
+
+      final response = await ApiClient.post(
+        '/teams/show-contest-teams?user_id=$userId', 
+        {
+          'user_id': userId,
+        }
+      );
       if (response != null && response['success'] == true) {
-        final data = response['data']?['teams'] as List<dynamic>? ?? [];
-        return data
-            .where((t) => t['match_id'] == matchId)
+        var listData = response['data'];
+        List<dynamic> teams = [];
+        
+        if (listData is List) {
+          teams = listData;
+        } else if (listData is Map) {
+          if (listData.containsKey('teams')) {
+            teams = listData['teams'];
+          } else if (listData.containsKey('id') || listData.containsKey('name')) {
+            teams = [listData];
+          } else {
+            teams = listData['items'] ?? listData['list'] ?? [];
+          }
+        }
+        
+        return teams
+            .where((t) => t['match_id'] == matchId || matchId == 0)
             .map((t) => t as Map<String, dynamic>)
             .toList();
       }

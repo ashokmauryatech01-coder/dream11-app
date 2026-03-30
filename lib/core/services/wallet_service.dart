@@ -1,99 +1,31 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_client.dart';
 
 class WalletService {
-  // TODO: Replace with your actual API configuration
-  static const String _baseUrl = 'http://173.208.188.172:8080/api/v1'; // Changed to http as per user request
-  static const String _token = 'your-auth-token'; // Replace with your actual token
-
-  // Update local balance
-  static Future<double> updateLocalBalance(double amount) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentBalanceStr = prefs.getString('wallet_balance') ?? '0.0';
-      double currentBalance = double.tryParse(currentBalanceStr) ?? 0.0;
-      
-      double newBalance = currentBalance + amount;
-      await prefs.setString('wallet_balance', newBalance.toString());
-      
-      // Also update wallet_data if it exists
-      final walletDataStr = prefs.getString('wallet_data');
-      if (walletDataStr != null) {
-        final walletData = jsonDecode(walletDataStr) as Map<String, dynamic>;
-        walletData['balance'] = newBalance;
-        await prefs.setString('wallet_data', jsonEncode(walletData));
-      }
-      
-      return newBalance;
-    } catch (e) {
-      print('Error updating local balance: $e');
-      return 0.0;
-    }
+  // Get wallet balance fetch from API
+  static Future<double> getBalance(int userId) async {
+    final wallet = await getWallets(userId);
+    return (wallet?['balance'] ?? 0.0).toDouble();
   }
 
-  // Get local balance
-  static Future<double> getLocalBalance() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentBalanceStr = prefs.getString('wallet_balance') ?? '0.0';
-      return double.tryParse(currentBalanceStr) ?? 0.0;
-    } catch (e) {
-      print('Error getting local balance: $e');
-      return 0.0;
-    }
-  }
-
-  // Clear local balance
-  static Future<void> clearLocalBalance() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('wallet_balance');
-      print('Local balance cleared');
-    } catch (e) {
-      print('Error clearing local balance: $e');
-    }
-  }
-
-  // Get auth token from SharedPreferences
-  static Future<String> _getToken() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('auth_token') ?? _token;
-    } catch (e) {
-      print('Error getting token: $e');
-      return _token;
-    }
-  }
-
-  // 1. Create Wallet
   static Future<Map<String, dynamic>?> createWallet({
     required int userId,
     required double initialBalance,
     String description = 'Wallet created',
   }) async {
     try {
-      final token = await _getToken();
-      final uri = Uri.parse('$_baseUrl/user/wallets/$userId/create');
-      final response = await http.post(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
+      final response = await ApiClient.post(
+        '/user/wallets/$userId/create',
+        {
           'user_id': userId,
           'initial_balance': initialBalance,
           'description': description,
-        }),
-      ).timeout(const Duration(seconds: 15));
+        },
+      );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      if (response != null && response['success'] == true) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -104,25 +36,11 @@ class WalletService {
 
   // 2. Get Wallet
   static Future<Map<String, dynamic>?> getWallets(int userId) async {
+    if (userId <= 0) return null;
     try {
-      final token = await _getToken();
-      final uri = Uri.parse('$_baseUrl/user/get-wallets/$userId/');
-      _logRequest('GET', uri);
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 15));
-      _logResponse('GET', uri, response);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final response = await ApiClient.get('/user/get-wallets/$userId');
+      if (response != null && (response['success'] == true || response.containsKey('data'))) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -135,43 +53,23 @@ class WalletService {
   static Future<Map<String, dynamic>?> rechargeWallet({
     required int userId,
     required int walletId,
-    required double balance,
+    required double amount,
     required dynamic transactionId,
+    String paymentMethod = 'upi',
   }) async {
     try {
-      final token = await _getToken();
-      final uri = Uri.parse('$_baseUrl/user/recharge-wallet');
       final body = {
         'user_id': userId,
         'wallet_id': walletId,
-        'balance': balance,
+        'amount': amount,
         'transaction_id': transactionId,
+        'payment_method': paymentMethod,
       };
       
-      print('\n--- SENDING RECHARGE POST DATA ---');
-      print('URL: $uri');
-      print('BODY: ${jsonEncode(body)}');
-      print('----------------------------------\n');
+      final response = await ApiClient.post('/user/recharge-wallet', body);
       
-      _logRequest('POST', uri, body: body);
-      
-      final response = await http.post(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 15));
-      
-      _logResponse('POST', uri, response);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      if (response != null && (response['success'] == true || response.containsKey('data'))) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -192,31 +90,20 @@ class WalletService {
     String? adminNotes,
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/add-winning');
-      final response = await http.post(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'user_id': userId,
-          'amount': amount,
-          'contest_id': contestId,
-          'team_id': teamId,
-          'rank': rank,
-          'description': description,
-          'reference_id': referenceId ?? 'WIN_CONTEST_${contestId}_RANK_${rank}',
-          'admin_notes': adminNotes ?? 'Automatic winning distribution',
-        }),
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final body = {
+        'user_id': userId,
+        'amount': amount,
+        'contest_id': contestId,
+        'team_id': teamId,
+        'rank': rank,
+        'description': description,
+        'reference_id': referenceId ?? 'WIN_CONTEST_${contestId}_RANK_${rank}',
+        'admin_notes': adminNotes ?? 'Automatic winning distribution',
+      };
+      
+      final response = await ApiClient.post('/user/add-winning', body);
+      if (response != null && response['success'] == true) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -236,30 +123,19 @@ class WalletService {
     String transactionType = 'withdrawal',
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/upi-transfer/create');
-      final response = await http.post(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'user_id': userId,
-          'amount': amount,
-          'upi_id': upiId,
-          'recipient_name': recipientName,
-          'wallet_id': walletId,
-          'description': description,
-          'transaction_type': transactionType,
-        }),
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final body = {
+        'user_id': userId,
+        'amount': amount,
+        'upi_id': upiId,
+        'recipient_name': recipientName,
+        'wallet_id': walletId,
+        'description': description,
+        'transaction_type': transactionType,
+      };
+      
+      final response = await ApiClient.post('/user/upi-transfer/create', body);
+      if (response != null && response['success'] == true) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -268,22 +144,15 @@ class WalletService {
     }
   }
 
-  // Get transaction history
+  // Get transaction history from the updated /history endpoint
   static Future<List<Map<String, dynamic>>> getTransactionHistory(int userId, {int limit = 50}) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/transactions/$userId?limit=$limit');
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return (data['data'] as List<dynamic>?)
+      // Endpoint changed to /history as seen in user logs
+      final response = await ApiClient.get('/history?type=all&page=1&limit=$limit');
+      if (response != null && response['success'] == true) {
+        final data = response['data'] as Map<String, dynamic>?;
+        if (data != null && data.containsKey('transactions')) {
+          return (data['transactions'] as List<dynamic>?)
               ?.cast<Map<String, dynamic>>() ?? [];
         }
       }
@@ -294,14 +163,36 @@ class WalletService {
     }
   }
 
-  // Get wallet balance
-  static Future<double?> getWalletBalance(int userId) async {
+  // Special method to fetch the latest summary including balance
+  static Future<Map<String, dynamic>?> getWalletSummary(int userId) async {
     try {
-      final walletData = await getWallets(userId);
-      if (walletData != null) {
-        return (walletData['balance'] ?? 0.0).toDouble();
+      final response = await ApiClient.get('/history?type=all&page=1&limit=1');
+      if (response != null && response['success'] == true) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
+    } catch (e) {
+      print('Error getting wallet summary: $e');
+      return null;
+    }
+  }
+
+  // Get wallet balance with fallback to history API
+  static Future<double?> getWalletBalance(int userId) async {
+    try {
+      // Try get-wallets first
+      final walletData = await getWallets(userId);
+      if (walletData != null) {
+        final balance = double.tryParse(walletData['balance']?.toString() ?? '0');
+        if (balance != null && balance > 0) return balance;
+      }
+      
+      // Fallback to history summary if balance is 0 or null (as it reflects real-time recharge better)
+      final summary = await getWalletSummary(userId);
+      if (summary != null) {
+        return double.tryParse(summary['current_balance']?.toString() ?? '0') ?? 0.0;
+      }
+      return 0.0;
     } catch (e) {
       print('Error getting wallet balance: $e');
       return null;
@@ -318,7 +209,6 @@ class WalletService {
       print('Error saving wallet data locally: $e');
     }
   }
-
 
   // Get saved wallet data
   static Future<Map<String, dynamic>> getSavedWalletData() async {
@@ -361,59 +251,23 @@ class WalletService {
     String paymentMethod = 'razorpay',
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/add-funds');
-      _logRequest('POST', uri, body: {
+      final body = {
         'user_id': userId,
         'wallet_id': walletId,
         'amount': amount,
         'payment_id': paymentId,
         'payment_method': paymentMethod,
         'description': 'Funds added via $paymentMethod',
-      });
-      final response = await http.post(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'user_id': userId,
-          'wallet_id': walletId,
-          'amount': amount,
-          'payment_id': paymentId,
-          'payment_method': paymentMethod,
-          'description': 'Funds added via $paymentMethod',
-        }),
-      ).timeout(const Duration(seconds: 15));
-      _logResponse('POST', uri, response);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      };
+      
+      final response = await ApiClient.post('/user/add-funds', body);
+      if (response != null && response['success'] == true) {
+        return response['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
       print('Error adding funds: $e');
       return null;
     }
-  }
-  static void _logRequest(String method, Uri url, {Map<String, dynamic>? body}) {
-    print('---------------- WALLET_SERVICE API REQUEST ----------------');
-    print('METHOD: $method');
-    print('URL: $url');
-    if (body != null) print('BODY: ${jsonEncode(body)}');
-    print('------------------------------------------------------------');
-  }
-
-  static void _logResponse(String method, Uri url, http.Response response) {
-    print('---------------- WALLET_SERVICE API RESPONSE ---------------');
-    print('METHOD: $method');
-    print('URL: $url');
-    print('STATUS CODE: ${response.statusCode}');
-    print('RESPONSE: ${response.body}');
-    print('------------------------------------------------------------');
   }
 }

@@ -1,30 +1,24 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProfileService {
-  static const String _baseUrl = 'https://your-api-base-url.com/api/v1'; // Replace with your actual base URL
-  static const String _token = 'your-auth-token'; // Replace with your actual token
+  // Get ID from SharedPreferences safely
+  static Future<int> getSavedUserId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt('user_id') ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
 
   // Get user profile details
   static Future<Map<String, dynamic>?> getUserProfile(int userId) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/profile/$userId');
-      _logRequest('GET', uri);
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      ).timeout(const Duration(seconds: 15));
-      _logResponse('GET', uri, response);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final res = await ApiClient.get('/user/profile');
+      if (res is Map && res['success'] == true) {
+        return res['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -36,20 +30,9 @@ class UserProfileService {
   // Get user wallet details
   static Future<Map<String, dynamic>?> getUserWallets(int userId) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/get-wallets/$userId');
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final res = await ApiClient.get('/user/get-wallets/$userId');
+      if (res is Map && (res['success'] == true || res.containsKey('data'))) {
+        return res['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -61,20 +44,9 @@ class UserProfileService {
   // Get complete user details including wallet info
   static Future<Map<String, dynamic>?> getCompleteUserProfile(int userId) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/details/$userId');
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final res = await ApiClient.get('/user/details/$userId');
+      if (res is Map && res['success'] == true) {
+        return res['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -94,7 +66,6 @@ class UserProfileService {
     String? userType = 'user',
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/profile-update');
       final body = {
         'user_id': userId,
         if (name != null) 'name': name,
@@ -106,23 +77,9 @@ class UserProfileService {
         'user_type': userType,
       };
 
-      _logRequest('POST', uri, body: body);
-      final response = await http.post(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 15));
-      _logResponse('POST', uri, response);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return data['data'] as Map<String, dynamic>?;
-        }
+      final res = await ApiClient.post('/user/profile-update', body);
+      if (res is Map && res['success'] == true) {
+        return res['data'] as Map<String, dynamic>?;
       }
       return null;
     } catch (e) {
@@ -148,21 +105,10 @@ class UserProfileService {
   // Get transaction history
   static Future<List<Map<String, dynamic>>> getTransactionHistory(int userId, {int limit = 50}) async {
     try {
-      final uri = Uri.parse('$_baseUrl/user/transactions/$userId?limit=$limit');
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return (data['data'] as List<dynamic>?)
-              ?.cast<Map<String, dynamic>>() ?? [];
-        }
+      final res = await ApiClient.get('/user/transactions/$userId?limit=$limit');
+      if (res is Map && res['success'] == true) {
+        return (res['data'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ?? [];
       }
       return [];
     } catch (e) {
@@ -180,12 +126,30 @@ class UserProfileService {
       // Handle nested user data if present
       final user = userData.containsKey('user') ? userData['user'] : userData;
       
-      await prefs.setInt('user_id', user['id'] ?? 0);
+      // Flattened logic for cross-key ID identification (user_id, userid vs id)
+      int parseId(dynamic obj) {
+        if (obj == null) return 0;
+        final val = obj['user_id'] ?? obj['userid'] ?? obj['id'];
+        if (val == null) return 0;
+        if (val is int) return val;
+        return int.tryParse(val.toString()) ?? 0;
+      }
+      
+      final int userIdValue = parseId(user);
+      await prefs.setInt('user_id', userIdValue);
       await prefs.setString('user_name', user['name'] ?? user['full_name'] ?? '');
       await prefs.setString('user_email', user['email'] ?? '');
       await prefs.setString('user_phone', user['phone'] ?? '');
       await prefs.setString('user_upi_id', user['upi_id'] ?? '');
-      await prefs.setString('wallet_balance', (userData['wallet_balance'] ?? user['wallet_balance'] ?? 0).toString());
+      
+      // Robust balance extraction from any data variant (profile, history, or get-wallets)
+      final balanceValue = userData['wallet_balance'] ?? 
+                          user['wallet_balance'] ?? 
+                          userData['current_balance'] ?? 
+                          user['current_balance'] ?? 
+                          (userData.containsKey('wallet') ? userData['wallet']['balance'] : null) ??
+                          0;
+      await prefs.setString('wallet_balance', balanceValue.toString());
     } catch (e) {
       print('Error saving user data locally: $e');
     }
@@ -196,7 +160,12 @@ class UserProfileService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userDataString = prefs.getString('user_data') ?? '{}';
-      return jsonDecode(userDataString) as Map<String, dynamic>;
+      final Map<String, dynamic> map = jsonDecode(userDataString) as Map<String, dynamic>;
+      // Backfill the integer user_id if it's not present in the map
+      if (!map.containsKey('user_id') && prefs.containsKey('user_id')) {
+         map['user_id'] = prefs.getInt('user_id');
+      }
+      return map;
     } catch (e) {
       print('Error getting saved user data: $e');
       return {};
@@ -217,22 +186,5 @@ class UserProfileService {
     } catch (e) {
       print('Error clearing user data: $e');
     }
-  }
-
-  static void _logRequest(String method, Uri url, {Map<String, dynamic>? body}) {
-    print('---------------- USER_PROFILE_SERVICE API REQUEST ----------------');
-    print('METHOD: $method');
-    print('URL: $url');
-    if (body != null) print('BODY: ${jsonEncode(body)}');
-    print('------------------------------------------------------------------');
-  }
-
-  static void _logResponse(String method, Uri url, http.Response response) {
-    print('---------------- USER_PROFILE_SERVICE API RESPONSE ---------------');
-    print('METHOD: $method');
-    print('URL: $url');
-    print('STATUS CODE: ${response.statusCode}');
-    print('RESPONSE: ${response.body}');
-    print('-------------------------------------------------------------------');
   }
 }

@@ -10,12 +10,12 @@ class AuthService {
       if (ip != null) 'ip_address': ip,
     });
 
-    if (response != null &&
-        response['data'] != null &&
-        response['data']['token'] != null) {
-      final token = response['data']['token'] as String;
-      await ApiClient.saveToken(token);
-      return {'token': token, 'user': response['data']['user']};
+    final token = response?['token'] ?? response?['data']?['token'];
+    final user = response?['user'] ?? response?['data']?['user'];
+
+    if (token != null) {
+      await ApiClient.saveToken(token as String);
+      return {'token': token, 'user': user};
     }
 
     throw Exception(response?['message'] ?? 'Login failed. Please try again.');
@@ -27,27 +27,35 @@ class AuthService {
     String email,
     String phone,
     String password, {
+    String? upiId,
+    String? userType,
     String? ip,
   }) async {
     final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/register', {
       'name': name,
       'email': email,
+      'upi_id': upiId ?? '',
       'phone': formattedPhone,
       'password': password,
       'password_confirmation': password,
-      'user_type': 'user',
+      'user_type': userType ?? 'user',
       if (ip != null) 'ip_address': ip,
     });
 
-    if (response != null &&
-        response['data'] != null &&
-        response['data']['token'] != null) {
-      final token = response['data']['token'] as String;
-      await ApiClient.saveToken(token);
-      return {'token': token, 'user': response['data']['user']};
+    print('DEBUG: Registration Response: $response');
+
+    // Flexible parsing: Try root first, then look for 'data' wrapper
+    final token = response?['token'] ?? response?['data']?['token'];
+    final user = response?['user'] ?? response?['data']?['user'];
+
+    if (token != null) {
+      print('DEBUG: Token found: $token');
+      await ApiClient.saveToken(token as String);
+      return {'token': token, 'user': user};
     }
 
+    print('DEBUG: Token not found in response');
     throw Exception(
         response?['message'] ?? 'Registration failed. Please try again.');
   }
@@ -97,11 +105,11 @@ class AuthService {
   }
 
   /// Verify phone/email OTP after registration.
-  Future<void> verifyRegistrationOtp(String phone, String otp) async {
+  Future<void> verifyRegistrationOtp(String phone, String otp, {String userType = 'user'}) async {
     final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/verify-otp', {
       'phone': formattedPhone,
-      'user_type': 'user',
+      'user_type': userType,
       'otp': otp,
     });
 
@@ -111,11 +119,11 @@ class AuthService {
   }
 
   /// Send login OTP to phone number.
-  Future<Map<String, dynamic>> sendOTP(String phone) async {
+  Future<Map<String, dynamic>> sendOTP(String phone, {String userType = 'user'}) async {
     final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/send-otp', {
       'phone': formattedPhone,
-      'user_type': 'user',
+      'user_type': userType,
     });
 
     if (response != null && response['success'] == true) {
@@ -126,11 +134,11 @@ class AuthService {
   }
 
   /// Resend login OTP to phone number.
-  Future<Map<String, dynamic>> resendOTP(String phone) async {
+  Future<Map<String, dynamic>> resendOTP(String phone, {String userType = 'user'}) async {
     final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/resend-otp', {
       'phone': formattedPhone,
-      'user_type': 'user',
+      'user_type': userType,
     });
 
     if (response != null && response['success'] == true) {
@@ -141,28 +149,26 @@ class AuthService {
   }
 
   /// Verify phone OTP for login. Returns token + user on success.
-  Future<Map<String, dynamic>> verifyOTPLogin(String phone, String otp) async {
+  Future<Map<String, dynamic>> verifyOTPLogin(String phone, String otp, {String userType = 'user'}) async {
     final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/verify-otp', {
       'phone': formattedPhone,
       'otp': otp,
-      'user_type': 'user',
+      'user_type': userType,
     });
 
-    if (response != null && response['success'] != false && response['data'] != null && response['data']['token'] != null) {
-      final token = response['data']['token'] as String;
-      await ApiClient.saveToken(token);
-      return {'token': token, 'user': response['data']['user']};
+    final token = response?['token'] ?? response?['data']?['token'];
+    final user = response?['user'] ?? response?['data']?['user'];
+
+    if (token != null) {
+      await ApiClient.saveToken(token as String);
+      return {'token': token, 'user': user};
     }
 
     throw Exception(response?['message'] ?? 'OTP Login verification failed.');
   }
 
   static String _formatPhone(String phone) {
-    // FOR TESTING: Hardcode the phone number as requested by user
-    return '+918448665756';
-
-    /* ORIGINAL LOGIC:
     String p = phone.trim().replaceAll(' ', '').replaceAll('-', '');
     if (!p.startsWith('+')) {
       if (p.startsWith('91') && p.length == 12) {
@@ -171,7 +177,6 @@ class AuthService {
       return '+91$p';
     }
     return p;
-    */
   }
 
   /// Logout and clear stored token.

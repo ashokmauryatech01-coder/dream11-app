@@ -34,7 +34,7 @@ class ApiClient {
     _logRequest('GET', url);
     final response = await http
         .get(url, headers: await getHeaders())
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 30));
     _logResponse('GET', url, response);
     return _handleResponse(response);
   }

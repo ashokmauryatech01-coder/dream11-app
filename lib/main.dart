@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/features/splash/screens/splash_screen.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
-import 'package:fantasy_crick/features/home/screens/home_screen.dart';
+import 'package:fantasy_crick/features/home/screens/home_screen_fixed.dart';
 import 'package:fantasy_crick/features/profile/screens/es_how_to_play_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 import 'package:fantasy_crick/features/profile/screens/user_profile_screen.dart';

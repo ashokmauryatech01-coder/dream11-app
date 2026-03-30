@@ -107,9 +107,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     try {
       if (widget.isLogin && widget.sentTo != null) {
-        await _authService.verifyOTPLogin(widget.sentTo!, otp);
+        await _authService.verifyOTPLogin(widget.sentTo!, otp, userType: 'user');
       } else {
-        await _authService.verifyRegistrationOtp(widget.sentTo ?? '', otp);
+        await _authService.verifyRegistrationOtp(widget.sentTo ?? '', otp, userType: 'user');
         
         // If it was a registration flow, now perform the actual sign up
         if (widget.registrationData != null) {
@@ -119,6 +119,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             data['email']!,
             data['phone']!,
             data['password']!,
+            upiId: data['upi_id'],
+            userType: data['user_type'] ?? 'user',
           );
         }
       }

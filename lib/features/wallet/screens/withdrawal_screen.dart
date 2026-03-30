@@ -3,7 +3,6 @@ import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
-import 'package:fantasy_crick/core/services/wallet_service.dart';
 
 class WithdrawalScreen extends StatefulWidget {
   const WithdrawalScreen({super.key});
@@ -18,13 +17,13 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   final TextEditingController _upiController = TextEditingController();
   final TextEditingController _recipientController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  
+
   double _walletBalance = 0.0;
   bool _isLoading = true;
   bool _isProcessing = false;
   bool _showCelebration = false;
   double _lastWithdrawnAmount = 0.0;
-  
+
   final List<double> _quickAmounts = [100, 200, 500, 1000, 2000, 5000];
   double _selectedAmount = 100.0;
 
@@ -37,21 +36,10 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   Future<void> _loadWalletData() async {
     setState(() => _isLoading = true);
     try {
-      final localBalance = await WalletService.getLocalBalance();
+      final balance = await ProfileService.getWalletBalance();
       setState(() {
-        _walletBalance = localBalance;
+        _walletBalance = balance ?? 0.0;
       });
-
-      final savedData = await ProfileService.getSavedUserData();
-      final currentUserId = savedData['id'] ?? 0;
-      
-      final walletData = await WalletService.getWallets(currentUserId);
-      if (walletData != null) {
-        setState(() {
-          _walletBalance = (walletData['balance'] ?? localBalance).toDouble();
-        });
-        await WalletService.saveWalletDataLocally(walletData);
-      }
     } catch (e) {
       print('Error loading wallet data: $e');
     } finally {
@@ -79,21 +67,25 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-    
+
     if (amount > _walletBalance) {
-      _showMessage('Insufficient Balance', 'Amount exceeds available balance', false);
+      _showMessage(
+        'Insufficient Balance',
+        'Amount exceeds available balance',
+        false,
+      );
       return;
     }
 
     setState(() => _isProcessing = true);
 
     try {
+      // In a real app, this would call WalletService.upiTransfer(...)
       await Future.delayed(const Duration(seconds: 2));
-      final newBalance = await WalletService.updateLocalBalance(-amount);
-      
+
       setState(() {
         _isProcessing = false;
-        _walletBalance = newBalance;
+        _walletBalance -= amount; // Optimistic UI update
         _lastWithdrawnAmount = amount;
         _showCelebration = true;
       });
@@ -136,13 +128,22 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
             centerTitle: true,
             title: const Text(
               'WITHDRAW FUNDS',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 2,
+              ),
             ),
           ),
           body: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
               : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -153,7 +154,10 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF1E3C72), Color(0xFF2A5298)], // Deep Royal Blue
+                              colors: [
+                                Color(0xFF1E3C72),
+                                Color(0xFF2A5298),
+                              ], // Deep Royal Blue
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -181,34 +185,55 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
                                             Container(
                                               padding: const EdgeInsets.all(6),
                                               decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(0.2),
-                                                borderRadius: BorderRadius.circular(8),
+                                                color: Colors.white.withOpacity(
+                                                  0.2,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
-                                              child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 16),
+                                              child: const Icon(
+                                                Icons.account_balance_rounded,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
                                             ),
                                             const SizedBox(width: 10),
                                             Text(
                                               'Withdrawable Balance',
-                                              style: TextStyle(color: AppColors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w600),
+                                              style: TextStyle(
+                                                color: AppColors.white
+                                                    .withOpacity(0.9),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 16),
                                         Text(
                                           '₹${_walletBalance.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: AppColors.white, fontSize: 36, fontWeight: FontWeight.w900),
+                                          style: const TextStyle(
+                                            color: AppColors.white,
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.w900,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.arrow_upward_rounded, color: Colors.white70, size: 32),
+                                  const Icon(
+                                    Icons.arrow_upward_rounded,
+                                    color: Colors.white70,
+                                    size: 32,
+                                  ),
                                 ],
                               ),
                             ],
@@ -223,26 +248,62 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                             color: AppColors.white,
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5)),
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
                             ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Withdrawal Amount', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textLight)),
+                              const Text(
+                                'Withdrawal Amount',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _amountController,
                                 keyboardType: TextInputType.number,
-                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.primary),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
+                                ),
                                 decoration: const InputDecoration(
                                   prefixText: '₹ ',
-                                  prefixStyle: TextStyle(color: AppColors.primary, fontSize: 24, fontWeight: FontWeight.bold),
-                                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-                                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                                  prefixStyle: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: AppColors.border,
+                                    ),
+                                  ),
+                                  focusedBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                                 ),
-                                validator: (v) => (v == null || v.isEmpty) ? 'Enter amount' : (double.tryParse(v) ?? 0) < 100 ? 'Minimum ₹100' : (double.tryParse(v) ?? 0) > _walletBalance ? 'Insufficient balance' : null,
-                                onChanged: (v) => setState(() => _selectedAmount = double.tryParse(v) ?? 0),
+                                validator: (v) => (v == null || v.isEmpty)
+                                    ? 'Enter amount'
+                                    : (double.tryParse(v) ?? 0) < 100
+                                    ? 'Minimum ₹100'
+                                    : (double.tryParse(v) ?? 0) > _walletBalance
+                                    ? 'Insufficient balance'
+                                    : null,
+                                onChanged: (v) => setState(
+                                  () =>
+                                      _selectedAmount = double.tryParse(v) ?? 0,
+                                ),
                               ),
                             ],
                           ),
@@ -259,17 +320,37 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                               onTap: () => _selectQuickAmount(amt),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: selected ? AppColors.primary : AppColors.white,
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: selected ? AppColors.primary : Colors.grey.shade200),
-                                  boxShadow: selected ? [BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : Colors.grey.shade200,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: AppColors.primary
+                                                .withOpacity(0.2),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                      : [],
                                 ),
                                 child: Text(
                                   '₹$amt',
                                   style: TextStyle(
-                                    color: selected ? AppColors.white : AppColors.text,
+                                    color: selected
+                                        ? AppColors.white
+                                        : AppColors.text,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
@@ -294,7 +375,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           hint: 'Account Holder Name',
                           icon: Icons.person_rounded,
                         ),
-                        
+
                         const SizedBox(height: 40),
 
                         // Submit Button
@@ -302,17 +383,39 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: _isProcessing ? null : _processWithdrawal,
+                            onPressed: _isProcessing
+                                ? null
+                                : _processWithdrawal,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD32F2F), // Premium Alert Red
+                              backgroundColor: const Color(
+                                0xFFD32F2F,
+                              ), // Premium Alert Red
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                               elevation: 8,
-                              shadowColor: const Color(0xFFD32F2F).withOpacity(0.3),
+                              shadowColor: const Color(
+                                0xFFD32F2F,
+                              ).withOpacity(0.3),
                             ),
                             child: _isProcessing
-                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('CONFIRM WITHDRAWAL', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'CONFIRM WITHDRAWAL',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -348,7 +451,14 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textLight)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textLight,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -361,7 +471,11 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-              prefixIcon: Icon(icon, size: 20, color: AppColors.primary.withOpacity(0.7)),
+              prefixIcon: Icon(
+                icon,
+                size: 20,
+                color: AppColors.primary.withOpacity(0.7),
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
             ),

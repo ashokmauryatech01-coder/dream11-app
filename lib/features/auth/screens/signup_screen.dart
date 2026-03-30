@@ -24,6 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _upiController = TextEditingController();
 
   bool _loading = false;
   bool _obscurePassword = true;
@@ -41,6 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _upiController.dispose();
     super.dispose();
   }
 
@@ -50,15 +52,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
+    final upiId = _upiController.text.trim();
 
     if (name.isEmpty ||
         email.isEmpty ||
         phone.isEmpty ||
+        upiId.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
       await BeautyDialog.show(context,
           title: 'Incomplete Details',
-          message: 'Please fill all fields to create your account.',
+          message: 'Please fill all fields, including UPI ID, to create your account.',
           type: BeautyDialogType.warning);
       return;
     }
@@ -102,7 +106,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               'name': name,
               'email': email,
               'phone': fullPhone,
+              'upi_id': upiId,
               'password': password,
+              'user_type': 'user', // Default to user
             },
           ),
         ),
@@ -203,6 +209,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   hint: 'Enter your email',
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
+                ),
+                const SizedBox(height: 16),
+
+                _buildTextField(
+                  controller: _upiController,
+                  label: 'UPI ID',
+                  hint: 'Enter your UPI ID (e.g. name@upi)',
+                  prefixIcon: Icons.account_balance_wallet_outlined,
                 ),
                 const SizedBox(height: 16),
 

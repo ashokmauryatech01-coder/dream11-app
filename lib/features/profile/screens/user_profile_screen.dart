@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
-import 'package:fantasy_crick/core/services/wallet_service.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -24,17 +23,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _loadUserProfile() async {
     setState(() => _isLoading = true);
     try {
-      final profile = await ProfileService.getCompleteUserProfile();
-      final wallet = await ProfileService.getUserWallets(0); // Will use saved user ID
-      final localBalance = await WalletService.getLocalBalance();
-      
+      // 1. Fetch profile first to get the user ID
+      final profile = await ProfileService.getProfile();
+
+      // 2. Extract user ID from profile response: checks 'user_id', 'userid' and 'id'
+      final user = profile?['user'] ?? profile;
+      final int userId = int.tryParse(
+            user?['user_id']?.toString() ?? 
+            user?['userid']?.toString() ?? 
+            user?['id']?.toString() ?? 
+            '56',
+          ) ??
+          56;
+
+      // 3. Fetch wallet details using the verified ID
+      var wallet = await ProfileService.getUserWallets(userId);
+
+      // 4. Manual creation via button instead of automatic
+      /* 
+      if (wallet == null && userId > 0) {
+        print(
+          'DEBUG: UserProfileScreen - Wallet not found for user $userId. Creating...',
+        );
+        await ProfileService.createWallet(
+          userId: userId,
+          initialBalance: 100.00,
+          description: "Welcome bonus wallet created",
+        );
+        // Refresh wallet data after creation
+        wallet = await ProfileService.getUserWallets(userId);
+      }
+      */
+
+      final double balance =
+          double.tryParse(wallet?['balance']?.toString() ?? '0') ?? 0.0;
+
       setState(() {
-        _userProfile = profile;
+        _userProfile = user as Map<String, dynamic>?;
         _walletData = wallet;
         if (_walletData != null) {
-          _walletData!['balance'] = localBalance;
+          _walletData!['balance'] = balance;
         } else {
-          _walletData = {'balance': localBalance};
+          _walletData = {'balance': balance};
         }
         _isLoading = false;
       });
@@ -58,10 +88,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: const Text('User Profile'),
         elevation: 0,
         actions: [
-          IconButton(
-            onPressed: _refreshData,
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(onPressed: _refreshData, icon: const Icon(Icons.refresh)),
         ],
       ),
       body: _isLoading
@@ -76,19 +103,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   // Profile Header Card
                   _buildProfileHeader(),
                   const SizedBox(height: 20),
-                  
+
                   // Personal Information Card
                   _buildPersonalInfoCard(),
                   const SizedBox(height: 20),
-                  
+
                   // Wallet Information Card
                   _buildWalletInfoCard(),
                   const SizedBox(height: 20),
-                  
+
                   // UPI Information Card
                   _buildUPIInfoCard(),
                   const SizedBox(height: 20),
-                  
+
                   // Account Statistics Card
                   _buildStatsCard(),
                 ],
@@ -166,7 +193,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       title: 'Personal Information',
       icon: Icons.person,
       children: [
-        _buildInfoRow('Full Name', _userProfile?['full_name']?.toString() ?? 'N/A'),
+        _buildInfoRow(
+          'Full Name',
+          _userProfile?['full_name']?.toString() ?? 'N/A',
+        ),
         _buildInfoRow('Email', _userProfile?['email']?.toString() ?? 'N/A'),
         _buildInfoRow('Phone', _userProfile?['phone']?.toString() ?? 'N/A'),
         _buildInfoRow('Member Since', _formatDate(_userProfile?['created_at'])),
@@ -175,40 +205,96 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildWalletInfoCard() {
+    final bool hasWallet = _walletData != null;
+
     return _buildInfoCard(
       title: 'Wallet Information',
       icon: Icons.account_balance_wallet,
-      children: [
-        _buildInfoRow(
-          'Current Balance',
-          '₹${(_walletData?['balance'] ?? 0.0).toStringAsFixed(2)}',
-          valueStyle: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-          ),
-        ),
-        _buildInfoRow('Total Added', '₹${(_walletData?['total_added'] ?? 0.0).toStringAsFixed(2)}'),
-        _buildInfoRow('Total Withdrawn', '₹${(_walletData?['total_withdrawn'] ?? 0.0).toStringAsFixed(2)}'),
-        _buildInfoRow('Last Transaction', _formatDate(_walletData?['last_transaction_date'])),
-        _buildInfoRow(
-          'Transactions',
-          'View History',
-          isButton: true,
-          onTap: () {
-            Navigator.pushNamed(context, '/wallet-transactions');
-          },
-        ),
-        _buildInfoRow(
-          'Withdraw',
-          'Withdraw Funds',
-          isButton: true,
-          onTap: () async {
-            await Navigator.pushNamed(context, '/withdrawal');
-            _loadUserProfile();
-          },
-        ),
-      ],
+      children: hasWallet
+          ? [
+              _buildInfoRow(
+                'Current Balance',
+                '₹${(_walletData?['balance'] ?? 0.0).toStringAsFixed(2)}',
+                valueStyle: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              _buildInfoRow(
+                'Total Added',
+                '₹${(_walletData?['total_added'] ?? 0.0).toStringAsFixed(2)}',
+              ),
+              _buildInfoRow(
+                'Total Withdrawn',
+                '₹${(_walletData?['total_withdrawn'] ?? 0.0).toStringAsFixed(2)}',
+              ),
+              _buildInfoRow(
+                'Last Transaction',
+                _formatDate(_walletData?['last_transaction_date']),
+              ),
+              _buildInfoRow(
+                'Transactions',
+                'View History',
+                isButton: true,
+                onTap: () {
+                  Navigator.pushNamed(context, '/wallet-transactions');
+                },
+              ),
+              _buildInfoRow(
+                'Withdraw',
+                'Withdraw Funds',
+                isButton: true,
+                onTap: () async {
+                  await Navigator.pushNamed(context, '/withdrawal');
+                  _loadUserProfile();
+                },
+              ),
+            ]
+          : [
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No Wallet Connected',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    setState(() => _isLoading = true);
+                    final profile = await ProfileService.getProfile();
+                    final user = profile?['user'] ?? profile;
+                    final int userId =
+                        int.tryParse(user?['id']?.toString() ?? '56') ?? 56;
+
+                    await ProfileService.createWallet(
+                      userId: userId,
+                      initialBalance: 100.00,
+                      description: "Welcome bonus wallet created",
+                    );
+                    _loadUserProfile();
+                  },
+                  icon: const Icon(Icons.card_giftcard),
+                  label: const Text('TAKE THE WELCOME BONUS'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
     );
   }
 
@@ -217,8 +303,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       title: 'UPI Information',
       icon: Icons.account_balance_wallet_rounded,
       children: [
-        _buildInfoRow('UPI ID', _userProfile?['upi_id']?.toString() ?? 'Not Set'),
-        _buildInfoRow('Status', _userProfile?['upi_id']?.toString().isNotEmpty == true ? 'Verified' : 'Not Verified'),
+        _buildInfoRow(
+          'UPI ID',
+          _userProfile?['upi_id']?.toString() ?? 'Not Set',
+        ),
+        _buildInfoRow(
+          'Status',
+          _userProfile?['upi_id']?.toString().isNotEmpty == true
+              ? 'Verified'
+              : 'Not Verified',
+        ),
       ],
     );
   }
@@ -228,15 +322,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       title: 'Account Statistics',
       icon: Icons.analytics,
       children: [
-        _buildInfoRow('Total Matches', _userProfile?['total_matches']?.toString() ?? '0'),
-        _buildInfoRow('Total Wins', _userProfile?['total_wins']?.toString() ?? '0'),
-        _buildInfoRow('Win Rate', '${((_userProfile?['win_rate'] ?? 0.0) * 100).toStringAsFixed(1)}%'),
-        _buildInfoRow('Total Earnings', '₹${(_userProfile?['total_earnings'] ?? 0.0).toStringAsFixed(2)}'),
+        _buildInfoRow(
+          'Total Matches',
+          _userProfile?['total_matches']?.toString() ?? '0',
+        ),
+        _buildInfoRow(
+          'Total Wins',
+          _userProfile?['total_wins']?.toString() ?? '0',
+        ),
+        _buildInfoRow(
+          'Win Rate',
+          '${((_userProfile?['win_rate'] ?? 0.0) * 100).toStringAsFixed(1)}%',
+        ),
+        _buildInfoRow(
+          'Total Earnings',
+          '₹${(_userProfile?['total_earnings'] ?? 0.0).toStringAsFixed(2)}',
+        ),
       ],
     );
   }
 
-  Widget _buildInfoCard({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildInfoCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -281,16 +391,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           // Content
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: children,
-            ),
+            child: Column(children: children),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {TextStyle? valueStyle, bool isButton = false, VoidCallback? onTap}) {
+  Widget _buildInfoRow(
+    String label,
+    String value, {
+    TextStyle? valueStyle,
+    bool isButton = false,
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -298,10 +412,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textLight,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textLight),
           ),
           Flexible(
             child: isButton
@@ -320,11 +431,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   )
                 : Text(
                     value,
-                    style: valueStyle ?? const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.text,
-                    ),
+                    style:
+                        valueStyle ??
+                        const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.text,
+                        ),
                     textAlign: TextAlign.right,
                   ),
           ),

@@ -4,7 +4,6 @@ import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
-import 'package:fantasy_crick/core/services/wallet_service.dart';
 import 'package:fantasy_crick/common/widgets/dashboard_animation.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,7 +20,8 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
   Map<String, dynamic>? _userObj;
-  Map<String, dynamic>? _statsObj;
+  Map<String, dynamic> _statsObj = {};
+  Map<String, dynamic>? _walletObj;
   List<dynamic> _myTeams = [];
   List<dynamic> _history = [];
   List<dynamic> _leaderboard = [];
@@ -34,42 +34,83 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 4, vsync: this);
+    _tab.addListener(_handleTabChange);
     _load();
+  }
+
+  void _handleTabChange() {
+    // Refresh data when switching to specific tabs (like My Teams)
+    if (_tab.indexIsChanging) return;
+    if (_tab.index == 1 || _tab.index == 0) {
+      print('DEBUG: Tab changed to index ${_tab.index}, refreshing data...');
+      _load();
+    }
   }
 
   @override
   void dispose() {
+    _tab.removeListener(_handleTabChange);
     _tab.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    print('DEBUG: [EsProfileScreenState@$hashCode] _load() starting');
     try {
+      // Step 1: Fetch and save Profile FIRST to establish Identity (UserId 62)
+      final profileData = await ProfileService.getProfile();
+      
+      // Step 2: Fetch the rest in parallel with the correct ID established
       final results = await Future.wait([
-        ProfileService.getProfile(),
         ProfileService.getMyTeams(),
         ProfileService.getHistory(),
         ProfileService.getLeaderboard(type: _leaderboardType),
         LocationService.getLocationData(),
+        ProfileService.getUserWallets(),
       ]);
+      print('DEBUG: EsProfileScreen._load() results received: ${results.length}');
+      
       if (!mounted) return;
-
-      final profileData = results[0] as Map<String, dynamic>?;
-      final localBalance = await WalletService.getLocalBalance();
 
       setState(() {
         _userObj = profileData?['user'] as Map<String, dynamic>? ?? {};
-        _userObj!['wallet_balance'] = localBalance; // Prioritize local balance
+        _myTeams = results[0] as List<dynamic>? ?? [];
+        _history = results[1] as List<dynamic>? ?? [];
+        _leaderboard = results[2] as List<dynamic>? ?? [];
+        _location = results[3] as Map<String, dynamic>?;
+        _walletObj = results[4] as Map<String, dynamic>?;
         
-        _statsObj = profileData?['stats'] as Map<String, dynamic>?;
-        _myTeams = results[1] as List<dynamic>? ?? [];
-        _history = results[2] as List<dynamic>? ?? [];
-        _leaderboard = results[3] as List<dynamic>? ?? [];
-        _location = results[4] as Map<String, dynamic>?;
+        // Use wallet balance if wallet exists, else 0.0
+        final double balance =
+            double.tryParse(_walletObj?['balance']?.toString() ?? '0') ?? 0.0;
+        _userObj?['wallet_balance'] = balance;
+        
+        // Handle stats (API might return List or Map)
+        final statsData = profileData?['stats'];
+        if (statsData is Map) {
+          _statsObj = Map<String, dynamic>.from(statsData);
+        } else if (statsData is List) {
+          // Alternative format: list of {label, value}
+          final Map<String, dynamic> st = {};
+          for (var item in statsData) {
+            if (item is Map) {
+              final String label = (item['label'] ?? '').toString().toLowerCase();
+              final val = item['value'];
+              if (label.contains('teams')) st['total_contests'] = val;
+              if (label.contains('won')) st['total_wins'] = val;
+              if (label.contains('rate')) st['win_rate'] = val;
+              if (label.contains('points')) st['total_points'] = val;
+            }
+          }
+          _statsObj = st;
+        }
+
         _loading = false;
       });
-    } catch (_) {
+      print('DEBUG: EsProfileScreen._load() state updated. _myTeams.length = ${_myTeams.length}');
+    } catch (e) {
+      print('DEBUG: EsProfileScreen._load() Error: $e');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -98,49 +139,51 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   String get _email => _userObj?['email']?.toString() ?? '';
   String get _phone => _userObj?['phone']?.toString() ?? '';
   String get _balance => LocationService.formatAmount(
-    _userObj?['wallet_balance'] ?? _userObj?['points'],
+    _userObj?['wallet_balance'] ?? _userObj?['total_points'] ?? _userObj?['points'] ?? 0,
     _location,
   );
   String get _matches =>
-      (_statsObj?['total_contests'] ?? _myTeams.length).toString();
-  String get _wins => (_statsObj?['total_wins'] ?? 0).toString();
+      (_userObj?['teams_created'] ?? _statsObj['total_contests'] ?? _myTeams.length).toString();
+  String get _wins => (_userObj?['contests_won'] ?? _statsObj['total_wins'] ?? 0).toString();
   String get _earnings =>
-      LocationService.formatAmount(_statsObj?['total_winnings'], _location);
+      LocationService.formatAmount(_statsObj['total_winnings'] ?? 0, _location);
   String get _initial => _name.isNotEmpty ? _name[0].toUpperCase() : '?';
 
   @override
   Widget build(BuildContext context) {
+    print('DEBUG: [EsProfileScreenState@$hashCode Build] _loading=$_loading, _myTeams.length=${_myTeams.length}');
     return Scaffold(
       backgroundColor: AppColors.background,
       body: DashboardAnimation(
         child: RefreshIndicator(
-        onRefresh: _load,
-        color: AppColors.primary,
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              )
-            : NestedScrollView(
-                headerSliverBuilder: (_, __) => [_appBar()],
-                body: Column(
-                  children: [
-                    _tabBar(),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tab,
-                        children: [
-                          _overviewTab(),
-                          _teamsTab(),
-                          _historyTab(),
-                          _leaderboardTab(),
-                        ],
+          onRefresh: _load,
+          color: AppColors.primary,
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : NestedScrollView(
+                  headerSliverBuilder: (_, __) => [_appBar()],
+                  body: Column(
+                    children: [
+                      _tabBar(),
+                      Expanded(
+                        child: TabBarView(
+                          key: ValueKey('${_userObj?['id']}_${_myTeams.length}'),
+                          controller: _tab,
+                          children: [
+                            _overviewTab(),
+                            _teamsTab(),
+                            _historyTab(),
+                            _leaderboardTab(),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
-    ),
     );
   }
 
@@ -300,11 +343,17 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     ),
     actions: [
       IconButton(
-        icon: const Icon(Icons.notifications_none_rounded, color: AppColors.white),
+        icon: const Icon(
+          Icons.notifications_none_rounded,
+          color: AppColors.white,
+        ),
         onPressed: () {},
       ),
       IconButton(
-        icon: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.white),
+        icon: const Icon(
+          Icons.account_balance_wallet_outlined,
+          color: AppColors.white,
+        ),
         onPressed: () => Navigator.pushNamed(context, '/add-cash'),
       ),
       const SizedBox(width: 8),
@@ -358,7 +407,12 @@ class _EsProfileScreenState extends State<EsProfileScreen>
               AppColors.primary,
             ),
             const SizedBox(width: 10),
-            _statCard('Wins', _wins, Icons.emoji_events_rounded, AppColors.secondary),
+            _statCard(
+              'Wins',
+              _wins,
+              Icons.emoji_events_rounded,
+              AppColors.secondary,
+            ),
             const SizedBox(width: 10),
             _statCard(
               'Earnings',
@@ -532,74 +586,127 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: fg,
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-        ),
+        style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 11),
       ),
     ),
   );
 
-  Widget _walletCard() => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppColors.primary,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.primary.withOpacity(0.3),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
+  Widget _walletCard() {
+    final hasWallet = _walletObj != null;
+    final balance =
+        double.tryParse(_walletObj?['balance']?.toString() ?? '0') ?? 0.0;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: const Icon(
-            Icons.account_balance_wallet_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: hasWallet 
+        ? Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Wallet Balance',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '₹${balance.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Column(
+              children: [
+                _walletBtn('Add Cash', Colors.white, AppColors.primary),
+                const SizedBox(height: 6),
+                _walletBtn('Withdraw', Colors.transparent, Colors.white),
+              ],
+            ),
+          ],
+        )
+        : Column(
             children: [
               const Text(
-                'Wallet Balance',
-                style: TextStyle(color: Colors.white70, fontSize: 11),
-              ),
-              Text(
-                _balance,
-                style: const TextStyle(
-                  color: Colors.white,
+                'YOUR WALLET IS NOT CONNECTED',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  fontSize: 24,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    setState(() => _loading = true);
+                    final saved = await ProfileService.getSavedUserData();
+                    final int userId = saved['id'] ?? 56;
+                    
+                    await ProfileService.createWallet(
+                      userId: userId,
+                      initialBalance: 100.00,
+                      description: "Welcome bonus wallet created",
+                    );
+                    _load();
+                  },
+                  icon: const Icon(Icons.card_giftcard_rounded, color: AppColors.primary),
+                  label: const Text(
+                    'TAKE THE WELCOME BONUS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                      fontSize: 12,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _walletBtn('+ Add Cash', Colors.white, AppColors.primary),
-            const SizedBox(height: 6),
-            _walletBtn('Withdraw', Colors.transparent, Colors.white),
-          ],
-        ),
-      ],
-    ),
-  );
+    );
+  }
 
   Widget _sectionTitle(String t) => Padding(
     padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
@@ -679,19 +786,47 @@ class _EsProfileScreenState extends State<EsProfileScreen>
 
   // ── MY TEAMS TAB ──────────────────────────────────────────────────────────
   Widget _teamsTab() {
-    if (_myTeams.isEmpty)
+    print('DEBUG: Building _teamsTab UI. _myTeams.length = ${_myTeams.length}');
+    
+    if (_myTeams.isEmpty) {
       return _emptyState(
         Icons.groups_rounded,
         'No Teams Yet',
         'Create your first team!',
       );
-    return ListView.builder(
+    }
+    
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
-      itemCount: _myTeams.length,
-      itemBuilder: (_, i) {
-        final t = _myTeams[i] as Map<String, dynamic>? ?? {};
-        return _teamCard(t);
-      },
+      child: Column(
+        children: [
+          // Count indicator
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'You have created ${_myTeams.length} teams',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ..._myTeams.map((t) => _teamCard(Map<String, dynamic>.from(t))).toList(),
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 
@@ -701,10 +836,18 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     String viceCaptainName = '';
 
     for (var p in players) {
-      final pivot = p['pivot'] as Map<String, dynamic>? ?? {};
-      if (pivot['is_captain'] == 1) captainName = p['name']?.toString() ?? '';
-      if (pivot['is_vice_captain'] == 1)
-        viceCaptainName = p['name']?.toString() ?? '';
+      if (p is Map) {
+        final pivot = p['pivot'] as Map<String, dynamic>? ?? {};
+        if (pivot['is_captain'] == 1 || p['id']?.toString() == t['captain_id']?.toString()) {
+          captainName = p['name']?.toString() ?? 'Player ${p['id']}';
+        }
+        if (pivot['is_vice_captain'] == 1 || p['id']?.toString() == t['vice_captain_id']?.toString()) {
+          viceCaptainName = p['name']?.toString() ?? 'Player ${p['id']}';
+        }
+      } else if (p is num || p is String) {
+        if (p.toString() == t['captain_id']?.toString()) captainName = 'Player $p';
+        if (p.toString() == t['vice_captain_id']?.toString()) viceCaptainName = 'Player $p';
+      }
     }
 
     return Container(
@@ -727,16 +870,34 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.08),
+                  color: const Color.fromRGBO(
+                    255,
+                    24,
+                    124,
+                    1,
+                  ).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.sports_cricket_rounded,
-                  color: AppColors.primary,
-                  size: 26,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: t['logo_url'] != null || t['thumb_url'] != null
+                      ? Image.network(
+                          t['logo_url'] ?? t['thumb_url'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.sports_cricket_rounded,
+                            color: AppColors.primary,
+                            size: 26,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.sports_cricket_rounded,
+                          color: AppColors.primary,
+                          size: 26,
+                        ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -753,9 +914,38 @@ class _EsProfileScreenState extends State<EsProfileScreen>
                       ),
                     ),
                     const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          'Match ID: ${t['match_id'] ?? '-'}',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (t['status']?.toString().toLowerCase() == 'active' 
+                                ? Colors.green 
+                                : Colors.orange).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            t['status']?.toString().toUpperCase() ?? 'PENDING',
+                            style: TextStyle(
+                              color: t['status']?.toString().toLowerCase() == 'active' 
+                                  ? Colors.green 
+                                  : Colors.orange,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
                     Text(
-                      'Match #${t['match_id'] ?? '-'}  •  ${players.length} players',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      '${players.length} players selected',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 11),
                     ),
                   ],
                 ),
@@ -763,32 +953,17 @@ class _EsProfileScreenState extends State<EsProfileScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      t['status']?.toString().toUpperCase() ?? 'ACTIVE',
-                      style: const TextStyle(
-                        color: AppColors.secondary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    '${t['total_points'] ?? t['points'] ?? '0.0'}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.primary,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${t['points'] ?? '0.0'} pts',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+                  const Text(
+                    'pts',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
               ),
@@ -796,10 +971,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
           ),
           if (captainName.isNotEmpty || viceCaptainName.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Container(
-              height: 1,
-              color: Colors.grey.withOpacity(0.08),
-            ),
+            Container(height: 1, color: Colors.grey.withOpacity(0.08)),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -1201,6 +1373,17 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         ),
         const SizedBox(height: 6),
         Text(sub, style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: _load,
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: const Text('SYNC NOW'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
+        ),
       ],
     ),
   );

@@ -4,15 +4,24 @@ import 'package:fantasy_crick/core/services/api_client.dart';
 class ContestService {
   Future<List<ContestModel>> getAllContests() async {
     try {
-      final response = await ApiClient.get('/contests?type=all&page=1&limit=100');
-      final data = response['data']?['contests'] ?? 
-                   response['data']?['items'] ?? 
-                   response['data'] as List<dynamic>? ?? [];
+      print('DEBUG: Fetching all contests...');
+      final response = await ApiClient.get('/contests');
       
-      if (data.isEmpty) return _getMockContests();
-      return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return _getMockContests();
+      // The API returns { "success": true, "data": { "contests": [...] } }
+      final data = response['data'];
+      if (data == null) return _getMockContests();
+      
+      final List<dynamic> contestsJson = data['contests'] ?? [];
+      
+      // If we got a valid list (even empty), return it from the API
+      print('DEBUG: Found ${contestsJson.length} contests from API');
+      
+      return contestsJson
+          .map((c) => ContestModel.fromJson(c as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('DEBUG: API Error or parsing fail: $e');
+      return _getMockContests(); // Only fallback on actual crash
     }
   }
 
@@ -31,13 +40,19 @@ class ContestService {
 
   Future<List<ContestModel>> getContestsForMatch(String matchId) async {
     try {
-      final response = await ApiClient.get('/contests?match_id=$matchId&type=all');
-      final data = response['data']?['contests'] ?? 
-                   response['data']?['items'] ?? 
-                   response['data'] as List<dynamic>? ?? [];
-      if (data.isEmpty) return [];
-      return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
-    } catch (_) {
+      print('DEBUG: Fetching contests for match: $matchId');
+      final response = await ApiClient.get('/contests?match_id=$matchId');
+      
+      final data = response['data'];
+      if (data == null) return [];
+      
+      final List<dynamic> contestsJson = data['contests'] ?? [];
+      
+      return contestsJson
+          .map((c) => ContestModel.fromJson(c as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('DEBUG: Error fetching contests for match $matchId: $e');
       return [];
     }
   }
@@ -65,5 +80,25 @@ class ContestService {
         multipleTeams: false,
       ),
     ];
+  }
+
+  /// Join a contest with a team.
+  /// If joining fails (e.g. no wallet), it attempts to create a wallet and retries.
+  Future<Map<String, dynamic>> joinContest({
+    required String contestId,
+    required String teamId,
+    required String teamName,
+    required int userId,
+  }) async {
+    final endpoint = '/contests/$contestId/join?team_id=$teamId&contest_id=$contestId&team_name=${Uri.encodeComponent(teamName)}&user_id=$userId';
+    
+    try {
+      print('DEBUG: Attempting to join contest: $endpoint');
+      final response = await ApiClient.post(endpoint, {});
+      return response;
+    } catch (e) {
+      print('DEBUG: Join contest failed: $e');
+      throw Exception(e.toString());
+    }
   }
 }

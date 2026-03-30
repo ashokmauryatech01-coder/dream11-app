@@ -40,10 +40,9 @@ class _AddCashScreenState extends State<AddCashScreen> {
   Future<void> _loadWalletBalance() async {
     setState(() => _isLoadingBalance = true);
     try {
-      final localBalance = await WalletService.getLocalBalance();
-      setState(() {
-        _walletBalance = localBalance;
-      });
+      // Logic for fetching balance will now strictly happen in the latter part of this function 
+      // when currentUserId is verified. This avoids the initial getLocalBalance call.
+      setState(() => _walletBalance = 0.0); 
 
       var savedData = await ProfileService.getSavedUserData();
       debugPrint('AddCashScreen: Loaded saved user data: $savedData');
@@ -58,7 +57,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
         return 0;
       }
 
-      var currentUserId = parseId(user['id']);
+      var currentUserId = parseId(user['user_id'] ?? user['userid'] ?? user['id']);
       debugPrint('AddCashScreen: Initial Current User ID: $currentUserId');
 
       if (currentUserId == 0) {
@@ -71,7 +70,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
           await ProfileService.saveUserDataLocally(profileData);
           savedData = profileData;
           user = savedData.containsKey('user') ? savedData['user'] : savedData;
-          currentUserId = parseId(user['id']);
+          currentUserId = parseId(user['user_id'] ?? user['userid'] ?? user['id']);
           debugPrint('AddCashScreen: Updated Current User ID: $currentUserId');
         }
       }
@@ -89,19 +88,22 @@ class _AddCashScreenState extends State<AddCashScreen> {
       debugPrint('AddCashScreen: Final ID for wallet fetch: $currentUserId');
 
       if (currentUserId != 0) {
-        final walletData = await WalletService.getWallets(currentUserId);
+        final walletData = await ProfileService.getUserWallets(currentUserId);
         debugPrint('AddCashScreen: Wallet data response: $walletData');
         if (walletData != null) {
+          // Robust unwrap of the nested 'wallet' key
+          final wallet = walletData.containsKey('wallet')
+              ? walletData['wallet']
+              : walletData;
+
           setState(() {
             _walletBalance =
-                double.tryParse(walletData['balance']?.toString() ?? '0') ??
-                0.0;
-            _walletId = parseId(walletData['id']);
+                double.tryParse(wallet['balance']?.toString() ?? '0') ?? 0.0;
+            _walletId = parseId(wallet['id']);
           });
           debugPrint(
-            'AddCashScreen: Wallet ID set to: $_walletId, Balance: $_walletBalance',
+            'AddCashScreen: Identified Wallet ID: $_walletId, Balance: $_walletBalance',
           );
-          await WalletService.saveWalletDataLocally(walletData);
         }
       } else {
         debugPrint('AddCashScreen: ERROR - User ID is 0 after all attempts');
@@ -136,7 +138,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
             return 0;
           }
 
-          var currentUserId = parseId(userObj['id']);
+          var currentUserId = parseId(userObj['user_id'] ?? userObj['userid'] ?? userObj['id']);
 
           if (currentUserId == 0) {
             final prefs = await SharedPreferences.getInstance();
@@ -147,14 +149,31 @@ class _AddCashScreenState extends State<AddCashScreen> {
 
           if (_walletId == null) {
             debugPrint('Success Flow: Wallet ID missing, fetching...');
-            final walletData = await WalletService.getWallets(currentUserId);
+            final walletData = await ProfileService.getUserWallets(currentUserId);
             debugPrint('Success Flow: Wallet Fetch Response: $walletData');
             if (walletData != null) {
-              _walletId = parseId(walletData['id']);
+              final wallet = walletData.containsKey('wallet')
+                  ? walletData['wallet']
+                  : walletData;
+              _walletId = parseId(wallet['id']);
+            }
+            
+            // If still missing, create the wallet automatically
+            if (_walletId == null || _walletId == 0) {
+              debugPrint('Success Flow: Wallet not found, creating new wallet for user $currentUserId');
+              final newWallet = await WalletService.createWallet(
+                userId: currentUserId,
+                initialBalance: 0.0,
+                description: "Recharge-triggered auto-creation",
+              );
+              if (newWallet != null) {
+                final wallet = newWallet.containsKey('wallet') ? newWallet['wallet'] : newWallet;
+                _walletId = parseId(wallet['id']);
+              }
             }
           }
 
-          debugPrint('Success Flow: Wallet ID: $_walletId');
+          debugPrint('Success Flow: Final Wallet ID: $_walletId');
 
           if (currentUserId != 0 && _walletId != null) {
             debugPrint('Success Flow: ATTEMPTING RECHARGE API CALL');
@@ -162,16 +181,15 @@ class _AddCashScreenState extends State<AddCashScreen> {
               'Success Flow: URL: http://173.208.188.172:8080/api/v1/user/recharge-wallet',
             );
             debugPrint(
-              'Success Flow: Payload: {user_id: $currentUserId, wallet_id: $_walletId, balance: $_selectedAmount, transaction_id: $paymentId}',
+              'Success Flow: Payload: {user_id: $currentUserId, wallet_id: $_walletId, amount: $_selectedAmount, transaction_id: 5}',
             );
 
             final result = await WalletService.rechargeWallet(
               userId: currentUserId,
               walletId: _walletId!,
-              balance: _selectedAmount,
-              // Using a static single-digit ID as requested for testing
-              transactionId:
-                  5, // DateTime.now().millisecondsSinceEpoch.toString(),
+              amount: _selectedAmount, // Changed from balance
+              paymentMethod: 'upi',
+              transactionId: 5, 
             );
 
             debugPrint('Success Flow: Recharge API Response: $result');

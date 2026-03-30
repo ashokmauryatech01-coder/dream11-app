@@ -1,7 +1,7 @@
   import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
-import 'package:fantasy_crick/core/services/wallet_service.dart';
+import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/features/wallet/screens/add_cash_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/withdrawal_screen.dart';
 import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
@@ -18,25 +18,43 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
   late TabController _tabController;
   double _balance = 0.0;
   bool _isLoading = true;
+  List<Map<String, dynamic>> _transactions = [];
+  bool _isLoadingHistory = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadBalance();
+    _loadTransactions();
   }
 
   Future<void> _loadBalance() async {
     setState(() => _isLoading = true);
     try {
-      final balance = await WalletService.getLocalBalance();
+      final balance = await ProfileService.getWalletBalance();
       setState(() {
-        _balance = balance;
+        _balance = balance ?? 0.0;
         _isLoading = false;
       });
     } catch (e) {
       print('Error loading balance: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadTransactions() async {
+    if (_isLoadingHistory) return;
+    setState(() => _isLoadingHistory = true);
+    try {
+      final history = await ProfileService.getTransactionHistory(limit: 20);
+      setState(() {
+        _transactions = history;
+        _isLoadingHistory = false;
+      });
+    } catch (e) {
+      print('Error loading transactions: $e');
+      setState(() => _isLoadingHistory = false);
     }
   }
 
@@ -221,62 +239,92 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
   }
 
   Widget _buildTransactionsTab() {
-    final transactions = [
-      {'title': 'Contest Won', 'desc': 'MI vs CSK - Mega Contest', 'amount': '+₹1,000', 'date': 'Today, 8:30 PM', 'credit': true},
-      {'title': 'Contest Entry', 'desc': 'RCB vs KKR - Head to Head', 'amount': '-₹25', 'date': 'Today, 3:30 PM', 'credit': false},
-      {'title': 'Deposit', 'desc': 'Added via UPI', 'amount': '+₹500', 'date': 'Yesterday, 10:15 AM', 'credit': true},
-    ];
+    if (_isLoadingHistory) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: transactions.length,
-      itemBuilder: (context, index) {
-        final item = transactions[index];
-        final isCredit = item['credit'] as bool;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(24),
+    if (_transactions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_rounded, size: 64, color: AppColors.textLight.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            const Text('No transactions yet', style: TextStyle(color: AppColors.textLight)),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadTransactions,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: _transactions.length,
+        itemBuilder: (context, index) {
+          final item = _transactions[index];
+          final type = (item['type'] ?? '').toString().toLowerCase();
+          final String title = type.toUpperCase();
+          final String desc = item['description'] ?? 'Transaction';
+          final double amt = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
+          final String date = item['created_at'] ?? '';
+          final bool isCredit = type == 'deposit' || type == 'winning' || type == 'refund' || type == 'referral';
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
                 ),
-                child: Icon(
-                  isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-                  color: isCredit ? AppColors.success : AppColors.error,
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: (isCredit ? AppColors.success : AppColors.error).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isCredit ? Icons.add_circle_outline_rounded : Icons.remove_circle_outline_rounded,
+                    color: isCredit ? AppColors.success : AppColors.error,
+                    size: 20,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(item['desc'] as String, style: const TextStyle(color: AppColors.textLight, fontSize: 14)),
-                    Text(item['date'] as String, style: const TextStyle(color: AppColors.textLight, fontSize: 12)),
-                  ],
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5)),
+                      const SizedBox(height: 4),
+                      Text(desc, style: const TextStyle(color: AppColors.text, fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(date, style: const TextStyle(color: AppColors.textLight, fontSize: 11)),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                item['amount'] as String,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: isCredit ? AppColors.success : AppColors.error,
+                Text(
+                  '${isCredit ? "+" : "-"}₹${amt.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    color: isCredit ? AppColors.success : AppColors.error,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
