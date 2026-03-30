@@ -198,20 +198,11 @@ class _AddCashScreenState extends State<AddCashScreen> {
               _handleSuccess(_selectedAmount);
               await _loadWalletBalance();
             } else {
-              _showMessage(
-                'Payment Success',
-                'Funds will be added shortly.',
-                true,
-              );
+              debugPrint('Success Flow: Result was null but payment succeeded');
             }
           } else {
             debugPrint(
               'Success Flow: ERROR - Missing data. UID: $currentUserId, WID: $_walletId',
-            );
-            _showMessage(
-              'Payment Captured',
-              'Wallet sync delayed. Please refresh.',
-              true,
             );
           }
         } catch (e) {
@@ -241,11 +232,6 @@ class _AddCashScreenState extends State<AddCashScreen> {
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() => _showCelebration = false);
-        _showMessage(
-          'Success',
-          '₹${amount.toStringAsFixed(0)} added to your wallet!',
-          true,
-        );
       }
     });
   }

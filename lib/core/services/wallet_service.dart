@@ -121,6 +121,7 @@ class WalletService {
     required int walletId,
     required String description,
     String transactionType = 'withdrawal',
+    String purpose = 'withdrawal',
   }) async {
     try {
       final body = {
@@ -131,6 +132,8 @@ class WalletService {
         'wallet_id': walletId,
         'description': description,
         'transaction_type': transactionType,
+        'purpose': purpose,
+        'wallet_balance': amount, // Adding this as the backend error explicitly mentions it
       };
       
       final response = await ApiClient.post('/user/upi-transfer/create', body);

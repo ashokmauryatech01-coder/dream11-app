@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
+import 'package:fantasy_crick/core/services/wallet_service.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
 
 class WithdrawalScreen extends StatefulWidget {
@@ -23,6 +24,8 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   bool _isProcessing = false;
   bool _showCelebration = false;
   double _lastWithdrawnAmount = 0.0;
+  int? _userId;
+  int? _walletId;
 
   final List<double> _quickAmounts = [100, 200, 500, 1000, 2000, 5000];
   double _selectedAmount = 100.0;
@@ -36,10 +39,26 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   Future<void> _loadWalletData() async {
     setState(() => _isLoading = true);
     try {
-      final balance = await ProfileService.getWalletBalance();
-      setState(() {
-        _walletBalance = balance ?? 0.0;
-      });
+      final savedData = await ProfileService.getSavedUserData();
+      final user = savedData.containsKey('user') ? savedData['user'] : savedData;
+      
+      int parseId(dynamic id) {
+        if (id == null) return 0;
+        if (id is int) return id;
+        if (id is String) return int.tryParse(id) ?? 0;
+        return 0;
+      }
+
+      _userId = parseId(user['user_id'] ?? user['userid'] ?? user['id']);
+
+      final walletData = await ProfileService.getUserWallets(_userId);
+      if (walletData != null) {
+        setState(() {
+          _walletBalance =
+              double.tryParse(walletData['balance']?.toString() ?? '0') ?? 0.0;
+          _walletId = parseId(walletData['id']);
+        });
+      }
     } catch (e) {
       print('Error loading wallet data: $e');
     } finally {
@@ -65,32 +84,38 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
 
   Future<void> _processWithdrawal() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
-
-    if (amount > _walletBalance) {
-      _showMessage(
-        'Insufficient Balance',
-        'Amount exceeds available balance',
-        false,
-      );
+    
+    if (_userId == null || _walletId == null) {
+      _showMessage('Session Error', 'User or Wallet information missing. Please re-login.', false);
       return;
     }
+
+    final amount = double.tryParse(_amountController.text) ?? 0.0;
 
     setState(() => _isProcessing = true);
 
     try {
-      // In a real app, this would call WalletService.upiTransfer(...)
-      await Future.delayed(const Duration(seconds: 2));
+      final result = await WalletService.upiTransfer(
+        userId: _userId!,
+        amount: amount,
+        upiId: _upiController.text.trim(),
+        recipientName: _recipientController.text.trim(),
+        walletId: _walletId!,
+        description: "Withdrawal request for ₹$amount",
+      );
 
-      setState(() {
-        _isProcessing = false;
-        _walletBalance -= amount; // Optimistic UI update
-        _lastWithdrawnAmount = amount;
-        _showCelebration = true;
-      });
-
-      _clearForm();
+      if (result != null) {
+        setState(() {
+          _isProcessing = false;
+          _walletBalance -= amount; // Optimistic UI update
+          _lastWithdrawnAmount = amount;
+          _showCelebration = true;
+        });
+        _clearForm();
+      } else {
+        setState(() => _isProcessing = false);
+        _showMessage('Withdrawal Failed', 'The server could not process your request.', false);
+      }
     } catch (e) {
       setState(() => _isProcessing = false);
       _showMessage('Withdrawal Failed', 'Error: $e', false);
@@ -367,6 +392,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           label: 'UPI ID',
                           hint: 'username@bank',
                           icon: Icons.account_balance_wallet_rounded,
+                          validator: (v) => (v == null || v.isEmpty) ? 'Enter UPI ID' : null,
                         ),
                         const SizedBox(height: 16),
                         _buildInputField(
@@ -374,6 +400,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           label: 'Recipient Name',
                           hint: 'Account Holder Name',
                           icon: Icons.person_rounded,
+                          validator: (v) => (v == null || v.isEmpty) ? 'Enter full name' : null,
                         ),
 
                         const SizedBox(height: 40),
@@ -431,11 +458,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
             showTrophy: false,
             onCelebrationComplete: () {
               setState(() => _showCelebration = false);
-              _showMessage(
-                'Request Received',
-                'Your withdrawal of ₹${_lastWithdrawnAmount.toStringAsFixed(0)} is being processed.',
-                true,
-              );
             },
           ),
       ],
@@ -447,6 +469,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     required String label,
     required String hint,
     required IconData icon,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,6 +491,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
           ),
           child: TextFormField(
             controller: controller,
+            validator: validator,
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
