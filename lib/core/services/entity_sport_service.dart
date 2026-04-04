@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class EntitySportService {
   static const String baseUrl = 'https://restapi.entitysport.com/v2';
-  static const String token = '44b16e8558165c3b9fed0b6ad7814377';
+  static const String token = '7e6097d77280407b05b3a124507e1c69';
 
   static Future<Map<String, dynamic>> _get(String path) async {
     final uri = Uri.parse('$baseUrl$path');
