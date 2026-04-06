@@ -88,27 +88,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final fullPhone = '$_countryCode$phone';
 
     try {
-      // 1. Send OTP first to verify the number
+      // 1. First, register the account as per new flow
+      // This creates the user in the database so sendOTP doesn't return 404
+      await _authService.signUp(
+        name, 
+        email, 
+        fullPhone, 
+        password, 
+        upiId: upiId,
+        userType: 'user',
+      );
+
+      // 2. Then, send OTP to verify the number
       await _authService.sendOTP(fullPhone);
 
       setState(() => _loading = false);
 
       if (!mounted) return;
 
-      // 2. Navigate to OTP screen with registration data
+      // 3. Navigate to OTP screen
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => OtpVerificationScreen(
             sentTo: fullPhone,
             isLogin: false,
+            // Pass minimal data if needed, but the account is already created
             registrationData: {
-              'name': name,
-              'email': email,
               'phone': fullPhone,
-              'upi_id': upiId,
-              'password': password,
-              'user_type': 'user', // Default to user
+              'user_type': 'user',
             },
           ),
         ),
@@ -118,7 +126,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _loading = false);
       final msg = e.toString().replaceFirst('Exception: ', '');
       await BeautyDialog.show(context,
-          title: 'Failed to send OTP',
+          title: 'Registration Failed',
           message: msg,
           type: BeautyDialogType.error);
     }

@@ -21,7 +21,7 @@ class AuthService {
     throw Exception(response?['message'] ?? 'Login failed. Please try again.');
   }
 
-  /// Register a new user account. Returns token + user on success.
+  /// Register a new user account. Returns the full registration response.
   Future<Map<String, dynamic>> signUp(
     String name,
     String email,
@@ -45,19 +45,13 @@ class AuthService {
 
     print('DEBUG: Registration Response: $response');
 
-    // Flexible parsing: Try root first, then look for 'data' wrapper
+    // Optionally save token if provided during registration
     final token = response?['token'] ?? response?['data']?['token'];
-    final user = response?['user'] ?? response?['data']?['user'];
-
     if (token != null) {
-      print('DEBUG: Token found: $token');
       await ApiClient.saveToken(token as String);
-      return {'token': token, 'user': user};
     }
 
-    print('DEBUG: Token not found in response');
-    throw Exception(
-        response?['message'] ?? 'Registration failed. Please try again.');
+    return response as Map<String, dynamic>;
   }
 
   /// Send OTP to email for password reset.
@@ -104,8 +98,8 @@ class AuthService {
     }
   }
 
-  /// Verify phone/email OTP after registration.
-  Future<void> verifyRegistrationOtp(String phone, String otp, {String userType = 'user'}) async {
+  /// Verify phone/email OTP after registration. Returns true on success.
+  Future<bool> verifyRegistrationOtp(String phone, String otp, {String userType = 'user'}) async {
     final formattedPhone = _formatPhone(phone);
     final response = await ApiClient.post('/auth/verify-otp', {
       'phone': formattedPhone,
@@ -113,9 +107,15 @@ class AuthService {
       'otp': otp,
     });
 
-    if (response != null && response['success'] == false) {
-      throw Exception(response['message'] ?? 'OTP verification failed.');
+    if (response != null && response['success'] == true) {
+      final token = response['token'] ?? response['data']?['token'];
+      if (token != null) {
+        await ApiClient.saveToken(token as String);
+      }
+      return true;
     }
+
+    throw Exception(response?['message'] ?? 'OTP verification failed.');
   }
 
   /// Send login OTP to phone number.
