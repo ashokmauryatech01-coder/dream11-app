@@ -178,18 +178,11 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF1E3C72),
-                                Color(0xFF2A5298),
-                              ], // Deep Royal Blue
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(30),
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1E3C72).withOpacity(0.3),
+                                color: AppColors.primary.withOpacity(0.1),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),

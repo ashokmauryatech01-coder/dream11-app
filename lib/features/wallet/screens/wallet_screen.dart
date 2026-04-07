@@ -107,15 +107,11 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
             width: double.infinity,
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.primaryGradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.2),
+                  color: AppColors.primary.withOpacity(0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -139,11 +135,17 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                     ],
                   ),
                 ),
-                const Center(
-                  child: CricketAnimation(
-                    type: AnimationType.coin,
-                    size: 60,
-                    color: Colors.white,
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet,
+                    color: AppColors.white,
+                    size: 30,
                   ),
                 ),
               ],

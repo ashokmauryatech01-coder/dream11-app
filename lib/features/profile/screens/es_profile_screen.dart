@@ -192,137 +192,142 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     expandedHeight: 220,
     pinned: true,
     automaticallyImplyLeading: false,
-    backgroundColor: AppColors.primary,
+    backgroundColor: AppColors.background,
     flexibleSpace: FlexibleSpaceBar(
       background: ClipRect(
         child: Container(
-          color: AppColors.primary,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+          ),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Avatar circle
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.25),
-                      border: Border.all(color: Colors.white, width: 2.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _initial,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                  const Text(
+                    'Profile',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 24,
-                            letterSpacing: -0.8,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      // Avatar circle
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.25),
+                          border: Border.all(color: Colors.white, width: 2.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
-                        if (_email.isNotEmpty)
-                          Text(
-                            _email,
+                        child: Center(
+                          child: Text(
+                            _initial,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 13,
-                              letterSpacing: 0.2,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        if (_phone.isNotEmpty)
-                          Text(
-                            _phone,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.85),
-                              fontSize: 13,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        const SizedBox(height: 6),
-                        // Wallet balance badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.account_balance_wallet_rounded,
-                                color: AppColors.primary,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _balance,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  // Action buttons
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _iconBtn(Icons.edit_rounded, () async {
-                        final changed = await Navigator.push<bool>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                EsEditProfileScreen(initialProfile: _userObj),
-                          ),
-                        );
-                        if (changed == true) _load();
-                      }),
-                      const SizedBox(height: 8),
-                      _iconBtn(Icons.refresh_rounded, _load),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _name,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_email.isNotEmpty)
+                              Text(
+                                _email,
+                                style: const TextStyle(
+                                  color: AppColors.white70,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            if (_phone.isNotEmpty)
+                              Text(
+                                _phone,
+                                style: const TextStyle(
+                                  color: AppColors.white60,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            const SizedBox(height: 6),
+                            // Wallet balance badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.account_balance_wallet,
+                                    color: AppColors.white,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _balance,
+                                    style: const TextStyle(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Action buttons
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _iconBtn(Icons.edit_rounded, () async {
+                            final changed = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    EsEditProfileScreen(initialProfile: _userObj),
+                              ),
+                            );
+                            if (changed == true) _load();
+                          }),
+                          const SizedBox(height: 8),
+                          _iconBtn(Icons.refresh_rounded, _load),
+                        ],
+                      ),
                     ],
                   ),
                 ],
@@ -330,15 +335,6 @@ class _EsProfileScreenState extends State<EsProfileScreen>
             ),
           ),
         ),
-      ),
-    ),
-    title: const Text(
-      'Profile',
-      style: TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.w900,
-        fontSize: 22,
-        letterSpacing: -0.5,
       ),
     ),
     actions: [
@@ -534,15 +530,16 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: AppColors.shadow,
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
             ],
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             children: [
@@ -551,7 +548,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
               Text(
                 val,
                 style: TextStyle(
-                  color: color,
+                  color: AppColors.text,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
                   letterSpacing: -0.5,
@@ -561,7 +558,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
               ),
               Text(
                 label,
-                style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                style: TextStyle(color: AppColors.textLight, fontSize: 11),
               ),
             ],
           ),
@@ -713,7 +710,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     child: Text(
       t.toUpperCase(),
       style: TextStyle(
-        color: Colors.grey[500],
+        color: AppColors.textLight,
         fontSize: 10,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
@@ -724,15 +721,16 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   Widget _menuCard(List<Widget> items) => Container(
     margin: const EdgeInsets.symmetric(horizontal: 12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(14),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.06),
+          color: AppColors.shadow,
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),
       ],
+      border: Border.all(color: AppColors.border),
     ),
     child: Column(
       children: items
@@ -743,7 +741,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
               children: [
                 e.value,
                 if (e.key < items.length - 1)
-                  Divider(height: 1, indent: 60, color: Colors.grey[100]),
+                  Divider(height: 1, indent: 60, color: AppColors.border),
               ],
             ),
           )
@@ -770,15 +768,15 @@ class _EsProfileScreenState extends State<EsProfileScreen>
     ),
     title: Text(
       title,
-      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.text),
     ),
     subtitle: Text(
       sub,
-      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+      style: TextStyle(color: AppColors.textLight, fontSize: 11),
     ),
     trailing: Icon(
       Icons.chevron_right_rounded,
-      color: Colors.grey[300],
+      color: AppColors.textLight,
       size: 20,
     ),
     dense: true,

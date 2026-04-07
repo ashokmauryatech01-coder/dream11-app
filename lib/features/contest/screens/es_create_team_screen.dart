@@ -573,10 +573,10 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
 
   String _getTitle() {
     final a =
-        (_matchInfo?['teama'] as Map?)?.tryString('short_name') ??
+        (_matchInfo?['teama'] as Map<String, dynamic>?)?.tryString('short_name') ??
         'Team A';
     final b =
-        (_matchInfo?['teamb'] as Map?)?.tryString('short_name') ??
+        (_matchInfo?['teamb'] as Map<String, dynamic>?)?.tryString('short_name') ??
         'Team B';
     return '$a vs $b';
   }
@@ -657,8 +657,6 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         child: Column(
           children: [
             _selectHeader(),
-            _infoBar(),
-            _roleTabs(),
             Expanded(child: _playerList()),
             _bottomBar(),
           ],
@@ -745,7 +743,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // Credits progress bar — use LayoutBuilder to avoid overflow
           LayoutBuilder(
             builder: (ctx, constraints) {
@@ -838,84 +836,111 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     );
   }
 
-  Widget _infoBar() => Container(
-    color: Colors.white,
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+
+  Widget _playerList() {
+    final list = _filtered;
+    final teamAPlayers = list.where((p) => p.teamShort == ((_matchInfo?['teama'] as Map<String, dynamic>?)?.tryString('short_name') ?? 'TM A')).toList();
+    final teamBPlayers = list.where((p) => p.teamShort == ((_matchInfo?['teamb'] as Map<String, dynamic>?)?.tryString('short_name') ?? 'TM B')).toList();
+
+    if (list.isEmpty) {
+      return Container(color: Colors.white, child: _emptyState());
+    }
+
+    return Container(
+      color: Colors.white,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Team A Players Column
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _teamColumnHeader('TEAM A', AppColors.primary, teamAPlayers.length),
+                        ...teamAPlayers.map(_playerTile).toList(),
+                      ],
+                    ),
+                  ),
+                  // Vertical Divider
+                  Container(
+                    width: 0.8,
+                    color: Colors.grey.shade200,
+                  ),
+                  // Team B Players Column
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _teamColumnHeader('TEAM B', AppColors.primary, teamBPlayers.length),
+                        ...teamBPlayers.map(_playerTile).toList(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Minimal padding for scroll space
+            const SizedBox(height: 60),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _teamColumnHeader(String teamName, Color color, int playerCount) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.06),
+      border: Border(
+        bottom: BorderSide(color: color.withOpacity(0.1)),
+        top: BorderSide(color: color.withOpacity(0.05)),
+      ),
+    ),
     child: Row(
       children: [
-        Icon(Icons.info_outline, color: Colors.grey.shade500, size: 14),
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
-            'Max 7 players from one team  •  $_count/11',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            teamName,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        Text(
-          '${_usedCredits.toStringAsFixed(1)}/$_totalCredits CR',
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
+        const SizedBox(width: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '$playerCount',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
           ),
         ),
       ],
     ),
   );
-
-  Widget _roleTabs() => Container(
-    color: Colors.white,
-    child: TabBar(
-      controller: _tabCtrl,
-      isScrollable: false,
-      indicatorColor: AppColors.primary,
-      indicatorWeight: 2.5,
-      labelColor: AppColors.primary,
-      unselectedLabelColor: Colors.grey.shade600,
-      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-      unselectedLabelStyle: const TextStyle(
-        fontWeight: FontWeight.normal,
-        fontSize: 12,
-      ),
-      tabs: _roles.map((r) {
-        final playing = _players.where((p) {
-          try { return (p as dynamic).isPlaying == true; } catch(_) { return false; }
-        }).toList();
-        final pool = playing.isEmpty ? _players : playing;
-        final cnt = r == 'ALL'
-            ? pool.length
-            : pool.where((p) => p.role == r).length;
-        return Tab(
-          child: Text(
-            '${_roleLabels[r]}\n($cnt)',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10),
-          ),
-        );
-      }).toList(),
-    ),
-  );
-
-  Widget _playerList() {
-    final list = _filtered;
-    final teams = list.map((p) => p.teamShort).toSet().toList();
-
-    return Container(
-      color: Colors.white,
-      child: list.isEmpty
-          ? _emptyState()
-          : ListView(
-              children: [
-                _colHeader(),
-                for (final team in teams) ...[
-                  _teamDivider(team),
-                  ...list.where((p) => p.teamShort == team).map(_playerTile),
-                ],
-                const SizedBox(height: 80),
-              ],
-            ),
-    );
-  }
 
   Widget _emptyState() => Center(
     child: Column(
@@ -1004,39 +1029,39 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           border: Border(
             left: BorderSide(
               color: sel ? Colors.green : Colors.transparent,
-              width: 3,
+              width: 2,
             ),
-            bottom: BorderSide(color: Colors.grey.shade200),
+            bottom: BorderSide(color: Colors.grey.shade100),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Row(
           children: [
             // Avatar
             Stack(
               clipBehavior: Clip.none,
               children: [
-                _avatar(p.imageUrl, p.name, clr, 44),
+                _avatar(p.imageUrl, p.name, clr, 28),
                 // Role badge
                 Positioned(
-                  bottom: -5,
+                  bottom: -3,
                   left: 0,
                   right: 0,
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
+                        horizontal: 2.5,
+                        vertical: 0.5,
                       ),
                       decoration: BoxDecoration(
                         color: clr,
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                       child: Text(
                         p.role,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 8,
+                          fontSize: 6,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1057,8 +1082,8 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                   ),
               ],
             ),
-            const SizedBox(width: 14),
-            // Name + style
+            const SizedBox(width: 4),
+            // Name + team
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1068,52 +1093,42 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                     style: TextStyle(
                       color: canAdd ? Colors.black : Colors.grey.shade400,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 10.5,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
                   Text(
                     p.teamShort,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 8),
                   ),
-                  if (p.battingStyle.isNotEmpty)
-                    Text(
-                      p.battingStyle,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 10,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                 ],
               ),
             ),
+            const SizedBox(width: 2),
             // Stats
-            SizedBox(width: 90, child: _statsSection(p)),
+            SizedBox(width: 38, child: _statsSection(p)),
             // Credits
             SizedBox(
-              width: 50,
+              width: 28,
               child: Text(
                 p.credits.toStringAsFixed(1),
                 style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 10,
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
             // Toggle
             SizedBox(
-              width: 36,
+              width: 24,
               child: Center(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  width: 28,
-                  height: 28,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: sel
@@ -1125,7 +1140,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
                   child: Icon(
                     sel ? Icons.check : Icons.add,
                     color: Colors.white,
-                    size: 16,
+                    size: 13,
                   ),
                 ),
               ),
@@ -1144,7 +1159,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         children: [
           _stat('${p.wickets}W', Colors.orange.shade800),
           if (p.economy.isNotEmpty)
-            _stat('Eco ${p.economy}', Colors.orange.shade700),
+            _stat('Ec ${p.economy}', Colors.orange.shade700),
         ],
       );
     }
@@ -1158,23 +1173,29 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
             Colors.blue.shade800,
           ),
           if (p.strikeRate.isNotEmpty)
-            _stat('SR ${p.strikeRate}', Colors.green.shade800),
+            _stat('S ${p.strikeRate}', Colors.green.shade800),
         ],
       );
     }
-    return Text(
-      '${p.rating.toStringAsFixed(1)} pts',
-      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-      textAlign: TextAlign.center,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        '${p.rating.toStringAsFixed(1)} pts',
+        style: TextStyle(color: Colors.grey.shade500, fontSize: 9.5),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+      ),
     );
   }
 
-  Widget _stat(String text, Color color) => Text(
-    text,
-    style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
-    textAlign: TextAlign.center,
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
+  Widget _stat(String text, Color color) => FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(
+      text,
+      style: TextStyle(color: color, fontSize: 8.5, fontWeight: FontWeight.bold),
+      textAlign: TextAlign.center,
+      maxLines: 1,
+    ),
   );
 
   Widget _bottomBar() => Container(
@@ -1223,22 +1244,24 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
               final c = _rc(r);
               final clr = _roleClr[r]!;
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       '$c',
                       style: TextStyle(
                         color: c > 0 ? clr : Colors.grey.shade400,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
                       ),
                     ),
                     Text(
                       r,
                       style: TextStyle(
                         color: Colors.grey.shade500,
-                        fontSize: 10,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -1251,22 +1274,30 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           onTap: _canProceed
               ? () => setState(() => _showCaptainScreen = true)
               : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
               color: _canProceed
                   ? AppColors.primary
                   : Colors.grey.shade400,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: _canProceed ? [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              ] : null,
             ),
             child: Text(
               _canProceed 
                   ? 'Next →' 
-                  : (_count == 11 ? 'Check Roles' : 'Select ${11 - _count} more'),
+                  : (_count == 11 ? 'Check Roles' : 'Add ${11 - _count}'),
               style: const TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1372,161 +1403,88 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
     final clr = _roleClr[p.role] ?? AppColors.primary;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 6, 14, 4),
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isC
-            ? Colors.red.shade50
-            : isVC
-            ? Colors.blue.shade50
-            : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isC
-              ? AppColors.primary
-              : isVC
-              ? AppColors.secondary
-              : Colors.grey.shade200,
-          width: isC || isVC ? 1.5 : 1,
+          color: (isC || isVC) ? AppColors.primary.withOpacity(0.3) : Colors.grey.shade100,
+          width: (isC || isVC) ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // Avatar
-            Stack(
-              clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          // Avatar
+          _avatar(p.imageUrl, p.name, clr, 42),
+          const SizedBox(width: 12),
+          // Name + role
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _avatar(p.imageUrl, p.name, clr, 48),
-                if (isC)
-                  Positioned(
-                    top: -5,
-                    right: -5,
-                    child: _badge('C', AppColors.primary),
+                Text(
+                  p.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.black,
                   ),
-                if (isVC)
-                  Positioned(
-                    top: -5,
-                    right: -5,
-                    child: _badge('VC', AppColors.secondary),
-                  ),
+                ),
+                const SizedBox(height: 4),
+                _captainRoleBadge(p.role, clr),
               ],
             ),
-            const SizedBox(width: 14),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.name,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _pill(p.role, clr),
-                      _pill(p.teamShort, Colors.grey.shade600),
-                      _pill(
-                        '${p.credits.toStringAsFixed(1)} CR',
-                        Colors.black87,
-                      ),
-                    ],
-                  ),
-                  if (p.runs.isNotEmpty || p.wickets.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Wrap(
-                        spacing: 12,
-                        children: [
-                          if (p.runs.isNotEmpty)
-                            Text(
-                              '${p.runs} runs${p.balls.isNotEmpty ? " (${p.balls}b)" : ""}  SR:${p.strikeRate}',
-                              style: const TextStyle(
-                                color: AppColors.text,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          if (p.wickets.isNotEmpty)
-                            Text(
-                              '${p.wickets}W  Eco:${p.economy}',
-                              style: const TextStyle(
-                                color: AppColors.secondary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // C / VC buttons
-            Column(
-              children: [
-                _cvBtn(
-                  'C',
-                  isC,
-                  AppColors.primary,
-                  () => setState(() {
-                    if (isC) {
-                      _captainId = null;
-                    } else {
-                      if (_vcId == p.id) _vcId = null;
-                      _captainId = p.id;
-                    }
-                  }),
-                ),
-                const SizedBox(height: 8),
-                _cvBtn(
-                  'VC',
-                  isVC,
-                  AppColors.secondary,
-                  () => setState(() {
-                    if (isVC) {
-                      _vcId = null;
-                    } else {
-                      if (_captainId == p.id) _captainId = null;
-                      _vcId = p.id;
-                    }
-                  }),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          // C/VC Buttons
+          Row(
+            children: [
+              _cvBtn('C', isC, AppColors.primary, () {
+                setState(() {
+                  if (isC) {
+                    _captainId = null;
+                  } else {
+                    _captainId = p.id;
+                    if (isVC) _vcId = null;
+                  }
+                });
+              }),
+              const SizedBox(width: 10),
+              _cvBtn('VC', isVC, AppColors.primary.withOpacity(0.8), () {
+                setState(() {
+                  if (isVC) {
+                    _vcId = null;
+                  } else {
+                    _vcId = p.id;
+                    if (isC) _captainId = null;
+                  }
+                });
+              }),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _pill(String text, Color bg) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+  Widget _captainRoleBadge(String role, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
-      color: bg.withOpacity(0.12),
-      borderRadius: BorderRadius.circular(5),
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(4),
     ),
     child: Text(
-      text,
+      _roleLabels[role] ?? role,
       style: TextStyle(
-        color: bg == Colors.grey.shade600 ? Colors.grey.shade800 : bg,
-        fontSize: 10,
+        color: color,
+        fontSize: 9,
         fontWeight: FontWeight.bold,
       ),
     ),
@@ -1536,24 +1494,31 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       GestureDetector(
         onTap: fn,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 44,
-          height: 32,
+          duration: const Duration(milliseconds: 200),
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             color: active ? color : Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            shape: BoxShape.circle,
             border: Border.all(
               color: active ? color : Colors.grey.shade300,
               width: 1.5,
             ),
+            boxShadow: active ? [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              )
+            ] : null,
           ),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
                 color: active ? Colors.white : Colors.grey.shade600,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
               ),
             ),
           ),
@@ -1561,26 +1526,38 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
       );
 
   Widget _teamNameInput() => Container(
-    margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    margin: const EdgeInsets.fromLTRB(14, 8, 14, 12),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-    ),
-    child: TextField(
-      controller: _teamNameCtrl,
-      decoration: const InputDecoration(
-        labelText: 'Team Name',
-        labelStyle: TextStyle(
-          color: AppColors.primary,
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
         ),
-        border: InputBorder.none,
-        hintText: 'Enter your team name',
+      ],
+      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+    ),
+    child: Theme(
+      data: Theme.of(context).copyWith(primaryColor: AppColors.primary),
+      child: TextField(
+        controller: _teamNameCtrl,
+        decoration: InputDecoration(
+          labelText: 'Team Name',
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: InputBorder.none,
+          hintText: 'e.g. Dream 11 Pro',
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+        ),
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Colors.black),
       ),
-      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
     ),
   );
 
@@ -1670,7 +1647,7 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
           ),
           const SizedBox(width: 12),
           GestureDetector(
-            onTap: (ready && !_submitting) ? _submit : null,
+            onTap: (ready && !_submitting) ? () => _submit() : null,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
@@ -1734,138 +1711,127 @@ class _EsCreateTeamScreenState extends State<EsCreateTeamScreen>
         viceCaptainId: viceCaptId,
       );
 
-      // Join contest if provided
-      if (widget.contest != null) {
-        try {
-          final userId = await UserProfileService.getSavedUserId();
-          if (userId <= 0) throw Exception("User ID not found. Please log in again.");
-          
-          final dynamic rawTeamId = teamRes['data']?['id'] ?? teamRes['id'] ?? teamRes['team_id'];
-          final teamId = rawTeamId?.toString() ?? '1';
-          print('DEBUG: Team saved successfully. Extracted Team ID: $teamId');
-
-          await ContestService().joinContest(
-            contestId: widget.contest!.id,
-            teamId: teamId,
-            teamName: _teamNameCtrl.text.isEmpty ? "My Team" : _teamNameCtrl.text,
-            userId: userId,
-          );
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Team created & joined contest! 🏆'),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        } catch (e) {
-          print('Error joining contest after team creation: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Join failed: ${e.toString().replaceAll('Exception: ', '')}'),
-                backgroundColor: AppColors.primary,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        }
-      }
+      final dynamic rawTeamId = teamRes['data']?['id'] ?? teamRes['id'] ?? teamRes['team_id'] ?? (teamRes['data'] is Map ? teamRes['data']['team_id'] : null);
+      final teamId = rawTeamId?.toString() ?? '0';
+      print('DEBUG: Team saved successfully. Final Team ID: $teamId');
 
       if (!mounted) return;
       setState(() => _submitting = false);
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.check_circle_outline_rounded,
-                  size: 64,
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Team Created! 🎉',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _teamNameCtrl.text,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-                const SizedBox(height: 24),
-                
-                // JOIN CONTEST BUTTON (IF CONTEST PROVIDED)
-                if (widget.contest != null)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(dialogContext); // Close dialog
-                        // Back to contests screen
-                        if (navigatorKey.currentState?.canPop() ?? false) {
-                           navigatorKey.currentState?.pop();
-                        }
-                      },
-                      icon: const Icon(Icons.emoji_events_rounded),
-                      label: const Text('Join Contest 🏆'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                
-                if (widget.contest != null) const SizedBox(height: 12),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext); // Close dialog
-                      if (navigatorKey.currentState?.canPop() ?? false) {
-                        navigatorKey.currentState?.pop();
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Done'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+      _showSuccessDialog(teamId);
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
       _snack('Error saving team: $e');
     }
+  }
+
+  void _showSuccessDialog(String teamId) {
+    bool joiningForDialog = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 64,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Team Created! 🎉',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _teamNameCtrl.text.isEmpty ? 'My Team' : _teamNameCtrl.text,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // JOIN CONTEST BUTTON
+                  if (widget.contest != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: joiningForDialog ? null : () async {
+                          setDialogState(() => joiningForDialog = true);
+                          try {
+                            final userId = await UserProfileService.getSavedUserId();
+                            await ContestService().joinContest(
+                              contestId: widget.contest!.id,
+                              teamId: teamId,
+                              teamName: _teamNameCtrl.text.isEmpty ? "My Team" : _teamNameCtrl.text,
+                              userId: userId,
+                            );
+                            
+                            if (mounted) {
+                              _snack('Joined contest successfully! 🏆');
+                              Navigator.pop(dialogContext); // Close dialog
+                              navigatorKey.currentState?.pop(); // Back to contests
+                            }
+                          } catch (e) {
+                            setDialogState(() => joiningForDialog = false);
+                            _snack('Join failed: ${e.toString().replaceAll('Exception: ', '')}');
+                          }
+                        },
+                        icon: joiningForDialog 
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.emoji_events_rounded),
+                        label: Text(joiningForDialog ? 'Joining...' : 'Join Contest 🏆'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  
+                  if (widget.contest != null) const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: joiningForDialog ? null : () {
+                        Navigator.pop(dialogContext); // Close dialog
+                        navigatorKey.currentState?.pop(); // Back to main
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Done', style: TextStyle(color: Colors.black87)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      ),
+    );
   }
 
   Widget _row(String l, String v) => Padding(
@@ -1895,8 +1861,8 @@ Widget _avatar(String url, String name, Color clr, double size) => Container(
   height: size,
   decoration: BoxDecoration(
     shape: BoxShape.circle,
-    color: clr.withOpacity(0.15),
-    border: Border.all(color: clr.withOpacity(0.4), width: 1.5),
+    color: clr.withOpacity(0.12),
+    border: Border.all(color: clr.withOpacity(0.3), width: 1.0),
   ),
   child: ClipOval(
     child: url.isNotEmpty
@@ -1941,6 +1907,6 @@ Widget _badge(String label, Color color) => Container(
   ),
 );
 
-extension _MapExt on Map {
+extension _MapExt on Map<String, dynamic> {
   String? tryString(String key) => this[key]?.toString();
 }

@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen>
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadow,
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -219,11 +219,11 @@ class _HomeScreenState extends State<HomeScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: Colors.grey, size: 64),
+          const Icon(Icons.error_outline, color: AppColors.textLight, size: 64),
           const SizedBox(height: 16),
           Text(
             _error ?? 'Something went wrong',
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            style: const TextStyle(fontSize: 16, color: AppColors.textLight),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -263,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildEmptyInline('No live matches right now')
               else
                 SizedBox(
-                  height: 160, 
+                  height: 180, 
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     clipBehavior: Clip.none,
@@ -293,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildEmptyInline('No upcoming matches')
               else
                 SizedBox(
-                  height: 160, 
+                  height: 180, 
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     clipBehavior: Clip.none,
@@ -349,12 +349,19 @@ class _HomeScreenState extends State<HomeScreen>
     final liveCount = _liveMatches.length;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
+      decoration: BoxDecoration(
+        color: AppColors.background,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Stack(
         children: [
@@ -363,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen>
             right: -20,
             top: -20,
             child: Opacity(
-              opacity: 0.1,
+              opacity: 0.05,
               child: CricketAnimation(
                 type: AnimationType.trophy,
                 size: 150,
@@ -378,27 +385,34 @@ class _HomeScreenState extends State<HomeScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome back,',
-                          style: TextStyle(
-                            color: AppColors.white.withOpacity(0.8),
-                            fontSize: 14,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome back,',
+                            style: TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 14,
+                            ),
                           ),
-                        ),
-                        const Text(
-                          'Segga Sportzz',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: const Text(
+                              'Segga Sportzz',
+                              style: TextStyle(
+                                color: AppColors.text,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     _HeaderBadge(count: liveCount, label: 'Live'),
                   ],
                 ),
@@ -406,19 +420,19 @@ class _HomeScreenState extends State<HomeScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.15),
+                    color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.white.withOpacity(0.2)),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.flash_on, color: AppColors.warning, size: 20),
+                      const Icon(Icons.flash_on, color: AppColors.primary, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Create your dream team and win prizes!',
                           style: TextStyle(
-                            color: AppColors.white.withOpacity(0.9),
+                            color: AppColors.text,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -494,8 +508,11 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         Container(
           color: AppColors.primary,
+          width: double.infinity,
           child: TabBar(
             controller: _matchesTabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             indicatorColor: AppColors.white,
             indicatorWeight: 3,
             labelColor: AppColors.white,
@@ -585,11 +602,11 @@ class _HomeScreenState extends State<HomeScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 100),
-          Icon(Icons.sports_cricket, color: Colors.grey.shade400, size: 64),
+          Icon(Icons.sports_cricket, color: AppColors.textLight, size: 64),
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            style: const TextStyle(fontSize: 16, color: AppColors.textLight),
           ),
         ],
       ),
@@ -601,12 +618,12 @@ class _HomeScreenState extends State<HomeScreen>
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
-          Icon(Icons.sports_cricket, color: Colors.grey.shade400, size: 20),
+          Icon(Icons.sports_cricket, color: AppColors.textLight, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(fontSize: 14, color: AppColors.textLight),
             ),
           ),
         ],
@@ -662,7 +679,7 @@ Tab _TabLabel(String text, int count, Color badgeColor) {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(text),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         if (count > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -812,66 +829,47 @@ class _MatchCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: AppColors.shadow,
             ),
           ],
-          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.05),
+                color: AppColors.background,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text(
-                      seriesName.toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Text(
                     matchType.toUpperCase(),
                     style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
+                      color: AppColors.textLight,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 8),
                   if (isLive)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 5,
-                            height: 5,
+                            width: 6,
+                            height: 6,
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -879,9 +877,9 @@ class _MatchCard extends StatelessWidget {
                           const Text(
                             'LIVE',
                             style: TextStyle(
-                              color: Colors.red,
+                              color: AppColors.primary,
                               fontSize: 9,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
@@ -891,18 +889,18 @@ class _MatchCard extends StatelessWidget {
                     Text(
                       startTime.split('T').first,
                       style: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: AppColors.textLight,
                         fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                 ],
               ),
             ),
             
-            // Middle Section (Teams)
+            // Middle Section (Teams) - Row layout for efficiency
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   // Team A
@@ -910,19 +908,12 @@ class _MatchCard extends StatelessWidget {
                     child: Column(
                       children: [
                         Container(
-                          width: 45,
-                          height: 45,
+                          width: 54,
+                          height: 54,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(color: Colors.grey.shade100),
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: Center(
                             child: _resolveLogo(teamALogo, teamAShort),
@@ -933,35 +924,43 @@ class _MatchCard extends StatelessWidget {
                           teamAFull,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontSize: 11,
+                            color: AppColors.text,
                           ),
                           textAlign: TextAlign.center,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
                   
-                  // VS Section
-                  Column(
-                    children: [
-                      const Text(
-                        'VS',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          fontStyle: FontStyle.italic,
+                  // Center Info
+                  SizedBox(
+                    width: 60,
+                    child: Column(
+                      children: [
+                        const Text(
+                          'VS',
+                          style: TextStyle(
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Container(
-                        width: 40,
-                        height: 1.5,
-                        color: Colors.grey.shade200,
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          seriesName,
+                          style: const TextStyle(
+                            color: AppColors.textLight,
+                            fontSize: 8,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                   
                   // Team B
@@ -969,19 +968,12 @@ class _MatchCard extends StatelessWidget {
                     child: Column(
                       children: [
                         Container(
-                          width: 45,
-                          height: 45,
+                          width: 54,
+                          height: 54,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(color: Colors.grey.shade100),
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: Center(
                             child: _resolveLogo(teamBLogo, teamBShort),
@@ -992,10 +984,11 @@ class _MatchCard extends StatelessWidget {
                           teamBFull,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontSize: 11,
+                            color: AppColors.text,
                           ),
                           textAlign: TextAlign.center,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -1040,7 +1033,7 @@ class _SeriesCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: AppColors.shadow,
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -1078,12 +1071,12 @@ class _SeriesCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '$matches Matches · $format',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: const TextStyle(color: AppColors.textLight, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: AppColors.textLight),
           ],
         ),
       ),

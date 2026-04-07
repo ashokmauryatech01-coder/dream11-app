@@ -283,17 +283,27 @@ class _AddCashScreenState extends State<AddCashScreen> {
         Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.white,
+            backgroundColor: AppColors.background,
             foregroundColor: AppColors.text,
             elevation: 0,
-            centerTitle: true,
-            title: const Text(
-              'ADD CASH',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                letterSpacing: 2,
-              ),
+            title: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.sports_cricket,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Add Cash'),
+              ],
             ),
           ),
           body: SingleChildScrollView(
@@ -305,20 +315,13 @@ class _AddCashScreenState extends State<AddCashScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary,
-                        AppColors.primary.withRed(220),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(30),
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.35),
-                        blurRadius: 25,
-                        offset: const Offset(0, 12),
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
@@ -330,7 +333,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                         child: Icon(
                           Icons.account_balance_wallet_rounded,
                           size: 100,
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.grey.withOpacity(0.08),
                         ),
                       ),
                       Column(
@@ -341,12 +344,12 @@ class _AddCashScreenState extends State<AddCashScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.grey.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
                                   Icons.account_balance_wallet_rounded,
-                                  color: Colors.white,
+                                  color: AppColors.text,
                                   size: 20,
                                 ),
                               ),
@@ -354,7 +357,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                               Text(
                                 'Current Balance',
                                 style: TextStyle(
-                                  color: AppColors.white.withOpacity(0.9),
+                                  color: AppColors.text,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.5,
@@ -368,14 +371,14 @@ class _AddCashScreenState extends State<AddCashScreen> {
                                   width: 24,
                                   height: 24,
                                   child: CircularProgressIndicator(
-                                    color: Colors.white,
+                                    color: AppColors.primary,
                                     strokeWidth: 2,
                                   ),
                                 )
                               : Text(
                                   '₹${_walletBalance.toStringAsFixed(0)}',
                                   style: const TextStyle(
-                                    color: AppColors.white,
+                                    color: AppColors.text,
                                     fontSize: 38,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: -0.5,
@@ -394,7 +397,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: AppColors.white,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.03),
@@ -474,17 +477,6 @@ class _AddCashScreenState extends State<AddCashScreen> {
                                       ? AppColors.primary
                                       : Colors.grey.shade200,
                                 ),
-                                boxShadow: selected
-                                    ? [
-                                        BoxShadow(
-                                          color: AppColors.primary.withOpacity(
-                                            0.2,
-                                          ),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ]
-                                    : [],
                               ),
                               child: Text(
                                 '₹$amt',
@@ -509,38 +501,51 @@ class _AddCashScreenState extends State<AddCashScreen> {
                 // Final CTA
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 48,
                   child: ElevatedButton(
                     onPressed: _isProcessing
                         ? null
                         : () => _makePayment(_selectedAmount),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(
-                        0xFF00C853,
-                      ), // Modern Emerald Green
-                      foregroundColor: Colors.white,
+                      backgroundColor: _isProcessing
+                          ? Colors.grey
+                          : AppColors.primary,
+                      foregroundColor: AppColors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 8,
-                      shadowColor: const Color(0xFF00C853).withOpacity(0.4),
+                      elevation: 2,
+                      shadowColor: AppColors.primary.withOpacity(0.3),
                     ),
                     child: _isProcessing
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text('Processing...'),
+                            ],
                           )
-                        : Text(
-                            'PROCEED TO PAY ₹${_selectedAmount.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
-                            ),
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.add_circle_outline, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Add Cash ₹${_selectedAmount.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                   ),
                 ),
