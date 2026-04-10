@@ -102,19 +102,32 @@ class UserProfileService {
     }
   }
 
-  // Get transaction history
-  static Future<List<Map<String, dynamic>>> getTransactionHistory(int userId, {int limit = 50}) async {
+  // Get transaction history full data (including summary and transactions)
+  static Future<Map<String, dynamic>?> getHistoryData({int limit = 50}) async {
     try {
-      final res = await ApiClient.get('/user/transactions/$userId?limit=$limit');
+      final res = await ApiClient.get('/history?limit=$limit');
       if (res is Map && res['success'] == true) {
-        return (res['data'] as List<dynamic>?)
-            ?.cast<Map<String, dynamic>>() ?? [];
+        return res['data'] as Map<String, dynamic>?;
       }
-      return [];
+      return null;
     } catch (e) {
-      print('Error getting transaction history: $e');
-      return [];
+      print('Error getting history data: $e');
+      return null;
     }
+  }
+
+  // Get transaction history list
+  static Future<List<Map<String, dynamic>>> getTransactionHistory(int userId, {int limit = 50}) async {
+    final data = await getHistoryData(limit: limit);
+    if (data != null && data.containsKey('transactions')) {
+      return (data['transactions'] as List<dynamic>?)
+          ?.cast<Map<String, dynamic>>() ?? [];
+    }
+    // Fallback if data is the list itself (unexpected based on new API but for safety)
+    if (data is List) {
+      return (data as List).cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 
   // Save user data locally

@@ -27,6 +27,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
   Map<String, dynamic>? _walletObj;
   List<dynamic> _myTeams = [];
   List<dynamic> _history = [];
+  Map<String, dynamic>? _historySummary;
   List<dynamic> _leaderboard = [];
   String _leaderboardType = 'all-time';
   bool _loading = true;
@@ -61,7 +62,7 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       final profileData = await ProfileService.getProfile();
       final results = await Future.wait([
         ProfileService.getMyTeams(),
-        ProfileService.getHistory(),
+        ProfileService.getHistoryData(),
         ProfileService.getLeaderboard(type: _leaderboardType),
         LocationService.getLocationData(),
         ProfileService.getUserWallets(),
@@ -72,7 +73,10 @@ class _EsProfileScreenState extends State<EsProfileScreen>
       setState(() {
         _userObj = profileData?['user'] as Map<String, dynamic>? ?? {};
         _myTeams = results[0] as List<dynamic>? ?? [];
-        _history = results[1] as List<dynamic>? ?? [];
+        final historyData = results[1] as Map<String, dynamic>?;
+        _history = historyData?['transactions'] as List<dynamic>? ?? [];
+        _historySummary = historyData?['summary'] as Map<String, dynamic>?;
+        
         _leaderboard = results[2] as List<dynamic>? ?? [];
         _location = results[3] as Map<String, dynamic>?;
         _walletObj = results[4] as Map<String, dynamic>?;
@@ -532,20 +536,153 @@ class _EsProfileScreenState extends State<EsProfileScreen>
 
   Widget _historyTab() {
     if (_history.isEmpty) return _emptyState(Icons.history_rounded, 'No History', 'Your contest history will appear here.');
-    return ListView.builder(padding: const EdgeInsets.all(12), itemCount: _history.length, itemBuilder: (_, i) => _historyCard(Map<String, dynamic>.from(_history[i])));
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        if (_historySummary != null) _historySummarySection(),
+        ..._history.map((h) => _historyCard(Map<String, dynamic>.from(h))).toList(),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _historySummarySection() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('TRANSACTION SUMMARY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2, color: AppColors.primary)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _summaryItem('Deposits', _historySummary?['total_deposits'], Colors.green),
+              _summaryItem('Withdrawals', _historySummary?['total_withdrawals'], Colors.red),
+              _summaryItem('Winnings', _historySummary?['total_winnings'], Colors.orange),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryItem(String label, dynamic val, Color color) {
+    return Column(
+      children: [
+        Text(
+          LocationService.formatAmount(val ?? 0, _location),
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+      ],
+    );
   }
 
   Widget _historyCard(Map<String, dynamic> h) {
-    final won = (h['result'] ?? h['status'])?.toString().toLowerCase() == 'won';
+    final type = h['type']?.toString().toLowerCase() ?? '';
+    final isDeposit = type == 'deposit';
+    final isWinnings = type == 'winnings' || type == 'won';
+    final isContestEntry = type == 'contest_entry' || type == 'entry';
+    final isWithdrawal = type == 'withdrawal';
+    
+    IconData icon;
+    Color color;
+    if (isDeposit) {
+      icon = Icons.add_circle_outline_rounded;
+      color = Colors.green;
+    } else if (isWinnings) {
+      icon = Icons.emoji_events_rounded;
+      color = Colors.orange;
+    } else if (isContestEntry) {
+      icon = Icons.sports_cricket_rounded;
+      color = AppColors.primary;
+    } else if (isWithdrawal) {
+      icon = Icons.remove_circle_outline_rounded;
+      color = Colors.red;
+    } else {
+      icon = Icons.account_balance_wallet_rounded;
+      color = Colors.blue;
+    }
+
+    final amount = double.tryParse(h['amount']?.toString() ?? '0') ?? 0.0;
+    final isNegative = isContestEntry || isWithdrawal;
+    final status = h['status']?.toString().toLowerCase() ?? 'completed';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))]),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
+        ],
+      ),
       child: Row(
         children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: won ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(won ? Icons.emoji_events_rounded : Icons.sports_cricket_rounded, color: won ? Colors.green : Colors.grey, size: 22)),
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  h['description'] ?? h['match_title'] ?? type.toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.text),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  h['created_at'] ?? '',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(h['match_title'] ?? h['title'] ?? 'Match', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis), Text(h['contest_name'] ?? '', style: TextStyle(color: Colors.grey[500], fontSize: 12)), Text(h['created_at'] ?? '', style: TextStyle(color: Colors.grey[400], fontSize: 11))])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text('${h['points'] ?? 0} pts', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13)), if (h['winnings'] != null) Text(LocationService.formatAmount(h['winnings'], _location), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12))]),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isNegative ? "-" : "+"}${LocationService.formatAmount(amount, _location)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: isNegative ? Colors.red : Colors.green,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (status == 'completed' || status == 'success' ? Colors.green : Colors.orange).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(
+                    color: status == 'completed' || status == 'success' ? Colors.green : Colors.orange,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

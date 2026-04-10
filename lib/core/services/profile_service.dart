@@ -162,6 +162,10 @@ class ProfileService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getHistoryData({int limit = 50}) async {
+    return await UserProfileService.getHistoryData(limit: limit);
+  }
+
   static Future<List<Map<String, dynamic>>> getHistory() async {
     return await getTransactionHistory();
   }
