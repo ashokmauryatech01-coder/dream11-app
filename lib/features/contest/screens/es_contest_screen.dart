@@ -50,14 +50,15 @@ class _EsContestScreenState extends State<EsContestScreen> {
       _loading = true;
     });
     final matchId = int.tryParse(_selectedMatch!['match_id']?.toString() ?? '0') ?? 0;
+    final midStr = matchId.toString();
     try {
       final contestService = ContestService();
-      final contests = await contestService.getAllContests();
+      final contests = await contestService.getContestsForMatch(midStr);
 
       if (!mounted) return;
 
       setState(() {
-        _contests = contests;
+        _contests = contests.where((c) => c.matchId == midStr).toList();
         _loading = false;
       });
     } catch (_) {
@@ -157,7 +158,7 @@ class _EsContestScreenState extends State<EsContestScreen> {
         : Colors.green;
 
     return GestureDetector(
-      onTap: () => _showContestDetails(context, c),
+      onTap: () => _join(c),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -388,26 +389,39 @@ class _EsContestScreenState extends State<EsContestScreen> {
   }
 
   Future<void> _join(ContestModel contest) async {
-    setState(() => _loading = true);
     final matchId = int.tryParse(contest.matchId) ?? 0;
+    print('DEBUG: EsContestScreen._join - JOIN clicked, contest=${contest.name}, matchId=$matchId');
+
+    if (matchId <= 0) {
+      _navigateToCreateTeam(contest, {'match_id': contest.matchId});
+      return;
+    }
+
+    setState(() => _loading = true);
     
     try {
+      // Hit GET /api/v1/teams?match_id={{match_id}}&page=1&limit=10
       final teams = await TeamsService().getMyTeams(matchId);
       setState(() => _loading = false);
-
       if (!mounted) return;
+
+      print('DEBUG: EsContestScreen._join - Got ${teams.length} teams');
 
       if (teams.isNotEmpty) {
         _showTeamSelector(contest, teams);
       } else {
-        // Find the match data for this contest
-        final matchData = widget.matches.firstWhere(
-          (m) => m['match_id']?.toString() == contest.matchId || m['id']?.toString() == contest.matchId,
-          orElse: () => {'match_id': contest.matchId},
-        );
+        Map<String, dynamic>? matchData;
+        try {
+          matchData = widget.matches.firstWhere(
+            (m) => m['match_id']?.toString() == contest.matchId || m['id']?.toString() == contest.matchId,
+          );
+        } catch (_) {
+          matchData = {'match_id': contest.matchId};
+        }
         _navigateToCreateTeam(contest, matchData);
       }
     } catch (e) {
+      print('DEBUG: EsContestScreen._join - ERROR: $e');
       if (mounted) setState(() => _loading = false);
       _navigateToCreateTeam(contest, {'match_id': contest.matchId});
     }
@@ -424,110 +438,187 @@ class _EsContestScreenState extends State<EsContestScreen> {
   }
 
   void _showTeamSelector(ContestModel contest, List<Map<String, dynamic>> teams) {
+    int? selectedTeamIdx;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
         ),
       ),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          padding: const EdgeInsets.only(top: 12, bottom: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Select Team to Join',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.text,
+              const SizedBox(height: 24),
+              const Text(
+                'Select Your Team',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: Color(0xFF1B2430),
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              contest.name,
-              style: TextStyle(color: Colors.grey[500], fontSize: 13),
-            ),
-            const Divider(height: 32),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: teams.length,
-                itemBuilder: (ctx, idx) {
-                  final team = teams[idx];
-                  final name = team['name'] ?? 'Team ${idx + 1}';
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: ListTile(
-                      onTap: () async {
-                        Navigator.pop(ctx);
-                        _confirmJoin(contest, team);
-                      },
-                      title: Text(
-                        name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        '${(team['players'] as List? ?? []).length} Players',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  );
-                },
+              const SizedBox(height: 6),
+              Text(
+                'Choose a team to join this contest',
+                style: TextStyle(color: Colors.grey[500], fontSize: 13),
               ),
-            ),
-            const SizedBox(height: 12),
-            if (teams.isEmpty)
+              const Divider(height: 32, thickness: 1),
+              
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: teams.length,
+                  itemBuilder: (ctx, idx) {
+                    final team = teams[idx];
+                    final name = team['name']?.toString() ?? 'Team ${idx + 1}';
+                    final isSelected = selectedTeamIdx == idx;
+                    
+                    return GestureDetector(
+                      onTap: () => setSheetState(() => selectedTeamIdx = idx),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF007A8A).withOpacity(0.05) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF007A8A) : Colors.grey.shade200,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF007A8A) : Colors.grey.shade100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.group_rounded,
+                                color: isSelected ? Colors.white : Colors.grey.shade400,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: isSelected ? const Color(0xFF007A8A) : const Color(0xFF1B2430),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${(team['players'] as List? ?? []).length} Players Selected',
+                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(Icons.check_circle, color: Color(0xFF007A8A))
+                            else
+                              Icon(Icons.circle_outlined, color: Colors.grey.shade300),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  child: ElevatedButton(
+                    onPressed: selectedTeamIdx == null 
+                      ? null 
+                      : () {
+                          Navigator.pop(ctx);
+                          _confirmJoin(contest, teams[selectedTeamIdx!]);
+                        },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B2430),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                      disabledBackgroundColor: Colors.grey.shade200,
+                    ),
+                    child: const Text(
+                      'JOIN CONTEST 🏆',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      // Find match data
-                      final matchData = widget.matches.firstWhere(
-                        (m) => m['match_id']?.toString() == contest.matchId || m['id']?.toString() == contest.matchId,
-                        orElse: () => {'match_id': contest.matchId},
-                      );
+                      Map<String, dynamic>? matchData;
+                      try {
+                        matchData = widget.matches.firstWhere(
+                          (m) => m['match_id']?.toString() == contest.matchId || m['id']?.toString() == contest.matchId,
+                        );
+                      } catch (_) {
+                        matchData = {'match_id': contest.matchId};
+                      }
                       _navigateToCreateTeam(contest, matchData);
                     },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create New Team'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      'CREATE ANOTHER TEAM',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -577,37 +668,5 @@ class _EsContestScreenState extends State<EsContestScreen> {
         );
       }
     }
-  }
-
-  void _showContestDetails(BuildContext context, ContestModel c) {
-    // Basic bottom sheet for details if needed
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 10),
-            Text('Prize Pool: ${LocationService.formatAmount(c.prizePool, _location)}'),
-            const SizedBox(height: 5),
-            Text('Entry Fee: ${LocationService.formatAmount(c.entryFee, _location)}'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _join(c);
-              },
-              child: const Text('Join Now'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-            )
-          ],
-        ),
-      )
-    );
   }
 }

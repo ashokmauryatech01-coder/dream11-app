@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
-import 'package:fantasy_crick/core/services/razorpay_service.dart';
-import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
+// import 'package:fantasy_crick/core/services/razorpay_service.dart'; // Removed Razorpay
+// import 'package:fantasy_crick/common/widgets/beauty_dialog.dart'; // Removed unused
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,44 +12,25 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final RazorpayService _razorpayService = RazorpayService();
+  // final RazorpayService _razorpayService = RazorpayService(); // Removed Razorpay
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _initializeRazorpay();
+    // _initializeRazorpay(); // Removed Razorpay
   }
 
-  void _initializeRazorpay() {
-    _razorpayService.initialize(
-      onPaymentSuccess: (paymentId) {
-        _showMessage('Payment Successful!', 'Payment ID: $paymentId', true);
-      },
-      onPaymentError: (error) {
-        _showMessage('Payment Failed', error, false);
-      },
-      onPaymentExternalWallet: (walletName) {
-        _showMessage('External Wallet', 'Selected wallet: $walletName', true);
-      },
-    );
-  }
+  // Removed _initializeRazorpay
 
   @override
   void dispose() {
     _tabController.dispose();
-    _razorpayService.dispose();
+    // _razorpayService.dispose(); // Removed Razorpay
     super.dispose();
   }
 
-  void _showMessage(String title, String message, bool isSuccess) {
-    BeautyDialog.show(
-      context,
-      title: title,
-      message: message,
-      type: isSuccess ? BeautyDialogType.success : BeautyDialogType.error,
-    );
-  }
+  // Removed unused _showMessage
 
   @override
   Widget build(BuildContext context) {

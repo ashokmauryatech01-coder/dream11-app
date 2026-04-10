@@ -305,7 +305,7 @@ class MatchCard extends StatelessWidget {
       case 'ODI':
         return Colors.blue;
       case 'TEST':
-        return Colors.red;
+        return Colors.brown;
       default:
         return AppColors.primary;
     }

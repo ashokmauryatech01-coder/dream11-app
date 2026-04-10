@@ -27,13 +27,28 @@ class ContestService {
 
   Future<List<ContestModel>> getFeaturedContests() async {
     try {
+      print('DEBUG: Fetching featured contests (type=mega)...');
       final response = await ApiClient.get('/contests?type=mega');
-      final data = response['data']?['contests'] ?? 
-                   response['data']?['items'] ?? 
-                   response['data'] as List<dynamic>? ?? [];
-      if (data.isEmpty) return _getMockContests();
+      
+      dynamic contestData;
+      if (response['data'] is Map) {
+        contestData = response['data']['contests'] ?? response['data']['items'];
+      } else if (response['data'] is List) {
+        contestData = response['data'];
+      }
+
+      final List<dynamic> data = (contestData is List) ? contestData : [];
+      
+      print('DEBUG: Found ${data.length} featured contests from API');
+
+      if (data.isEmpty) {
+        print('DEBUG: No contests found, falling back to mocks');
+        return _getMockContests();
+      }
+
       return data.map((c) => ContestModel.fromJson(c as Map<String, dynamic>)).toList();
-    } catch (_) {
+    } catch (e) {
+      print('DEBUG: Error in getFeaturedContests: $e');
       return _getMockContests();
     }
   }

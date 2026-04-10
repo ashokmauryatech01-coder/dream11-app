@@ -227,8 +227,6 @@ class EsSeriesScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final data = seriesList![index];
         final title = data['title']?.toString() ?? 'Unknown Series';
-        final matches = data['total_matches']?.toString() ?? '0';
-        final format = (data['match_format'] ?? data['game_format'] ?? '').toString();
         
         return GestureDetector(
           onTap: () => Navigator.push(context, MaterialPageRoute(
@@ -255,8 +253,6 @@ class EsSeriesScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 4),
-                      Text('$matches Matches · $format', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ),

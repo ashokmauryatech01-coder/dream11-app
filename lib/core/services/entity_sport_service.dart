@@ -6,14 +6,15 @@ class EntitySportService {
   static const String token = '7e6097d77280407b05b3a124507e1c69';
 
   static Future<Map<String, dynamic>> _get(String path) async {
-    final uri = Uri.parse('$baseUrl$path');
-    print('EntitySport API Request: $uri');
-    final response = await http
-        .get(uri, headers: {'Accept': 'application/json'})
-        .timeout(const Duration(seconds: 30));
+    final url = Uri.parse('$baseUrl$path');
+    print('DEBUG: EntitySportService GET: $url');
+    final response = await http.get(url);
+    print('DEBUG: EntitySportService STATUS: ${response.statusCode}');
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final body = response.body;
+      print('DEBUG: EntitySportService BODY (start): ${body.length > 200 ? body.substring(0, 200) : body}');
+      return json.decode(body) as Map<String, dynamic>;
     } else {
       print('EntitySport API Error: ${response.statusCode} - ${response.body}');
       throw Exception('HTTP ${response.statusCode}');
@@ -22,12 +23,12 @@ class EntitySportService {
 
   // 1. LIVE MATCHES — status=3
   static Future<List<Map<String, dynamic>>> getLiveMatches({
-    int perPage = 20,
+    int perPage = 50,
     int page = 1,
   }) async {
     try {
       final data = await _get(
-        '/matches?token=$token&status=3&per_page=$perPage&paged=$page',
+        '/matches?token=$token&status=3&per_page=$perPage&paged=$page&pre_fetch=true',
       );
       if (data['status'] == 'ok')
         return (data['response']?['items'] as List<dynamic>? ?? [])
@@ -42,16 +43,19 @@ class EntitySportService {
 
   // 2. UPCOMING MATCHES — status=1
   static Future<List<Map<String, dynamic>>> getUpcomingMatches({
-    int perPage = 20,
+    int perPage = 50,
     int page = 1,
   }) async {
     try {
       final data = await _get(
-        '/matches?token=$token&status=1&per_page=$perPage&paged=$page',
+        '/matches?token=$token&status=1&per_page=$perPage&paged=$page&pre_fetch=true',
       );
-      if (data['status'] == 'ok')
-        return (data['response']?['items'] as List<dynamic>? ?? [])
+      if (data['status'] == 'ok') {
+        final items = (data['response']?['items'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
+        print('EntitySport getUpcomingMatches returned ${items.length} items');
+        return items;
+      }
       print(
         'EntitySport getUpcomingMatches returned status: ${data['status']}',
       );
@@ -64,12 +68,12 @@ class EntitySportService {
 
   // 3. FINISHED MATCHES — status=2
   static Future<List<Map<String, dynamic>>> getFinishedMatches({
-    int perPage = 20,
+    int perPage = 50,
     int page = 1,
   }) async {
     try {
       final data = await _get(
-        '/matches?token=$token&status=2&per_page=$perPage&paged=$page',
+        '/matches?token=$token&status=2&per_page=$perPage&paged=$page&pre_fetch=true',
       );
       if (data['status'] == 'ok')
         return (data['response']?['items'] as List<dynamic>? ?? [])
@@ -84,15 +88,15 @@ class EntitySportService {
     }
   }
 
-  // 4. LIVE SERIES (Competitions) — Use broader status filter
+  // 4. LIVE SERIES (Competitions) — Use documented status values
   static Future<List<Map<String, dynamic>>> getLiveSeries({
-    int perPage = 20,
+    int perPage = 50,
     int page = 1,
   }) async {
     try {
-      // Trying status=active first, then try status=upcoming if needed
+      // Possible values are live (currently ongoing), fixture (upcoming), result (completed)
       final data = await _get(
-        '/competitions?token=$token&status=active,upcoming&per_page=$perPage&paged=$page',
+        '/competitions?token=$token&status=live,fixture&per_page=$perPage&paged=$page',
       );
       if (data['status'] == 'ok')
         return (data['response']?['items'] as List<dynamic>? ?? [])
@@ -220,6 +224,45 @@ class EntitySportService {
   static Future<Map<String, dynamic>> getLiveScore(int matchId) async {
     try {
       final data = await _get('/matches/$matchId/live?token=$token');
+      if (data['status'] == 'ok')
+        return data['response'] as Map<String, dynamic>? ?? {};
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  // 13. COMPETITION MATCHES
+  static Future<List<Map<String, dynamic>>> getCompetitionMatches(int cid,
+      {int perPage = 50, int page = 1}) async {
+    try {
+      final data = await _get(
+          '/competitions/$cid/matches?token=$token&per_page=$perPage&paged=$page&pre_fetch=true');
+      if (data['status'] == 'ok')
+        return (data['response']?['items'] as List<dynamic>? ?? [])
+            .cast<Map<String, dynamic>>();
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // 14. COMPETITION TEAMS
+  static Future<List<Map<String, dynamic>>> getCompetitionTeams(int cid) async {
+    try {
+      final data = await _get('/competitions/$cid/teams?token=$token');
+      if (data['status'] == 'ok')
+        return (data['response']?['teams'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // 15. COMPETITION SQUADS
+  static Future<Map<String, dynamic>> getCompetitionSquads(int cid) async {
+    try {
+      final data = await _get('/competitions/$cid/squads?token=$token');
       if (data['status'] == 'ok')
         return data['response'] as Map<String, dynamic>? ?? {};
       return {};

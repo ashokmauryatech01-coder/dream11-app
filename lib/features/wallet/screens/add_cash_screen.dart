@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
-import 'package:fantasy_crick/core/services/razorpay_service.dart';
+// import 'package:fantasy_crick/core/services/razorpay_service.dart'; // Removed Razorpay
 import 'package:fantasy_crick/core/services/profile_service.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,10 +15,10 @@ class AddCashScreen extends StatefulWidget {
 }
 
 class _AddCashScreenState extends State<AddCashScreen> {
-  final RazorpayService _razorpayService = RazorpayService();
+  // Removed RazorpayService _razorpayService = RazorpayService();
   final TextEditingController _amountController = TextEditingController();
-  double _selectedAmount = 50.0;
-  final List<double> _quickAmounts = [50, 100, 200, 500, 1000, 2000];
+  double _selectedAmount = 100.0;
+  final List<double> _quickAmounts = [100, 200, 500, 1000, 2000, 5000];
   bool _isProcessing = false;
   double _walletBalance = 0.0;
   bool _isLoadingBalance = true;
@@ -26,14 +26,14 @@ class _AddCashScreenState extends State<AddCashScreen> {
   bool _showCelebration = false;
   double _lastAddedAmount = 0.0;
   String _userName = 'User';
-  String? _userEmail;
-  String? _userPhone;
+  // String? _userEmail; // Removed unused
+  // String? _userPhone; // Removed unused
 
   @override
   void initState() {
     super.initState();
     _amountController.text = _selectedAmount.toString();
-    _initializeRazorpay();
+    // _initializeRazorpay(); // Removed Razorpay initialization
     _loadWalletBalance();
   }
 
@@ -82,8 +82,8 @@ class _AddCashScreenState extends State<AddCashScreen> {
       }
 
       _userName = user['name'] ?? user['full_name'] ?? 'User';
-      _userEmail = user['email'];
-      _userPhone = user['phone'];
+      // _userEmail = user['email'];
+      // _userPhone = user['phone'];
 
       debugPrint('AddCashScreen: Final ID for wallet fetch: $currentUserId');
 
@@ -115,113 +115,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
     }
   }
 
-  void _initializeRazorpay() {
-    _razorpayService.initialize(
-      onPaymentSuccess: (paymentId) async {
-        debugPrint('\n--- RAZORPAY PAYMENT SUCCESS ---');
-        debugPrint('Razorpay Payment ID: $paymentId');
-        setState(() => _isProcessing = true);
-
-        try {
-          final savedData = await ProfileService.getSavedUserData();
-          debugPrint('Success Flow: Saved Data: $savedData');
-
-          final userObj = savedData.containsKey('user')
-              ? savedData['user']
-              : savedData;
-
-          // Robust ID parsing
-          int parseId(dynamic id) {
-            if (id == null) return 0;
-            if (id is int) return id;
-            if (id is String) return int.tryParse(id) ?? 0;
-            return 0;
-          }
-
-          var currentUserId = parseId(userObj['user_id'] ?? userObj['userid'] ?? userObj['id']);
-
-          if (currentUserId == 0) {
-            final prefs = await SharedPreferences.getInstance();
-            currentUserId = prefs.getInt('user_id') ?? 0;
-          }
-
-          debugPrint('Success Flow: Identified User ID: $currentUserId');
-
-          if (_walletId == null) {
-            debugPrint('Success Flow: Wallet ID missing, fetching...');
-            final walletData = await ProfileService.getUserWallets(currentUserId);
-            debugPrint('Success Flow: Wallet Fetch Response: $walletData');
-            if (walletData != null) {
-              final wallet = walletData.containsKey('wallet')
-                  ? walletData['wallet']
-                  : walletData;
-              _walletId = parseId(wallet['id']);
-            }
-            
-            // If still missing, create the wallet automatically
-            if (_walletId == null || _walletId == 0) {
-              debugPrint('Success Flow: Wallet not found, creating new wallet for user $currentUserId');
-              final newWallet = await WalletService.createWallet(
-                userId: currentUserId,
-                initialBalance: 0.0,
-                description: "Recharge-triggered auto-creation",
-              );
-              if (newWallet != null) {
-                final wallet = newWallet.containsKey('wallet') ? newWallet['wallet'] : newWallet;
-                _walletId = parseId(wallet['id']);
-              }
-            }
-          }
-
-          debugPrint('Success Flow: Final Wallet ID: $_walletId');
-
-          if (currentUserId != 0 && _walletId != null) {
-            debugPrint('Success Flow: ATTEMPTING RECHARGE API CALL');
-            debugPrint(
-              'Success Flow: URL: http://173.208.188.172:8080/api/v1/user/recharge-wallet',
-            );
-            debugPrint(
-              'Success Flow: Payload: {user_id: $currentUserId, wallet_id: $_walletId, amount: $_selectedAmount, transaction_id: 5}',
-            );
-
-            final result = await WalletService.rechargeWallet(
-              userId: currentUserId,
-              walletId: _walletId!,
-              amount: _selectedAmount, // Changed from balance
-              paymentMethod: 'upi',
-              transactionId: 5, 
-            );
-
-            debugPrint('Success Flow: Recharge API Response: $result');
-
-            if (result != null) {
-              _handleSuccess(_selectedAmount);
-              await _loadWalletBalance();
-            } else {
-              debugPrint('Success Flow: Result was null but payment succeeded');
-            }
-          } else {
-            debugPrint(
-              'Success Flow: ERROR - Missing data. UID: $currentUserId, WID: $_walletId',
-            );
-          }
-        } catch (e) {
-          debugPrint('Success Flow: CRITICAL ERROR: $e');
-        } finally {
-          setState(() => _isProcessing = false);
-          debugPrint('--- SUCCESS FLOW COMPLETED ---\n');
-        }
-      },
-      onPaymentError: (error) {
-        setState(() => _isProcessing = false);
-        _showMessage('Payment Failed', error, false);
-      },
-      onPaymentExternalWallet: (walletName) {
-        setState(() => _isProcessing = false);
-        _showMessage('External Wallet', 'Selected wallet: $walletName', true);
-      },
-    );
-  }
+  // Removed _initializeRazorpay logic
 
   void _handleSuccess(double amount) {
     setState(() {
@@ -239,25 +133,49 @@ class _AddCashScreenState extends State<AddCashScreen> {
   @override
   void dispose() {
     _amountController.dispose();
-    _razorpayService.dispose();
+    // _razorpayService.dispose(); // Removed Razorpay dispose
     super.dispose();
   }
 
   void _makePayment(double amount) async {
-    if (amount < 50) {
-      _showMessage('Invalid Amount', 'Minimum amount is ₹50', false);
+    if (amount < 100) {
+      _showMessage('Invalid Amount', 'Minimum amount is ₹100', false);
       return;
     }
 
     setState(() => _isProcessing = true);
 
-    _razorpayService.openPayment(
-      name: 'Segga Sportz',
-      description: 'Add cash to wallet',
-      amount: amount,
-      email: _userEmail,
-      contact: _userPhone,
-    );
+    try {
+      // Create a unique order number and transaction ID
+      final String orderNo = "ORD_${DateTime.now().millisecondsSinceEpoch}";
+      final int txnId = DateTime.now().millisecondsSinceEpoch % 100000;
+
+      debugPrint('Initiating Payment Callback for Wallet');
+      debugPrint('Payload: orderNo: $orderNo, amount: $amount, txnId: $txnId');
+
+      final result = await WalletService.paymentCallback(
+        orderNo: orderNo,
+        amount: amount,
+        txnId: txnId,
+        paymentUrl: "deposit",
+        status: "success",
+      );
+
+      debugPrint('Payment Callback Response: $result');
+
+      if (result != null && result['success'] == true) {
+        _handleSuccess(amount);
+        await _loadWalletBalance();
+        _showMessage('Success', 'Amount added to your wallet successfully!', true);
+      } else {
+        _showMessage('Failed', result?['message'] ?? 'Payment verification failed', false);
+      }
+    } catch (e) {
+      debugPrint('Error during payment processing: $e');
+      _showMessage('Error', 'An error occurred: $e', false);
+    } finally {
+      setState(() => _isProcessing = false);
+    }
   }
 
   void _showMessage(String title, String message, bool isSuccess) {

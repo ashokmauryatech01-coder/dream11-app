@@ -273,4 +273,32 @@ class WalletService {
       return null;
     }
   }
+
+  // Payment Callback
+  static Future<Map<String, dynamic>?> paymentCallback({
+    required String orderNo,
+    required double amount,
+    required dynamic txnId,
+    String paymentUrl = 'deposit',
+    String status = 'success',
+  }) async {
+    try {
+      final body = {
+        'orderNo': orderNo,
+        'amount': amount,
+        'txnId': txnId,
+        'payment_url': paymentUrl,
+        'status': status,
+      };
+      
+      final response = await ApiClient.post('/user/payment-callback', body);
+      if (response != null) {
+        return response;
+      }
+      return null;
+    } catch (e) {
+      print('Error in payment callback: $e');
+      return null;
+    }
+  }
 }

@@ -1,0 +1,34 @@
+﻿Analyzing es_match_detail_screen.dart...
+
+warning - es_match_detail_screen.dart:23:8 - The value of the field '_autoRefresh' isn't used. Try removing the field, or using it. - unused_field
+warning - es_match_detail_screen.dart:836:11 - The value of the local variable 'isBoundary' isn't used. Try removing the variable or using it. - unused_local_variable
+   info - es_match_detail_screen.dart:35:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - es_match_detail_screen.dart:37:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - es_match_detail_screen.dart:156:38 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - es_match_detail_screen.dart:243:35 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - es_match_detail_screen.dart:243:39 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - es_match_detail_screen.dart:303:92 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - es_match_detail_screen.dart:303:96 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - es_match_detail_screen.dart:423:27 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:425:46 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:447:45 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:450:31 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:470:48 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:514:69 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:536:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - es_match_detail_screen.dart:629:39 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:739:50 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:776:50 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:819:36 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:821:52 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:852:50 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:908:25 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:910:44 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:966:37 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:967:39 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:1101:50 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:1135:52 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:1297:50 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - es_match_detail_screen.dart:1380:36 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+30 issues found.

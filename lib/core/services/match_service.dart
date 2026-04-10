@@ -77,7 +77,7 @@ class MatchService {
         ...m,
         'id': m['match_id'],
         'title': m['title'] ?? '${m['teama']?['short_name'] ?? 'T1'} vs ${m['teamb']?['short_name'] ?? 'T2'}',
-        'status': m['status'] ?? 1,
+        'status': int.tryParse(m['status']?.toString() ?? '1') ?? 1,
         'competition': m['competition'] ?? {'title': 'Cricket Match'},
       };
     }
@@ -95,8 +95,8 @@ class MatchService {
     }
 
     return {
-      'match_id': m['additional_match_id'] ?? m['id'] ?? m['match_id'],
-      'id': m['additional_match_id'] ?? m['id'] ?? m['match_id'],
+      'match_id': int.tryParse(m['additional_match_id']?.toString() ?? m['id']?.toString() ?? m['match_id']?.toString() ?? '0') ?? 0,
+      'id': int.tryParse(m['additional_match_id']?.toString() ?? m['id']?.toString() ?? m['match_id']?.toString() ?? '0') ?? 0,
       'title': m['title'],
       'status': statusInt,
       'status_str': statusStr,

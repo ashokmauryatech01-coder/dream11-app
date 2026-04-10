@@ -27,15 +27,23 @@ class ContestModel {
   factory ContestModel.fromJson(Map<String, dynamic> json) {
     return ContestModel(
       id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '',
+      name: json['name']?.toString() ?? '',
       matchId: json['match_id']?.toString() ?? '',
       entryFee: double.tryParse(json['entry_fee']?.toString() ?? '0') ?? 0.0,
       prizePool: double.tryParse(json['prize_pool']?.toString() ?? '0') ?? 0.0,
-      maxTeams: json['max_participants'] ?? json['max_teams'] ?? json['total_spots'] ?? 0,
-      currentTeams: json['current_participants'] ?? json['current_teams'] ?? json['filled_spots'] ?? 0,
-      multipleTeams: json['multiple_entries'] ?? json['multiple_teams'] ?? false,
+      maxTeams: int.tryParse(json['max_participants']?.toString() ?? 
+                            json['max_teams']?.toString() ?? 
+                            json['total_spots']?.toString() ?? '0') ?? 0,
+      currentTeams: int.tryParse(json['current_participants']?.toString() ?? 
+                                json['current_teams']?.toString() ?? 
+                                json['filled_spots']?.toString() ?? '0') ?? 0,
+      multipleTeams: json['multiple_entries'] == true || 
+                     json['multiple_teams'] == true || 
+                     json['multiple_entries']?.toString() == '1',
       winnerPercentage: int.tryParse(json['winner_percentage']?.toString() ?? '50') ?? 50,
-      isGuaranteed: json['is_guaranteed'] ?? json['guaranteed'] ?? false,
+      isGuaranteed: json['is_guaranteed'] == true || 
+                    json['guaranteed'] == true || 
+                    json['is_guaranteed']?.toString() == '1',
     );
   }
 }

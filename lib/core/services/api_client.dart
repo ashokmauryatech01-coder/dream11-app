@@ -52,6 +52,19 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  static Future<dynamic> delete(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    _logRequest('DELETE', url, body: body);
+    final response = await http
+        .delete(url, headers: await getHeaders(), body: body != null ? jsonEncode(body) : null)
+        .timeout(const Duration(seconds: 15));
+    _logResponse('DELETE', url, response);
+    return _handleResponse(response);
+  }
+
   static void _logRequest(
     String method,
     Uri url, {

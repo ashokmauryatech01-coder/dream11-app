@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
@@ -52,10 +51,21 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CricketAnimation(
-                type: AnimationType.cricketBall,
-                size: 150,
-                color: AppColors.white,
+              Container(
+                width: 150,
+                height: 150,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(12),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/segga_logo.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.sports_cricket, size: 80, color: AppColors.primary),
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               const Text(

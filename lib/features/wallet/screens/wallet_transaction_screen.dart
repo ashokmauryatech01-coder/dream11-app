@@ -239,7 +239,7 @@ class _WalletTransactionScreenState extends State<WalletTransactionScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isCredit ? Colors.green : Colors.red,
+                        color: isCredit ? Colors.green : AppColors.secondary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -286,7 +286,7 @@ class _WalletTransactionScreenState extends State<WalletTransactionScreen> {
       case 'pending':
         return Colors.orange;
       case 'failed':
-        return Colors.red;
+        return Colors.orange;
       default:
         return AppColors.textLight;
     }

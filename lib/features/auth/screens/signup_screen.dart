@@ -3,12 +3,7 @@ import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
-import 'package:fantasy_crick/core/constants/country_constants.dart';
-import 'package:fantasy_crick/common/widgets/custom_button.dart';
 import 'package:fantasy_crick/features/auth/screens/otp_verification_screen.dart';
-import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
-import 'package:fantasy_crick/common/widgets/login_animation.dart';
-import 'package:fantasy_crick/common/widgets/cricket_animation.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -30,8 +25,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   String _countryCode = '+91';
-  CountryInfo? _countryData;
-  String _userIp = '';
 
   final AuthService _authService = AuthService();
 
@@ -88,8 +81,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final fullPhone = '$_countryCode$phone';
 
     try {
-      // 1. First, register the account as per new flow
-      // This creates the user in the database so sendOTP doesn't return 404
       await _authService.signUp(
         name, 
         email, 
@@ -99,21 +90,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         userType: 'user',
       );
 
-      // 2. Then, send OTP to verify the number
       await _authService.sendOTP(fullPhone);
 
       setState(() => _loading = false);
 
       if (!mounted) return;
 
-      // 3. Navigate to OTP screen
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => OtpVerificationScreen(
             sentTo: fullPhone,
             isLogin: false,
-            // Pass minimal data if needed, but the account is already created
             registrationData: {
               'phone': fullPhone,
               'user_type': 'user',
@@ -143,15 +131,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (mounted) {
       setState(() {
         _countryCode = data['country_calling_code'] ?? '+91';
-        _userIp = data['ip'] ?? '';
-        
-        final countryCode = data['country_code'];
-        if (countryCode != null) {
-          _countryData = CountryConstants.countries.firstWhere(
-            (c) => c.code == countryCode,
-            orElse: () => CountryConstants.countries.firstWhere((c) => c.code == "IN"),
-          );
-        }
       });
     }
   }
@@ -159,447 +138,289 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: LoginAnimation(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 40),
-  
-                // Icon
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: CricketAnimation(
-                      type: AnimationType.cricketBall,
-                      size: 56,
-                      color: AppColors.primary,
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/cricket_login_bg.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+            ),
+          ),
+          
+          // Gradient Overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.1),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.7),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          Positioned.fill(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Logo Area
+                  const SizedBox(height: 48),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/segga_logo.png',
+                              height: 40,
+                              width: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.sports_cricket, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text(
+                            'SEGGA SPORTZ',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  
+                  const Spacer(flex: 2),
+                  
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Create Account',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.text,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Register to start your fantasy journey',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textLight,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 32),
   
-                const Text(
-                  'Create Account',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.text,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Join the fantasy cricket world',
-                  style: TextStyle(fontSize: 16, color: AppColors.textLight, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 48),
-
-                _buildTextField(
-                  controller: _nameController,
-                  label: 'Full Name',
-                  hint: 'Enter your full name',
-                  prefixIcon: Icons.person_outline,
-                ),
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _emailController,
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.email_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _upiController,
-                  label: 'UPI ID',
-                  hint: 'Enter your UPI ID (e.g. name@upi)',
-                  prefixIcon: Icons.account_balance_wallet_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                _buildPhoneField(
-                  controller: _phoneController,
-                  label: 'Phone Number',
-                  hint: 'Enter your phone number',
-                  countryCode: _countryCode,
-                ),
-                const SizedBox(height: 16),
-
-                _buildPasswordField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  hint: 'Create a password',
-                  obscure: _obscurePassword,
-                  onToggle: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                ),
-                const SizedBox(height: 16),
-
-                _buildPasswordField(
-                  controller: _confirmPasswordController,
-                  label: 'Confirm Password',
-                  hint: 'Confirm your password',
-                  obscure: _obscureConfirm,
-                  onToggle: () =>
-                      setState(() => _obscureConfirm = !_obscureConfirm),
-                ),
-                const SizedBox(height: 40),
+                            // Form Fields
+                            _buildInputField(
+                              controller: _nameController,
+                              hint: 'Full Name',
+                              icon: Icons.person_outline,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInputField(
+                              controller: _emailController,
+                              hint: 'Email Address',
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInputField(
+                              controller: _upiController,
+                              hint: 'UPI ID (Optional)',
+                              icon: Icons.payments_outlined,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F9FF),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFB3E5FC)),
+                                  ),
+                                  child: Text(
+                                    _countryCode,
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textLight),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildInputField(
+                                    controller: _phoneController,
+                                    hint: 'Phone Number',
+                                    icon: Icons.phone_android_outlined,
+                                    keyboardType: TextInputType.phone,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInputField(
+                              controller: _passwordController,
+                              hint: 'Password',
+                              icon: Icons.lock_outline,
+                              obscure: _obscurePassword,
+                              isPassword: true,
+                              toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInputField(
+                              controller: _confirmPasswordController,
+                              hint: 'Confirm Password',
+                              icon: Icons.lock_reset_outlined,
+                              obscure: _obscureConfirm,
+                              isPassword: true,
+                              toggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                            ),
   
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: CustomButton(
-                    title: 'CREATE ACCOUNT',
-                    onTap: _handleSignUp,
-                    loading: _loading,
-                  ),
-                ),
+                            const SizedBox(height: 24),
   
-                const SizedBox(height: 32),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Already have an account? ',
-                      style: TextStyle(color: AppColors.textLight),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const SignInScreen()),
-                        );
-                      },
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _handleSignUp,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF00C853),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: _loading 
+                                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Text(
+                                      'Complete Register',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    ),
+                              ),
+                            ),
+  
+                            const SizedBox(height: 24),
+  
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "Already have an account? ",
+                                  style: TextStyle(color: AppColors.textLight, fontSize: 13),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: const Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      color: Color(0xFF1976D2),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+          
+          Positioned(
+            top: 40,
+            left: 16,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildInputField({
     required TextEditingController controller,
-    required String label,
     required String hint,
+    required IconData icon,
+    bool obscure = false,
+    bool isPassword = false,
+    VoidCallback? toggleObscure,
     TextInputType keyboardType = TextInputType.text,
-    IconData? prefixIcon,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: AppColors.text),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textLight),
-              border: InputBorder.none,
-              prefixIcon: prefixIcon != null
-                  ? Icon(prefixIcon, color: AppColors.textLight)
-                  : null,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required bool obscure,
-    required VoidCallback onToggle,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscure,
-            style: const TextStyle(color: AppColors.text),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textLight),
-              border: InputBorder.none,
-              prefixIcon:
-                  const Icon(Icons.lock_outline, color: AppColors.textLight),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  obscure
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: AppColors.textLight,
-                ),
-                onPressed: onToggle,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showCountryPicker() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _CountryPickerSheet(
-        onSelected: (CountryInfo country) {
-          setState(() {
-            _countryCode = country.dialCode;
-            _countryData = country;
-          });
-        },
-      ),
-    );
-  }
-
-  Widget _buildPhoneField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required String countryCode,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: _showCountryPicker,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Text(
-                        _countryData?.flag ?? '',
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        countryCode,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: AppColors.text),
-                      ),
-                      const Icon(Icons.arrow_drop_down, color: AppColors.textLight),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 24,
-                color: AppColors.border,
-              ),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: AppColors.text),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: const TextStyle(color: AppColors.textLight),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CountryPickerSheet extends StatefulWidget {
-  final Function(CountryInfo) onSelected;
-  const _CountryPickerSheet({required this.onSelected});
-
-  @override
-  State<_CountryPickerSheet> createState() => _CountryPickerSheetState();
-}
-
-class _CountryPickerSheetState extends State<_CountryPickerSheet> {
-  final TextEditingController _searchController = TextEditingController();
-  List<CountryInfo> _filteredCountries = CountryConstants.countries;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(_filter);
-  }
-
-  void _filter() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredCountries = CountryConstants.countries
-          .where((c) =>
-              c.name.toLowerCase().contains(query) ||
-              c.dialCode.contains(query) ||
-              c.code.toLowerCase().contains(query))
-          .toList();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F9FF),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFB3E5FC)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Text(
-                  'Select Country',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search country name or code...',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(width: 16),
+          Icon(icon, color: AppColors.textLight, size: 20),
+          const SizedBox(width: 12),
           Expanded(
-            child: ListView.builder(
-              itemCount: _filteredCountries.length,
-              itemBuilder: (context, index) {
-                final country = _filteredCountries[index];
-                return ListTile(
-                  leading: Text(country.flag, style: const TextStyle(fontSize: 24)),
-                  title: Text(country.name),
-                  trailing: Text(
-                    country.dialCode,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                  onTap: () {
-                    widget.onSelected(country);
-                    Navigator.pop(context);
-                  },
-                );
-              },
+            child: TextField(
+              controller: controller,
+              keyboardType: keyboardType,
+              obscureText: obscure,
+              style: const TextStyle(fontSize: 16, color: AppColors.text, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: const TextStyle(color: Color(0xFFA0AEC0)),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              ),
             ),
           ),
+          if (isPassword)
+            IconButton(
+              onPressed: toggleObscure,
+              icon: Icon(
+                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: AppColors.textLight,
+                size: 20,
+              ),
+            ),
         ],
       ),
     );

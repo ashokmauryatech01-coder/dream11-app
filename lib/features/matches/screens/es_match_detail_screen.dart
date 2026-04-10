@@ -2,6 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
+import 'package:fantasy_crick/core/services/contest_service.dart';
+import 'package:fantasy_crick/models/contest_model.dart';
+import 'package:fantasy_crick/features/contest/screens/es_create_team_screen.dart';
+import 'package:fantasy_crick/core/services/teams_service.dart';
+import 'package:fantasy_crick/core/services/user_profile_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EsMatchDetailScreen extends StatefulWidget {
   final Map<String, dynamic> matchData;
@@ -26,22 +32,45 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
   int? _boundaryScore;
   bool _showingAnimation = false;
 
+  List<ContestModel> _matchContests = [];
+  bool _loadingContests = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging) return;
+      if (_tabController.index == 0 && _matchContests.isEmpty && !_loadingContests)
+        _loadContests();
       if (_tabController.index == 1 && _scorecard == null && !_loadingScorecard)
         _loadScorecard();
       if (_tabController.index == 2 && _squad == null && !_loadingSquad)
         _loadSquad();
     });
+    
+    _loadContests();
+
     final status = widget.matchData['status'] as int? ?? 0;
     if (status == 3) {
-      _loadScorecard(); // auto-load live scorecard
+      _loadScorecard(); 
       _autoRefresh = true;
       _startPolling();
+    }
+  }
+
+  Future<void> _loadContests() async {
+    setState(() => _loadingContests = true);
+    try {
+      final contests = await ContestService().getContestsForMatch(_matchId.toString());
+      if (mounted) {
+        setState(() {
+          // Frontend safety filter: ensure contest.matchId matches current _matchId
+          _matchContests = contests.where((c) => c.matchId == _matchId.toString()).toList();
+          _loadingContests = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingContests = false);
     }
   }
 
@@ -105,6 +134,8 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
         if (liveData != null) _liveScore = liveData;
         _loadingScorecard = false;
       });
+      print('DEBUG: EsMatchDetailScreen - Scorecard loaded for match: $_matchId');
+      print('DEBUG: EsMatchDetailScreen - Match Data: ${widget.matchData}');
     } catch (_) {
       if (mounted) setState(() => _loadingScorecard = false);
     }
@@ -138,6 +169,244 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     });
   }
 
+  Future<void> _join(ContestModel contest) async {
+    final matchId = int.tryParse(contest.matchId) ?? 0;
+    print('DEBUG: EsMatchDetailScreen._join - JOIN clicked, matchId=$matchId');
+
+    if (matchId <= 0) {
+      _navigateToCreateTeam(contest, widget.matchData);
+      return;
+    }
+
+    setState(() => _loadingContests = true);
+    
+    try {
+      // Hit GET /api/v1/teams?match_id={{match_id}}&page=1&limit=10
+      final teams = await TeamsService().getMyTeams(matchId);
+      setState(() => _loadingContests = false);
+      if (!mounted) return;
+
+      print('DEBUG: EsMatchDetailScreen._join - Got ${teams.length} teams');
+
+      if (teams.isNotEmpty) {
+        _showTeamSelector(contest, teams);
+      } else {
+        _navigateToCreateTeam(contest, widget.matchData);
+      }
+    } catch (e) {
+      print('DEBUG: EsMatchDetailScreen._join - ERROR: $e');
+      if (mounted) setState(() => _loadingContests = false);
+      _navigateToCreateTeam(contest, widget.matchData);
+    }
+  }
+
+  void _navigateToCreateTeam(ContestModel contest, Map<String, dynamic> matchData) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EsCreateTeamScreen(matchData: matchData, contest: contest),
+      ),
+    ).then((_) => _loadContests());
+  }
+
+  void _showTeamSelector(ContestModel contest, List<Map<String, dynamic>> teams) {
+    int? selectedTeamIdx;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          padding: const EdgeInsets.only(top: 12, bottom: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Select Your Team',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: Color(0xFF1B2430),
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Choose a team to join this contest',
+                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+              ),
+              const Divider(height: 32, thickness: 1),
+              
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: teams.length,
+                  itemBuilder: (ctx, idx) {
+                    final team = teams[idx];
+                    final name = team['name']?.toString() ?? 'Team ${idx + 1}';
+                    final isSelected = selectedTeamIdx == idx;
+                    
+                    return GestureDetector(
+                      onTap: () => setSheetState(() => selectedTeamIdx = idx),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF007A8A).withOpacity(0.05) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF007A8A) : Colors.grey.shade200,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF007A8A) : Colors.grey.shade100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.group_rounded,
+                                color: isSelected ? Colors.white : Colors.grey.shade400,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: isSelected ? const Color(0xFF007A8A) : const Color(0xFF1B2430),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${(team['players'] as List? ?? []).length} Players Selected',
+                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(Icons.check_circle, color: Color(0xFF007A8A))
+                            else
+                              Icon(Icons.circle_outlined, color: Colors.grey.shade300),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: selectedTeamIdx == null 
+                      ? null 
+                      : () {
+                          Navigator.pop(ctx);
+                          _confirmJoin(contest, teams[selectedTeamIdx!]);
+                        },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B2430),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                      disabledBackgroundColor: Colors.grey.shade200,
+                    ),
+                    child: const Text(
+                      'JOIN CONTEST 🏆',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _navigateToCreateTeam(contest, widget.matchData);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      'CREATE ANOTHER TEAM',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmJoin(ContestModel contest, Map<String, dynamic> team) async {
+    final userId = await UserProfileService.getSavedUserId();
+    if (userId <= 0) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in to join contests')));
+      return;
+    }
+    try {
+      final teamId = team['id']?.toString() ?? '0';
+      final teamName = team['name']?.toString() ?? 'My Team';
+      await ContestService().joinContest(contestId: contest.id, teamId: teamId, teamName: teamName, userId: userId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Joined contest successfully! 🏆'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
+        _loadContests();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Join failed: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: AppColors.primary, behavior: SnackBarBehavior.floating));
+    }
+  }
+
   Map<String, dynamic> get _teamA =>
       widget.matchData['teama'] as Map<String, dynamic>? ?? {};
   Map<String, dynamic> get _teamB =>
@@ -149,32 +418,38 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: AppColors.background,
-          body: NestedScrollView(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          NestedScrollView(
             headerSliverBuilder: (_, __) => [
               SliverAppBar(
                 expandedHeight: 240,
                 pinned: true,
                 backgroundColor: AppColors.primary,
                 iconTheme: const IconThemeData(color: Colors.white),
-                title: Text(
-                  widget.matchData['short_title']?.toString() ?? 'Match Detail',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.matchData['short_title']?.toString() ?? 'Match Detail',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    if (widget.matchData['competition']?['title'] != null)
+                      Text(
+                        widget.matchData['competition']['title'].toString(),
+                        style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
                 actions: [
                   if (_isLive)
                     IconButton(
-                      icon: const Icon(
-                        Icons.refresh_rounded,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                       onPressed: _loadScorecard,
                       tooltip: 'Refresh scorecard',
                     ),
@@ -188,30 +463,29 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                   indicatorWeight: 2.5,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white54,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                  tabs: const [
-                    Tab(text: 'Match Info'),
-                    Tab(text: 'Scorecard'),
-                    Tab(text: 'Squad'),
-                  ],
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  tabs: const [Tab(text: 'PLAY & WIN'), Tab(text: 'Info'), Tab(text: 'Scorecard')],
                 ),
               ),
             ],
             body: TabBarView(
               controller: _tabController,
               children: [
+                _playWinTab(),
                 _matchInfoTab(),
                 _scorecardTab(),
-                _squadTab(),
               ],
             ),
           ),
-        ),
-        if (_showingAnimation) _buildBoundaryOverlay(),
-      ],
+          if (_showingAnimation) _buildBoundaryOverlay(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EsCreateTeamScreen(matchData: widget.matchData))),
+        backgroundColor: AppColors.secondary,
+        label: const Text('CREATE TEAM', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+      ),
     );
   }
 
@@ -226,234 +500,238 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     );
   }
 
-  // ── HERO HEADER (OVERFLOW FIXED) ──────────────────────────────────────────
-  Widget _buildHeroHeader() {
-    final winId = widget.matchData['winning_team_id'];
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFCE404D), Color(0xFF7E0A13)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(
-          top: 58,
-          bottom: 52,
-          left: 12,
-          right: 12,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _playWinTab() {
+    if (_loadingContests) return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
+    
+    if (_matchContests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(child: _teamBlock(_teamA, winId, false)),
-            _centerBadge(),
-            Expanded(child: _teamBlock(_teamB, winId, true)),
+            const Icon(Icons.emoji_events_outlined, size: 64, color: Colors.amber),
+            const SizedBox(height: 16),
+            const Text('No Contests Available Yet', style: TextStyle(color: AppColors.textLight)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EsCreateTeamScreen(matchData: widget.matchData))),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: Colors.white),
+              child: const Text('CREATE YOUR TEAM NOW'),
+            ),
           ],
         ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      itemCount: _matchContests.length,
+      itemBuilder: (context, index) => _ContestCardWidget(
+        contest: _matchContests[index],
+        matchData: widget.matchData,
+        onTap: () => _join(_matchContests[index]),
       ),
     );
   }
 
-  Widget _teamBlock(Map<String, dynamic> team, dynamic winId, bool alignRight) {
-    final logo = team['logo_url']?.toString() ?? '';
-    final short = team['short_name']?.toString() ?? '';
-    final scores = team['scores_full']?.toString() ?? '';
-    final isWinner = winId != null && winId == team['team_id'];
-    final alignment = alignRight
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: alignment,
-      children: [
-        // Logo
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            width: 44,
-            height: 44,
-            color: Colors.white.withOpacity(0.15),
-            child: logo.isNotEmpty
-                ? Image.network(
-                    logo,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.sports_cricket,
-                      color: Colors.white70,
-                      size: 24,
-                    ),
-                  )
-                : const Icon(
-                    Icons.sports_cricket,
-                    color: Colors.white70,
-                    size: 24,
-                  ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          short,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (scores.isNotEmpty)
-          Text(
-            scores,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        if (isWinner)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade700,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text(
-              '🏆 Won',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _centerBadge() {
-    String label = _isLive
-        ? '● LIVE'
-        : _isFinished
-        ? 'FT'
-        : 'VS';
-    Color bg = _isLive ? Colors.red : Colors.white24;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: _isLive ? 12 : 15,
-            ),
-          ),
-          if (widget.matchData['format_str'] != null)
-            Text(
-              widget.matchData['format_str'].toString(),
-              style: const TextStyle(color: Colors.white60, fontSize: 9),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ── MATCH INFO TAB ────────────────────────────────────────────────────────
   Widget _matchInfoTab() {
     final comp = widget.matchData['competition'] as Map<String, dynamic>? ?? {};
     final venue = widget.matchData['venue'] as Map<String, dynamic>? ?? {};
-    final toss = widget.matchData['toss'] as Map<String, dynamic>? ?? {};
     final note = widget.matchData['status_note']?.toString() ?? '';
+    final title = comp['title']?.toString() ?? 'Tournament Info';
+    final subtitle = widget.matchData['subtitle']?.toString() ?? '';
+    final format = widget.matchData['format_str']?.toString() ?? '';
+    final date = widget.matchData['date_start_ist']?.toString().split(' ').first ?? 'Today';
+    final time = widget.matchData['date_start_ist']?.toString().split(' ').last ?? '07:30 PM';
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 120),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (note.isNotEmpty) _infoNote(note),
-          _infoCard('Match Details', [
-            _infoRow(
-              Icons.tag,
-              'Match',
-              widget.matchData['subtitle']?.toString() ?? '',
-            ),
-            _infoRow(
-              Icons.sports_cricket,
-              'Format',
-              widget.matchData['format_str']?.toString() ?? '',
-            ),
-            _infoRow(
-              Icons.info_outline,
-              'Status',
-              widget.matchData['status_str']?.toString() ?? '',
-            ),
-            _infoRow(
-              Icons.calendar_today,
-              'Date Start',
-              widget.matchData['date_start_ist']?.toString() ?? '',
-            ),
-          ]),
-          const SizedBox(height: 12),
-          _infoCard('Competition', [
-            _infoRow(
-              Icons.emoji_events,
-              'Tournament',
-              comp['title']?.toString() ?? '',
-            ),
-            _infoRow(
-              Icons.calendar_month,
-              'Season',
-              comp['season']?.toString() ?? '',
-            ),
-            _infoRow(
-              Icons.category,
-              'Category',
-              comp['category']?.toString() ?? '',
-            ),
-          ]),
-          const SizedBox(height: 12),
-          _infoCard('Venue', [
-            _infoRow(Icons.stadium, 'Ground', venue['name']?.toString() ?? ''),
-            _infoRow(
-              Icons.location_city,
-              'City',
-              venue['location']?.toString() ?? '',
-            ),
-            _infoRow(Icons.flag, 'Country', venue['country']?.toString() ?? ''),
-          ]),
-          if (toss.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _infoCard('Toss', [
-              _infoRow(Icons.flip, 'Result', toss['text']?.toString() ?? ''),
-            ]),
-          ],
-          if ((widget.matchData['umpires'] ?? '').toString().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _infoCard('Officials', [
-              _infoRow(
-                Icons.person,
-                'Umpires',
-                widget.matchData['umpires'].toString(),
-              ),
-              if ((widget.matchData['referee'] ?? '').toString().isNotEmpty)
-                _infoRow(
-                  Icons.person_outline,
-                  'Referee',
-                  widget.matchData['referee'].toString(),
+          
+          // Tournament Info Card with Illustration
+          Container(
+            padding: const EdgeInsets.all(20),
+            color: Colors.white,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                      const SizedBox(height: 4),
+                      Text('$subtitle • $format', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      const SizedBox(height: 16),
+                      _miniInfo('Date', 'Thursday, $date'),
+                      const SizedBox(height: 12),
+                      _miniInfo('Time', '$time, IST'),
+                      const SizedBox(height: 12),
+                      _miniInfo('Toss', 'Yet to happen'),
+                    ],
+                  ),
                 ),
-            ]),
-          ],
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: Image.asset(
+                    'assets/images/cricket_info_art.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.sports_cricket, size: 64, color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          _divider(),
+
+          // Links Row Removed per user request
+          const SizedBox(height: 12),
+          
+          Container(height: 8, color: Colors.grey[50]),
+
+          // Venue Details
+          _sectionTitle('Venue Details'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.stadium_outlined, color: Colors.grey, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    venue['name']?.toString() ?? 'Unknown Stadium',
+                    style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.normal),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Row(children: [const Icon(Icons.edit_outlined, size: 16, color: Colors.grey), const SizedBox(width: 8), Text('Pitch : ', style: TextStyle(color: Colors.grey[600], fontSize: 13)), const Text('Batting', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))]),
+                Container(width: 1, height: 20, color: Colors.grey[300]),
+                Row(children: [const Icon(Icons.sports_cricket_outlined, size: 16, color: Colors.grey), const SizedBox(width: 8), Text('Supports : ', style: TextStyle(color: Colors.grey[600], fontSize: 13)), const Text('Pacers', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))]),
+              ],
+            ),
+          ),
+
+          // Venue Wins (Stats)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey[300])),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Venue Wins', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold))),
+                    Expanded(child: Divider(color: Colors.grey[300])),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _winIndicator('Batting First', '80%', Colors.orange.shade100, Colors.orange),
+                    _winIndicator('Batting Second', '20%', Colors.blue.shade100, Colors.blue),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Head to Head Wins
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const Text('Head-to-Head Wins', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                const Text('Past 3 matches', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _miniLogo(_teamA['logo_url'], _teamA['short_name'] ?? 'A'),
+                    const SizedBox(width: 12),
+                    Text(_teamA['short_name'] ?? 'A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 40), child: Text('2:1', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 2))),
+                    Text(_teamB['short_name'] ?? 'B', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(width: 12),
+                    _miniLogo(_teamB['logo_url'], _teamB['short_name'] ?? 'B'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
+          // Squads List
+          _sectionTitle('Squads'),
+          _squadPlaceholder(_teamA['name'] ?? 'Team A'),
+          _squadPlaceholder(_teamB['name'] ?? 'Team B'),
         ],
       ),
     );
   }
+
+  Widget _miniInfo(String label, String val) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+      Text(val, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500, fontSize: 13)),
+    ],
+  );
+
+  Widget _miniLogo(dynamic url, String short) {
+    final String logoUrl = url?.toString() ?? '';
+    print('DEBUG: EsMatchDetailScreen - miniLogo URL for $short: $logoUrl');
+    return Container(
+      width: 32, height: 32,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.grey[100]),
+      child: logoUrl.isNotEmpty
+          ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: logoUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Center(child: Text(short.isNotEmpty ? short[0].toUpperCase() : '?', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87))),
+                errorWidget: (context, url, error) => Center(child: Text(short.isNotEmpty ? short[0].toUpperCase() : '?', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87))),
+              ),
+            )
+          : Center(child: Text(short.isNotEmpty ? short[0].toUpperCase() : '?', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87))),
+    );
+  }
+
+  Widget _winIndicator(String label, String pct, Color bg, Color clr) => Column(
+    children: [
+      Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 50, height: 50,
+            child: CircularProgressIndicator(value: double.parse(pct.replaceAll('%', '')) / 100, strokeWidth: 4, backgroundColor: bg, valueColor: AlwaysStoppedAnimation<Color>(clr)),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+      Text(pct, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+    ],
+  );
+
+  Widget _sectionTitle(String t) => Padding(padding: const EdgeInsets.fromLTRB(20, 24, 20, 10), child: Text(t, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)));
+  Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
+  Widget _squadPlaceholder(String name) => Padding(padding: const EdgeInsets.fromLTRB(20, 12, 20, 0), child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)));
 
   Widget _infoNote(String text) => Container(
     width: double.infinity,
@@ -526,7 +804,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             width: 80,
             child: Text(
               label,
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
+              style: const TextStyle(color: AppColors.textLight, fontSize: 12),
             ),
           ),
           Expanded(
@@ -556,7 +834,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             const Text(
               'Match Not Started Yet',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.text,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -564,7 +842,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             const SizedBox(height: 8),
             const Text(
               'The scorecard will be available once the match begins.',
-              style: TextStyle(color: Colors.white54, fontSize: 13),
+              style: TextStyle(color: AppColors.textLight, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
@@ -586,7 +864,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             const Text(
               'Scorecard',
               style: TextStyle(
-                color: Colors.white70,
+                color: AppColors.text,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -611,14 +889,15 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
       );
     }
 
-    final innings = _scorecard!['innings'] as List<dynamic>? ?? [];
+    final inningsRaw = _scorecard?['innings'];
+    final List<dynamic> innings = (inningsRaw is List) ? inningsRaw : [];
     final hasLive = _liveScore != null && _liveScore!.isNotEmpty;
 
     if (innings.isEmpty && !hasLive) {
       return const Center(
         child: Text(
           'No scorecard data yet',
-          style: TextStyle(color: Colors.white38),
+          style: TextStyle(color: AppColors.textLight),
         ),
       );
     }
@@ -634,7 +913,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             if (_isLive) _liveIndicator(),
             if (_liveScore != null && _liveScore!.isNotEmpty)
               _liveScoreBlock(_liveScore!),
-            ...innings.map((inn) => _inningsBlock(inn as Map<String, dynamic>)),
+            ...innings.map((inn) => _inningsBlock(inn is Map<String, dynamic> ? inn : {})),
           ],
         ),
       ),
@@ -665,7 +944,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  (data['status'] == 3 ? Colors.redAccent : AppColors.primary),
+                  (data['status'] == 3 ? const Color(0xFF4CAF50) : AppColors.primary),
                   AppColors.secondary.withOpacity(0.8),
                 ],
               ),
@@ -856,7 +1135,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
         padding: const EdgeInsets.all(12),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.blueAccent.withOpacity(0.1),
+          color: const Color(0xFF007A8A).withOpacity(0.1),
           border: Border(
             bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
           ),
@@ -864,7 +1143,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
         child: Text(
           c['commentary']?.toString() ?? 'Over End',
           style: const TextStyle(
-            color: Colors.blueAccent,
+            color: Color(0xFF007A8A),
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -878,11 +1157,11 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     Color textColor = Colors.white;
 
     if (isWicket) {
-      ballColor = Colors.redAccent;
+      ballColor = const Color(0xFF1B2430); // Navy for wicket
     } else if (c['score'] == 6) {
-      ballColor = Colors.green;
+      ballColor = const Color(0xFF4CAF50); // Green for 6
     } else if (c['score'] == 4) {
-      ballColor = Colors.lightBlue;
+      ballColor = const Color(0xFF007A8A); // Teal for 4
     }
 
     return Container(
@@ -945,9 +1224,9 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
     decoration: BoxDecoration(
-      color: Colors.red.withOpacity(0.15),
+      color: const Color(0xFF4CAF50).withOpacity(0.15),
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.red.withOpacity(0.4)),
+      border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
     ),
     child: Row(
       children: [
@@ -955,7 +1234,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           width: 8,
           height: 8,
           decoration: const BoxDecoration(
-            color: Colors.red,
+            color: Color(0xFF4CAF50),
             shape: BoxShape.circle,
           ),
         ),
@@ -963,7 +1242,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
         const Text(
           'LIVE • Pull down to refresh',
           style: TextStyle(
-            color: Colors.redAccent,
+            color: Color(0xFF4CAF50),
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -973,7 +1252,7 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           onTap: _loadScorecard,
           child: const Icon(
             Icons.refresh_rounded,
-            color: Colors.redAccent,
+            color: Color(0xFF007A8A),
             size: 18,
           ),
         ),
@@ -1001,11 +1280,8 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withOpacity(0.8),
-                  AppColors.secondary.withOpacity(0.8),
-                ],
+              gradient: const LinearGradient(
+                colors: AppColors.primaryGradient,
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(14),
@@ -1041,13 +1317,13 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
           if (batters.isNotEmpty) ...[
             _sectionHeader('BATTING'),
             _battingHeader(),
-            ...batters.map((b) => _battingRow(b as Map<String, dynamic>)),
+            ...batters.map((b) => _battingRow(b is Map<String, dynamic> ? b : {})),
             if (extras.isNotEmpty) _extrasRow(extras),
           ],
           if (bowlers.isNotEmpty) ...[
             _sectionHeader('BOWLING'),
             _bowlingHeader(),
-            ...bowlers.map((b) => _bowlingRow(b as Map<String, dynamic>)),
+            ...bowlers.map((b) => _bowlingRow(b is Map<String, dynamic> ? b : {})),
           ],
         ],
       ),
@@ -1206,10 +1482,10 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
               sr,
               style: TextStyle(
                 color: srVal >= 150
-                    ? Colors.greenAccent
+                    ? const Color(0xFF4CAF50)
                     : srVal >= 100
                     ? Colors.white60
-                    : Colors.redAccent,
+                    : Colors.orangeAccent,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -1366,10 +1642,10 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
               econ,
               style: TextStyle(
                 color: econVal <= 6
-                    ? Colors.greenAccent
+                    ? const Color(0xFF4CAF50)
                     : econVal <= 9
                     ? Colors.white60
-                    : Colors.redAccent,
+                    : Colors.orangeAccent,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -1381,186 +1657,89 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     );
   }
 
-  // ── SQUAD TAB ─────────────────────────────────────────────────────────────
-  Widget _squadTab() {
-    if (_loadingSquad) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-    }
-    if (_squad == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.people_outline, size: 60, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              'Match Squad',
-              style: TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Load player lists for this match',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _loadSquad,
-              icon: const Icon(Icons.download_rounded),
-              label: const Text('Load Squad'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Try to extract teams list from various possible structures
-    final List<Map<String, dynamic>> teamsList = [];
-    
-    // 1. Try teama and teamb
-    final tA = _squad!['teama'];
-    final tB = _squad!['teamb'];
-    if (tA is Map) teamsList.add(tA.cast<String, dynamic>());
-    if (tB is Map) teamsList.add(tB.cast<String, dynamic>());
-
-    // 2. Try 'teams' key (Map or List)
-    if (teamsList.isEmpty) {
-      final rawTeams = _squad!['teams'];
-      if (rawTeams is Map) {
-        rawTeams.forEach((_, v) { if (v is Map) teamsList.add(v.cast<String, dynamic>()); });
-      } else if (rawTeams is List) {
-        teamsList.addAll(rawTeams.whereType<Map<String, dynamic>>());
-      }
-    }
-
-    // 3. Try 'squad' or 'squads' key if still empty
-    if (teamsList.isEmpty) {
-      final squad = _squad!['squad'] ?? _squad!['squads'];
-      if (squad is List) {
-          // If it's a flat list of players, we might need a dummy team
-          teamsList.add({'name': 'Match Squad', 'players': squad});
-      } else if (squad is Map) {
-          squad.forEach((_, v) { if (v is Map) teamsList.add(v.cast<String, dynamic>()); });
-      }
-    }
-
-    // 4. Try 'fantasy_squad' (New endpoint structure)
-    if (teamsList.isEmpty && _squad!.containsKey('fantasy_squad')) {
-        final fs = _squad!['fantasy_squad'];
-        if (fs is Map) {
-             fs.forEach((_, v) { if (v is Map) teamsList.add(v.cast<String, dynamic>()); });
+  Widget _buildHeroHeader() {
+    var timeStr = (widget.matchData['date_start'] ?? '').toString();
+    String countdown = 'Starts Soon';
+    if (timeStr.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(timeStr);
+        final diff = dt.difference(DateTime.now());
+        if (diff.isNegative) {
+          countdown = _isLive ? 'LIVE' : 'COMPLETED';
+        } else if (diff.inHours > 24) {
+          countdown = '${diff.inDays}d ${diff.inHours % 24}h';
+        } else {
+          countdown = '${diff.inHours}h ${diff.inMinutes % 60}m';
         }
+      } catch (_) {}
     }
 
-    if (teamsList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.info_outline, color: Colors.grey.shade400, size: 48),
-            const SizedBox(height: 16),
-            Text('No squad data yet',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
-            const SizedBox(height: 8),
-            const Text('Squads are usually announced 30 mins before the match.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadSquad,
-      color: AppColors.primary,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
-        itemCount: teamsList.length,
-        itemBuilder: (_, i) {
-          final tdata = teamsList[i];
-          final fallbackName = (i == 0) ? (_teamA['name'] ?? _teamA['short_name'] ?? 'TEAM A') : (_teamB['name'] ?? _teamB['short_name'] ?? 'TEAM B');
-          final teamName = (tdata['name'] ?? tdata['title'] ?? tdata['short_name'] ?? tdata['team_name'] ?? fallbackName).toString();
-          final players = (tdata['players'] is List ? tdata['players'] as List : 
-                          (tdata['squad'] is List ? tdata['squad'] as List : 
-                          (tdata['squads'] is List ? tdata['squads'] as List : [])));
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                child: Text(
-                  teamName.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              ...players.map((p) => _playerRow(p as Map<String, dynamic>)),
-              const SizedBox(height: 16),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _playerRow(Map<String, dynamic> p) {
-    final name = p['name']?.toString() ?? p['title']?.toString() ?? '';
-    final role = p['role']?.toString() ?? '';
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF1B2430), Color(0xFF243555)],
+        ),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          CircleAvatar(
-            backgroundColor: AppColors.primary.withOpacity(0.1),
-            radius: 16,
-            child: Text(
-              name.isNotEmpty ? name[0] : '?',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.1,
+              child: Image.asset(
+                'assets/images/cricket_login_bg.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox(),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 100, 16, 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _teamDetailBlock(_teamA, false),
+                    Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Text(
+                            _isLive ? 'LIVE' : 'STARTS IN',
+                            style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          countdown,
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                        ),
+                      ],
+                    ),
+                    _teamDetailBlock(_teamB, true),
+                  ],
                 ),
-                Text(
-                  role.toUpperCase(),
-                  style: const TextStyle(color: Colors.grey, fontSize: 10),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA500)]),
+                    borderRadius: BorderRadius.circular(4),
+                    boxShadow: [
+                      BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: const Text(
+                    'MEGA CONTEST',
+                    style: TextStyle(color: Color(0xFF1B2430), fontSize: 11, fontWeight: FontWeight.w900),
+                  ),
                 ),
               ],
             ),
@@ -1570,7 +1749,103 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
     );
   }
 
-  // Fantasy points tab removed
+  Widget _teamDetailBlock(Map<String, dynamic> team, bool alignRight) {
+    final logo = team['logo_url']?.toString() ?? '';
+    final short = team['short_name']?.toString() ?? '';
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56, height: 56,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 2)),
+          child: logo.isNotEmpty 
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: logo,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Center(child: Text(short.isNotEmpty ? short[0] : '?', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold))),
+                    errorWidget: (context, url, error) => Center(child: Text(short.isNotEmpty ? short[0] : '?', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold))),
+                  ),
+                )
+              : Center(child: Text(short.isNotEmpty ? short[0] : '?', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold))),
+        ),
+        const SizedBox(height: 8),
+        Text(short, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+      ],
+    );
+  }
+}
+
+class _ContestCardWidget extends StatelessWidget {
+  final ContestModel contest;
+  final Map<String, dynamic> matchData;
+  final VoidCallback onTap;
+  const _ContestCardWidget({required this.contest, required this.matchData, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final spotsLeft = contest.maxTeams - contest.currentTeams;
+    final progress = (contest.maxTeams > 0) ? (contest.currentTeams.toDouble() / contest.maxTeams.toDouble()) : 0.0;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF243052),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(contest.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                Text('₹${contest.prizePool}', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 18)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('$spotsLeft spots left', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text('${contest.maxTeams} spots', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(value: progress.toDouble(), backgroundColor: Colors.white12, color: AppColors.secondary, minHeight: 6),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
+                  child: Text('ENTRY ₹${contest.entryFee}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+                ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('JOIN', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _BoundaryTextAnimation extends StatelessWidget {
