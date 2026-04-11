@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/api_client.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
+import 'package:fantasy_crick/core/services/entity_sport_service.dart';
 import 'package:fantasy_crick/core/services/location_service.dart';
 import 'package:fantasy_crick/core/services/teams_service.dart';
 import 'package:fantasy_crick/core/services/user_profile_service.dart';
 import 'package:fantasy_crick/features/profile/screens/es_edit_profile_screen.dart';
 import 'package:fantasy_crick/features/contest/screens/es_create_team_screen.dart';
+import 'package:fantasy_crick/features/contest/screens/es_team_preview_screen.dart';
 import 'package:fantasy_crick/common/widgets/dashboard_animation.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,39 +75,80 @@ class _EsProfileScreenState extends State<EsProfileScreen>
 
       setState(() {
         _userObj = profileData?['user'] as Map<String, dynamic>? ?? {};
-        _myTeams = results[0] as List<dynamic>? ?? [];
+        _myTeams = (results[0] as List<dynamic>? ?? []).map((t) => Map<String, dynamic>.from(t)).toList();
         final historyData = results[1] as Map<String, dynamic>?;
         _history = historyData?['transactions'] as List<dynamic>? ?? [];
         _historySummary = historyData?['summary'] as Map<String, dynamic>?;
-        
         _leaderboard = results[2] as List<dynamic>? ?? [];
         _location = results[3] as Map<String, dynamic>?;
         _walletObj = results[4] as Map<String, dynamic>?;
-
         final double balance = double.tryParse(_walletObj?['balance']?.toString() ?? '0') ?? 0.0;
         _userObj?['wallet_balance'] = balance;
-
         final statsData = profileData?['stats'];
-        if (statsData is Map) {
-          _statsObj = Map<String, dynamic>.from(statsData);
-        } else if (statsData is List) {
-          final Map<String, dynamic> st = {};
-          for (var item in statsData) {
-            if (item is Map) {
-              final String label = (item['label'] ?? '').toString().toLowerCase();
-              final val = item['value'];
-              if (label.contains('teams')) st['total_contests'] = val;
-              if (label.contains('won')) st['total_wins'] = val;
-              if (label.contains('rate')) st['win_rate'] = val;
-              if (label.contains('points')) st['total_points'] = val;
-            }
-          }
-          _statsObj = st;
-        }
+        if (statsData is Map) _statsObj = Map<String, dynamic>.from(statsData);
         _loading = false;
       });
+
+      // Background background points sync for the teams
+      _syncTeamPoints();
     } catch (e) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _syncTeamPoints() async {
+    final matchesToFetch = _myTeams.map((t) => int.tryParse(t['match_id']?.toString() ?? '0') ?? 0).where((id) => id > 0).toSet();
+    debugPrint('FANTASY_DEBUG: Profile Sync - Matches to fetch points for: $matchesToFetch');
+    
+    for (final mid in matchesToFetch) {
+      try {
+        final ptsData = await EntitySportService.getMatchPoints(mid);
+        final pMap = <String, dynamic>{};
+        final ta = ptsData['points']?['teama']?['playing11'] as List? ?? [];
+        final tb = ptsData['points']?['teamb']?['playing11'] as List? ?? [];
+        for (var p in [...ta, ...tb]) {
+          if (p is Map) pMap[p['pid']?.toString() ?? ''] = p['point'];
+        }
+
+        if (mounted) {
+          setState(() {
+            for (var i = 0; i < _myTeams.length; i++) {
+              final teamMatchId = int.tryParse(_myTeams[i]['match_id']?.toString() ?? '0') ?? 0;
+              if (teamMatchId == mid) {
+                double total = 0;
+                var rawPlayers = _myTeams[i]['players'];
+                List<dynamic> players = [];
+                
+                if (rawPlayers is List) {
+                  players = rawPlayers;
+                } else if (rawPlayers is String) {
+                  // Handle if backend returns players as JSON string
+                  try {
+                    players = jsonDecode(rawPlayers) as List? ?? [];
+                  } catch(_) {}
+                }
+
+                final capId = _myTeams[i]['captain_id']?.toString();
+                final vcId = _myTeams[i]['vice_captain_id']?.toString();
+                
+                debugPrint('FANTASY_DEBUG: Syncing Team ID ${_myTeams[i]['id']} (Match $mid) - Players count: ${players.length}');
+
+                for (var p in players) {
+                  final pid = (p is Map ? (p['id'] ?? p['player_id'] ?? p['pid']) : p).toString();
+                  double base = double.tryParse(pMap[pid]?.toString() ?? '0') ?? 0;
+                  if (pid == capId) base *= 2; else if (pid == vcId) base *= 1.5;
+                  total += base;
+                }
+                
+                _myTeams[i]['total_points'] = total.toStringAsFixed(1);
+                debugPrint('FANTASY_DEBUG: Team ${_myTeams[i]['id']} Final Points: $total');
+              }
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('FANTASY_DEBUG: Sync Error for Match $mid: $e');
+      }
     }
   }
 
@@ -484,52 +528,77 @@ class _EsProfileScreenState extends State<EsProfileScreen>
         if (pivot['is_vice_captain'] == 1 || p['id']?.toString() == t['vice_captain_id']?.toString()) viceCaptainName = p['name']?.toString() ?? 'Player ${p['id']}';
       }
     }
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.08)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))]),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(width: 52, height: 52, decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: t['logo_url'] != null ? Image.network(t['logo_url'], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.sports_cricket_rounded, color: AppColors.primary)) : const Icon(Icons.sports_cricket_rounded, color: AppColors.primary))),
-              const SizedBox(width: 14),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t['name']?.toString() ?? 'My Team', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.text)), Row(children: [Text('Match ID: ${t['match_id'] ?? '-'}', style: TextStyle(color: Colors.grey[500], fontSize: 12)), const SizedBox(width: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: (t['status']?.toString().toLowerCase() == 'active' ? Colors.green : Colors.orange).withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(t['status']?.toString().toUpperCase() ?? 'PENDING', style: TextStyle(color: t['status']?.toString().toLowerCase() == 'active' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)))])])),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text('${t['total_points'] ?? t['points'] ?? '0.0'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary)), const Text('pts', style: TextStyle(fontSize: 11, color: Colors.grey))]),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => EsTeamPreviewScreen(team: t)),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.08)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))]),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(width: 52, height: 52, decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: t['logo_url'] != null ? Image.network(t['logo_url'], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.sports_cricket_rounded, color: AppColors.primary)) : const Icon(Icons.sports_cricket_rounded, color: AppColors.primary))),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t['name']?.toString() ?? 'My Team', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.text)), Row(children: [Text('Match ID: ${t['match_id'] ?? '-'}', style: TextStyle(color: Colors.grey[500], fontSize: 12)), const SizedBox(width: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: (t['status']?.toString().toLowerCase() == 'active' ? Colors.green : Colors.orange).withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(t['status']?.toString().toUpperCase() ?? 'PENDING', style: TextStyle(color: t['status']?.toString().toLowerCase() == 'active' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)))])])),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showEditTeamDialog(t),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
+                            child: const Icon(Icons.edit_rounded, size: 14, color: AppColors.primary),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _showDeleteTeamDialog(t),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
+                            child: const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${t['total_points'] ?? t['points'] ?? '0'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1B2430)),
+                    ),
+                    const Text('pts', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                  ],
+                ),
+              ],
+            ),
+            if (captainName.isNotEmpty || viceCaptainName.isNotEmpty) ...[
+              const SizedBox(height: 16), Divider(height: 1, color: Colors.grey.withOpacity(0.08)), const SizedBox(height: 16),
+              Row(children: [
+                if (captainName.isNotEmpty) Expanded(child: Row(children: [const CircleAvatar(radius: 12, backgroundColor: AppColors.primary, child: Text('C', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('CAPTAIN', style: TextStyle(color: Colors.grey, fontSize: 8, fontWeight: FontWeight.bold)), Text(captainName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)]))])),
+                if (viceCaptainName.isNotEmpty) Expanded(child: Row(children: [const CircleAvatar(radius: 12, backgroundColor: AppColors.secondary, child: Text('VC', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('VICE CAPTAIN', style: TextStyle(color: Colors.grey, fontSize: 8, fontWeight: FontWeight.bold)), Text(viceCaptainName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)]))])),
+              ]),
             ],
-          ),
-          if (captainName.isNotEmpty || viceCaptainName.isNotEmpty) ...[
-            const SizedBox(height: 16), Divider(height: 1, color: Colors.grey.withOpacity(0.08)), const SizedBox(height: 16),
-            Row(children: [
-              if (captainName.isNotEmpty) Expanded(child: Row(children: [const CircleAvatar(radius: 12, backgroundColor: AppColors.primary, child: Text('C', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('CAPTAIN', style: TextStyle(color: Colors.grey, fontSize: 8, fontWeight: FontWeight.bold)), Text(captainName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)]))])),
-              if (viceCaptainName.isNotEmpty) Expanded(child: Row(children: [const CircleAvatar(radius: 12, backgroundColor: AppColors.secondary, child: Text('VC', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('VICE CAPTAIN', style: TextStyle(color: Colors.grey, fontSize: 8, fontWeight: FontWeight.bold)), Text(viceCaptainName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)]))])),
-            ]),
+            // ── BOTTOM ROW ───────────────────────────────────────────────
+            const SizedBox(height: 14),
+            Divider(height: 1, color: Colors.grey.withOpacity(0.08)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.touch_app_outlined, size: 12, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Text('Tap to view team', style: TextStyle(color: Colors.grey[400], fontSize: 10, fontStyle: FontStyle.italic)),
+              ],
+            ),
           ],
-          // ── EDIT / DELETE BUTTONS ──────────────────────────────────────
-          const SizedBox(height: 14),
-          Divider(height: 1, color: Colors.grey.withOpacity(0.08)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showEditTeamDialog(t),
-                  icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('Edit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showDeleteTeamDialog(t),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                  label: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

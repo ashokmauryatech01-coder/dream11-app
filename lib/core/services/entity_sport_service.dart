@@ -147,6 +147,17 @@ class EntitySportService {
     }
   }
 
+  static Future<Map<String, dynamic>> getMatchPoints(int matchId) async {
+    try {
+      final data = await _get('/matches/$matchId/point?token=$token');
+      if (data['status'] == 'ok')
+        return data['response'] as Map<String, dynamic>? ?? {};
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
   // 7. MATCH SCORECARD — batting/bowling stats
   static Future<Map<String, dynamic>> getScorecard(int matchId) async {
     try {
