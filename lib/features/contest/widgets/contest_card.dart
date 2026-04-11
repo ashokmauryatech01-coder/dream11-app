@@ -16,140 +16,150 @@ class ContestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NumberFormat currencyFormat = NumberFormat.currency(symbol: '₹', decimalDigits: 0, locale: 'en_IN');
+    final double filledPercentage = (contest.maxTeams == 0) ? 1.0 : (contest.currentTeams / contest.maxTeams);
     
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 300,
-        margin: const EdgeInsets.only(right: 15, bottom: 5, top: 5, left: 5),
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              offset: const Offset(0, 2),
-              blurRadius: 4,
+              color: AppColors.shadow,
+              offset: const Offset(0, 4),
+              blurRadius: 10,
             ),
           ],
+          border: Border.all(color: AppColors.border.withOpacity(0.5)),
         ),
-        padding: const EdgeInsets.all(15),
         child: Column(
           children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Top Section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        contest.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.text,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            contest.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textLight,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            currencyFormat.format(contest.prizePool),
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.text,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        contest.multipleTeams ? 'Multiple Teams' : 'Single Team',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textLight,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          contest.entryFee == 0 ? 'FREE' : 'Entry: ₹${contest.entryFee.toInt()}',
+                          style: const TextStyle(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Prize Pool',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                    Text(
-                      currencyFormat.format(contest.prizePool),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.success,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 15),
-            
-            // Stats
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('${contest.currentTeams}', 'Entries'),
-                _buildStatItem('${contest.maxTeams}', 'Spots'),
-                _buildStatItem('₹${contest.entryFee}', 'Entry'),
-              ],
-            ),
-            
-            const SizedBox(height: 15),
-            
-            // Footer (Progress and Button)
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 16),
+                  
+                  // Progress Bar
+                  Column(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: (contest.currentTeams / (contest.maxTeams == 0 ? 1 : contest.maxTeams)),
-                          backgroundColor: Colors.grey[300],
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
-                          minHeight: 6,
-                        ),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: filledPercentage,
+                            child: Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.secondary, AppColors.success],
+                                ),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        '${((contest.currentTeams / (contest.maxTeams == 0 ? 1 : contest.maxTeams)) * 100).round()}% Filled',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.textLight,
-                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${contest.maxTeams - contest.currentTeams} spots left',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.error.withOpacity(0.8),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            '${contest.maxTeams} spots',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+            
+            // Bottom Info Section
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.background.withOpacity(0.5),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
                 ),
-                const SizedBox(width: 15),
-                ElevatedButton(
-                  onPressed: onTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  ),
-                  child: const Text(
-                    'Join',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  if (contest.isGuaranteed)
+                    _buildFeatureTag(Icons.verified_user_outlined, 'Guaranteed'),
+                  const SizedBox(width: 12),
+                  _buildFeatureTag(Icons.emoji_events_outlined, '${contest.winnerPercentage}% Winners'),
+                  const Spacer(),
+                  if (contest.multipleTeams)
+                    _buildFeatureTag(Icons.group_add_outlined, 'Multiple'),
+                ],
+              ),
             ),
           ],
         ),
@@ -157,23 +167,17 @@ class ContestCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String value, String label) {
-    return Column(
+  Widget _buildFeatureTag(IconData icon, String label) {
+    return Row(
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AppColors.text,
-          ),
-        ),
-        const SizedBox(height: 2),
+        Icon(icon, size: 14, color: AppColors.textLight),
+        const SizedBox(width: 4),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             color: AppColors.textLight,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
