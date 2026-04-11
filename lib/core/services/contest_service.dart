@@ -64,7 +64,13 @@ class ContestService {
       final List<dynamic> contestsJson = data['contests'] ?? [];
       
       return contestsJson
-          .map((c) => ContestModel.fromJson(c as Map<String, dynamic>))
+          .map((c) {
+            final map = Map<String, dynamic>.from(c as Map);
+            if (map['match_id'] == null || map['match_id'].toString().isEmpty) {
+              map['match_id'] = matchId;
+            }
+            return ContestModel.fromJson(map);
+          })
           .toList();
     } catch (e) {
       print('DEBUG: Error fetching contests for match $matchId: $e');

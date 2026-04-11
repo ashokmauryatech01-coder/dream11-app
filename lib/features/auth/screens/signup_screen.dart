@@ -210,7 +210,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   
-                  const Spacer(flex: 2),
+                  const SizedBox(height: 20),
                   
                   Expanded(
                     child: Container(
@@ -309,7 +309,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               toggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
   
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 32),
   
                             SizedBox(
                               width: double.infinity,

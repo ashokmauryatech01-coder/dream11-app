@@ -20,15 +20,7 @@ class CompetitionService {
         '$_baseUrl/competitions/$cid/matches?token=$_token&per_page=$perPage&paged=$page',
       );
 
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
+      final response = await http.get(url).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;

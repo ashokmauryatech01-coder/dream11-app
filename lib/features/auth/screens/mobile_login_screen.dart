@@ -164,10 +164,11 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
                     ),
                   ),
                   
-                  const Spacer(flex: 2), // More weight to push form down
+                  const SizedBox(height: 60),
                   
                   // Bottom Input Card
-                  Container(
+                  Expanded(
+                    child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -302,10 +303,11 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
           
           // Back Button
           Positioned(

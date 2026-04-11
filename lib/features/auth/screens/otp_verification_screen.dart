@@ -4,6 +4,7 @@ import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/services/auth_service.dart';
+import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'dart:async';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -126,10 +127,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      if (widget.isLogin) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+      } else {
+        await BeautyDialog.show(
+          context,
+          title: 'Account Created',
+          message: 'Your account has been successfully created. Please sign in to continue.',
+          type: BeautyDialogType.success,
+        );
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const SignInScreen()),
+          (route) => false,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);

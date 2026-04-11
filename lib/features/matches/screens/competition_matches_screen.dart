@@ -90,35 +90,68 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          '${widget.competitionAbbr} ${widget.season}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    final upcoming = _matches.where((m) => m.isUpcoming).toList();
+    final live = _matches.where((m) => m.isLive).toList();
+    final completed = _matches.where((m) => m.isCompleted).toList();
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: Text(
+            '${widget.competitionAbbr} ${widget.season}',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          bottom: const TabBar(
+            indicatorColor: AppColors.secondary,
+            indicatorWeight: 3,
+            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+            tabs: [
+              Tab(text: 'UPCOMING'),
+              Tab(text: 'LIVE'),
+              Tab(text: 'COMPLETED'),
+            ],
+          ),
         ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _matches.isEmpty
-          ? const Center(
-              child: Text(
-                'No matches found.',
-                style: TextStyle(color: Colors.white70),
+        body: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : TabBarView(
+                children: [
+                  _matchList(upcoming, 'No upcoming matches'),
+                  _matchList(live, 'No live matches'),
+                  _matchList(completed, 'No completed matches'),
+                ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _matches.length,
-              itemBuilder: (_, i) {
-                final match = _matches[i];
-                return _buildMatchCard(match);
-              },
+      ),
+    );
+  }
+
+  Widget _matchList(List<CompetitionMatchModel> list, String emptyMsg) {
+    if (list.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.sports_cricket_outlined, size: 60, color: Colors.white24),
+            const SizedBox(height: 16),
+            Text(
+              emptyMsg,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: list.length,
+      itemBuilder: (_, i) => _buildMatchCard(list[i]),
     );
   }
 
@@ -181,9 +214,22 @@ class _CompetitionMatchesScreenState extends State<CompetitionMatchesScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                match.subtitle,
-                style: const TextStyle(color: AppColors.textLight, fontSize: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    match.subtitle,
+                    style: const TextStyle(color: AppColors.textLight, fontSize: 12),
+                  ),
+                  Text(
+                    match.formattedDate,
+                    style: TextStyle(
+                      color: match.isLive ? AppColors.secondary : AppColors.textLight,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
               Row(

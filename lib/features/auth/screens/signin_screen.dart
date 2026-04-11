@@ -160,10 +160,11 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
                   
-                  const Spacer(flex: 2),
+                  const SizedBox(height: 60),
                   
                   // Bottom Card
-                  Container(
+                  Expanded(
+                    child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -285,10 +286,11 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
           
           Positioned(
             top: 40,

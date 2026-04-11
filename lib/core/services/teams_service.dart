@@ -112,12 +112,16 @@ class TeamsService {
     try {
       final userId = await UserProfileService.getSavedUserId();
       if (userId == 0) {
-        print('DEBUG: TeamsService.getMyTeams - No userId found, returning empty');
+        print(
+          'DEBUG: TeamsService.getMyTeams - No userId found, returning empty',
+        );
         return [];
       }
 
       if (matchId <= 0) {
-        print('DEBUG: TeamsService.getMyTeams - Invalid matchId: $matchId, returning empty');
+        print(
+          'DEBUG: TeamsService.getMyTeams - Invalid matchId: $matchId, returning empty',
+        );
         return [];
       }
 
@@ -129,7 +133,9 @@ class TeamsService {
       print('DEBUG: TeamsService.getMyTeams - RAW RESPONSE: $response');
 
       if (response == null) {
-        print('DEBUG: TeamsService.getMyTeams - Response is null, returning empty');
+        print(
+          'DEBUG: TeamsService.getMyTeams - Response is null, returning empty',
+        );
         return [];
       }
 
@@ -138,7 +144,9 @@ class TeamsService {
       print('DEBUG: TeamsService.getMyTeams - success=$success');
 
       if (success != true) {
-        print('DEBUG: TeamsService.getMyTeams - success is not true, returning empty');
+        print(
+          'DEBUG: TeamsService.getMyTeams - success is not true, returning empty',
+        );
         return [];
       }
 
@@ -181,9 +189,57 @@ class TeamsService {
         }
       }
 
-      print('DEBUG: TeamsService.getMyTeams - Parsed ${results.length} teams for matchId=$matchId');
+      print(
+        'DEBUG: TeamsService.getMyTeams - Parsed ${results.length} teams from primary API for matchId=$matchId',
+      );
+
+      // FALLBACK: If primary endpoint returns empty, try the profile's working endpoint
+      if (results.isEmpty) {
+        print(
+          'DEBUG: TeamsService.getMyTeams - Fallback: trying show-contest-teams for matchId=$matchId',
+        );
+        final fallbackRes = await ApiClient.post(
+          '/teams/show-contest-teams?user_id=$userId',
+          {
+            'user_id': userId,
+            'match_id': matchId, // Include match_id in the body
+            'matchId': matchId,   // Some backends use camelCase
+          },
+        );
+
+        if (fallbackRes != null && fallbackRes['success'] == true) {
+          final fbData = fallbackRes['data'];
+          List<dynamic> fbList = [];
+          if (fbData is List) {
+            fbList = fbData;
+          } else if (fbData is Map && fbData.containsKey('teams')) {
+            fbList = fbData['teams'] as List<dynamic>? ?? [];
+          }
+
+          for (final t in fbList) {
+            final teamMap = Map<String, dynamic>.from(t as Map);
+            // LENIENT MATCHING: check match_id, matchId, or contest_id
+            final rawTMatchId = (teamMap['match_id'] ?? teamMap['matchId'] ?? teamMap['contest_match_id'])?.toString().trim() ?? '';
+            final targetMatchId = matchId.toString().trim();
+            
+            print('DEBUG: TeamsService.getMyTeams (Eval) - Team ID ${teamMap['id']} ("${teamMap['name']}") has match_id: "$rawTMatchId", looking for: "$targetMatchId"');
+
+            if (rawTMatchId == targetMatchId || 
+                (rawTMatchId.isNotEmpty && targetMatchId.isNotEmpty && targetMatchId.contains(rawTMatchId)) ||
+                (rawTMatchId.isNotEmpty && targetMatchId.isNotEmpty && rawTMatchId.contains(targetMatchId))) {
+              results.add(teamMap);
+            }
+          }
+          print(
+            'DEBUG: TeamsService.getMyTeams - Found ${results.length} teams via fallback for matchId=$matchId (Total user teams: ${fbList.length})',
+          );
+        }
+      }
+
       for (int i = 0; i < results.length; i++) {
-        print('DEBUG:   Team[$i]: id=${results[i]['id']}, name=${results[i]['name']}');
+        print(
+          'DEBUG:   Team[$i]: id=${results[i]['id']}, name=${results[i]['name']}',
+        );
       }
 
       return results;
@@ -220,9 +276,13 @@ class TeamsService {
   }
 
   /// Show team details: GET /teams/show-contest-teams?teamId=X&user_id=Y
-  Future<Map<String, dynamic>> showTeam({required int teamId, required int userId}) async {
+  Future<Map<String, dynamic>> showTeam({
+    required int teamId,
+    required int userId,
+  }) async {
     try {
-      final endpoint = '/teams/show-contest-teams?teamId=$teamId&user_id=$userId';
+      final endpoint =
+          '/teams/show-contest-teams?teamId=$teamId&user_id=$userId';
       print('DEBUG: TeamsService.showTeam - GET $endpoint');
       final response = await ApiClient.get(endpoint);
       print('DEBUG: TeamsService.showTeam - Response: $response');
@@ -270,9 +330,14 @@ class TeamsService {
   Future<Map<String, dynamic>> deleteTeam({required int teamId}) async {
     try {
       final body = {'teamId': teamId};
-      print('DEBUG: TeamsService.deleteTeam - DELETE /teams/delete-contest-teamac');
+      print(
+        'DEBUG: TeamsService.deleteTeam - DELETE /teams/delete-contest-teamac',
+      );
       print('DEBUG: TeamsService.deleteTeam - body: $body');
-      final response = await ApiClient.delete('/teams/delete-contest-teamac', body: body);
+      final response = await ApiClient.delete(
+        '/teams/delete-contest-teamac',
+        body: body,
+      );
       print('DEBUG: TeamsService.deleteTeam - Response: $response');
       if (response != null && response['success'] != false) {
         return response;

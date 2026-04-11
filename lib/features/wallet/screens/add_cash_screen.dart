@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:js' if (dart.library.io) 'package:fantasy_crick/core/utils/js_stub.dart' as js;
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
-// import 'package:fantasy_crick/core/services/razorpay_service.dart'; // Removed Razorpay
 import 'package:fantasy_crick/core/services/profile_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
@@ -26,6 +28,10 @@ class _AddCashScreenState extends State<AddCashScreen> {
   bool _showCelebration = false;
   double _lastAddedAmount = 0.0;
   String _userName = 'User';
+  int _userId = 0;
+  String? _pendingOrderNo;
+  double _pendingAmount = 0;
+  int _pendingTxnId = 0;
   // String? _userEmail; // Removed unused
   // String? _userPhone; // Removed unused
 
@@ -82,13 +88,14 @@ class _AddCashScreenState extends State<AddCashScreen> {
       }
 
       _userName = user['name'] ?? user['full_name'] ?? 'User';
+      _userId = currentUserId;
       // _userEmail = user['email'];
       // _userPhone = user['phone'];
 
-      debugPrint('AddCashScreen: Final ID for wallet fetch: $currentUserId');
+      debugPrint('AddCashScreen: Final ID for wallet fetch: $_userId');
 
-      if (currentUserId != 0) {
-        final walletData = await ProfileService.getUserWallets(currentUserId);
+      if (_userId != 0) {
+        final walletData = await ProfileService.getUserWallets(_userId);
         debugPrint('AddCashScreen: Wallet data response: $walletData');
         if (walletData != null) {
           // Robust unwrap of the nested 'wallet' key
@@ -138,8 +145,8 @@ class _AddCashScreenState extends State<AddCashScreen> {
   }
 
   void _makePayment(double amount) async {
-    if (amount < 100) {
-      _showMessage('Invalid Amount', 'Minimum amount is ₹100', false);
+    if (amount < 200) {
+      _showMessage('Invalid Amount', 'Minimum amount is ₹200', false);
       return;
     }
 
@@ -148,35 +155,98 @@ class _AddCashScreenState extends State<AddCashScreen> {
     try {
       // Create a unique order number and transaction ID
       final String orderNo = "ORD_${DateTime.now().millisecondsSinceEpoch}";
-      final int txnId = DateTime.now().millisecondsSinceEpoch % 100000;
+      final int txnId = _userId; // Using userId as txnId as shown in user example
 
-      debugPrint('Initiating Payment Callback for Wallet');
-      debugPrint('Payload: orderNo: $orderNo, amount: $amount, txnId: $txnId');
+      debugPrint('Initiating Pay-In for Wallet');
+      debugPrint('Payload: orderNo: $orderNo, amount: $amount, userId: $_userId');
 
-      final result = await WalletService.paymentCallback(
+      // Step 1: Pay-In
+      final payinResult = await WalletService.payIn(
         orderNo: orderNo,
-        amount: amount,
-        txnId: txnId,
-        paymentUrl: "deposit",
-        status: "success",
+        amountINR: amount,
+        userId: _userId,
       );
 
-      debugPrint('Payment Callback Response: $result');
+      debugPrint('Pay-In Response: $payinResult');
 
-      if (result != null && result['success'] == true) {
-        _handleSuccess(amount);
-        await _loadWalletBalance();
-        _showMessage('Success', 'Amount added to your wallet successfully!', true);
+      if (payinResult != null && payinResult['success'] == true) {
+        final serverOrderNo = payinResult['order_no']?.toString() ?? orderNo;
+        final paymentUrl = payinResult['payment_url']?.toString() ?? '';
+
+        debugPrint('Pay-In Success. Server OrderNo: $serverOrderNo');
+        
+        setState(() {
+          _pendingOrderNo = serverOrderNo;
+          _pendingAmount = amount;
+          _pendingTxnId = txnId;
+          _isProcessing = false; // Allow interaction with the Verify button
+        });
+
+        // Launch Payment URL if provided
+        if (paymentUrl.isNotEmpty) {
+           debugPrint('Launching Payment URL: $paymentUrl');
+           try {
+             if (kIsWeb) {
+               js.context.callMethod('open', [paymentUrl]);
+             } else {
+               final uri = Uri.parse(paymentUrl);
+               await launchUrl(uri, mode: LaunchMode.externalApplication);
+             }
+           } catch (e) {
+             debugPrint('URL launch error: $e');
+           }
+        }
+        
+        _showMessage('Payment Initiated', 'Waiting for payment confirmation...', true);
+        
+        // AUTO-POLLING: Start verifying automatically
+        _startAutoVerification();
       } else {
-        _showMessage('Failed', result?['message'] ?? 'Payment verification failed', false);
+        _showMessage('Failed', payinResult?['message'] ?? 'Payment initiation failed', false);
+        setState(() => _isProcessing = false);
       }
     } catch (e) {
       debugPrint('Error during payment processing: $e');
       _showMessage('Error', 'An error occurred: $e', false);
-    } finally {
       setState(() => _isProcessing = false);
     }
   }
+
+  void _startAutoVerification() async {
+    int attempts = 0;
+    const int maxAttempts = 30; // 30 attempts * 4 seconds = 2 minutes
+
+    while (attempts < maxAttempts && _pendingOrderNo != null) {
+      await Future.delayed(const Duration(seconds: 4));
+      if (!mounted) return;
+      
+      attempts++;
+      debugPrint('Auto-Verifying Payment (Attempt $attempts / $maxAttempts)...');
+      
+      try {
+        final result = await WalletService.paymentCallback(
+          orderNo: _pendingOrderNo!,
+          amount: _pendingAmount,
+          txnId: _pendingTxnId,
+          paymentUrl: "deposit",
+          status: "success",
+        );
+
+        if (result != null && result['success'] == true) {
+          final addedAmount = _pendingAmount;
+          setState(() {
+            _pendingOrderNo = null;
+          });
+          _handleSuccess(addedAmount);
+          await _loadWalletBalance();
+          return; // Success!
+        }
+      } catch (e) {
+        debugPrint('Auto-verification polling error: $e');
+      }
+    }
+  }
+
 
   void _showMessage(String title, String message, bool isSuccess) {
     BeautyDialog.show(
@@ -435,7 +505,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                       elevation: 2,
                       shadowColor: AppColors.primary.withOpacity(0.3),
                     ),
-                    child: _isProcessing
+                    child: _isProcessing && _pendingOrderNo == null
                         ? const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -448,7 +518,7 @@ class _AddCashScreenState extends State<AddCashScreen> {
                                 ),
                               ),
                               SizedBox(width: 8),
-                              Text('Processing...'),
+                              Text('Initiating...'),
                             ],
                           )
                         : Row(
@@ -467,6 +537,26 @@ class _AddCashScreenState extends State<AddCashScreen> {
                           ),
                   ),
                 ),
+
+                if (_pendingOrderNo != null) ...[
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(color: AppColors.secondary),
+                        SizedBox(height: 12),
+                        Text(
+                          'Monitoring Payment...',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                        Text(
+                          'The balance will update automatically upon completion.',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

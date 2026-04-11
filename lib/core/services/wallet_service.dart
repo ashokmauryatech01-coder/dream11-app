@@ -245,31 +245,27 @@ class WalletService {
     );
   }
 
-  // Add funds after successful payment
-  static Future<Map<String, dynamic>?> addFunds({
+  // Pay-In (Initiate Payment)
+  static Future<Map<String, dynamic>?> payIn({
+    required String orderNo,
+    required double amountINR,
     required int userId,
-    required int walletId,
-    required double amount,
-    String paymentId = '',
-    String paymentMethod = 'razorpay',
+    String type = 'deposit',
+    String status = 'success',
   }) async {
     try {
       final body = {
+        'orderNo': orderNo,
+        'amountINR': amountINR,
         'user_id': userId,
-        'wallet_id': walletId,
-        'amount': amount,
-        'payment_id': paymentId,
-        'payment_method': paymentMethod,
-        'description': 'Funds added via $paymentMethod',
+        'type': type,
+        'status': status,
       };
       
-      final response = await ApiClient.post('/user/add-funds', body);
-      if (response != null && response['success'] == true) {
-        return response['data'] as Map<String, dynamic>?;
-      }
-      return null;
+      final response = await ApiClient.post('/user/payin', body);
+      return response;
     } catch (e) {
-      print('Error adding funds: $e');
+      print('Error in payin: $e');
       return null;
     }
   }
@@ -292,10 +288,7 @@ class WalletService {
       };
       
       final response = await ApiClient.post('/user/payment-callback', body);
-      if (response != null) {
-        return response;
-      }
-      return null;
+      return response;
     } catch (e) {
       print('Error in payment callback: $e');
       return null;

@@ -77,27 +77,27 @@ class CompetitionMatchModel {
 
   factory CompetitionMatchModel.fromJson(Map<String, dynamic> json) {
     return CompetitionMatchModel(
-      matchId: json['match_id'] ?? 0,
+      matchId: int.tryParse(json['match_id']?.toString() ?? '0') ?? 0,
       title: json['title'] ?? '',
       shortTitle: json['short_title'] ?? '',
       subtitle: json['subtitle'] ?? '',
       matchNumber: json['match_number']?.toString() ?? '',
-      format: json['format'] ?? 0,
+      format: int.tryParse(json['format']?.toString() ?? '0') ?? 0,
       formatStr: json['format_str'] ?? '',
-      status: json['status'] ?? 0,
+      status: int.tryParse(json['status']?.toString() ?? '0') ?? 0,
       statusStr: json['status_str'] ?? '',
       statusNote: json['status_note'] ?? '',
       verified: json['verified']?.toString() ?? 'false',
       preSquad: json['pre_squad']?.toString() ?? 'false',
-      gameState: json['game_state'] ?? 0,
+      gameState: int.tryParse(json['game_state']?.toString() ?? '0') ?? 0,
       gameStateStr: json['game_state_str'] ?? '',
       competition: CompetitionInfo.fromJson(json['competition'] ?? {}),
       teama: TeamInfo.fromJson(json['teama'] ?? {}),
       teamb: TeamInfo.fromJson(json['teamb'] ?? {}),
       dateStart: json['date_start'] ?? '',
       dateEnd: json['date_end'] ?? '',
-      timestampStart: json['timestamp_start'] ?? 0,
-      timestampEnd: json['timestamp_end'] ?? 0,
+      timestampStart: int.tryParse(json['timestamp_start']?.toString() ?? '0') ?? 0,
+      timestampEnd: int.tryParse(json['timestamp_end']?.toString() ?? '0') ?? 0,
       dateStartIst: json['date_start_ist'] ?? '',
       dateEndIst: json['date_end_ist'] ?? '',
       venue: VenueInfo.fromJson(json['venue'] ?? {}),
@@ -106,12 +106,12 @@ class CompetitionMatchModel {
       equation: json['equation'] ?? '',
       live: json['live'] ?? '',
       result: json['result'] ?? '',
-      resultType: json['result_type'] ?? 0,
+      resultType: int.tryParse(json['result_type']?.toString() ?? '0') ?? 0,
       winMargin: json['win_margin'] ?? '',
-      winningTeamId: json['winning_team_id'] ?? 0,
-      commentary: json['commentary'] ?? 0,
-      wagon: json['wagon'] ?? 0,
-      latestInningNumber: json['latest_inning_number'] ?? 0,
+      winningTeamId: int.tryParse(json['winning_team_id']?.toString() ?? '0') ?? 0,
+      commentary: int.tryParse(json['commentary']?.toString() ?? '0') ?? 0,
+      wagon: int.tryParse(json['wagon']?.toString() ?? '0') ?? 0,
+      latestInningNumber: int.tryParse(json['latest_inning_number']?.toString() ?? '0') ?? 0,
       toss: json['toss'] != null ? TossInfo.fromJson(json['toss']) : null,
     );
   }
@@ -124,6 +124,20 @@ class CompetitionMatchModel {
     if (isLive) return 'LIVE';
     if (isCompleted) return 'Completed';
     return 'Upcoming';
+  }
+
+  String get formattedDate {
+    try {
+      final dt = DateTime.parse(dateStart);
+      final monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      final datePart = '${dt.day} ${monthNames[dt.month-1]}';
+      final hourPart = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final minPart = dt.minute.toString().padLeft(2, '0');
+      final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$datePart, $hourPart:$minPart $amPm';
+    } catch (_) {
+      return dateStart;
+    }
   }
 }
 
