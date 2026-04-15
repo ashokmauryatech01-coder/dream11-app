@@ -209,6 +209,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
+      actions: [
+        // Teams button
+        IconButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/teams');
+          },
+          icon: const Icon(
+            Icons.group,
+            color: Colors.white,
+          ),
+          tooltip: 'My Teams',
+        ),
+      ],
     );
   }
 
@@ -457,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               } catch (_) {}
 
               return Container(
-                width: 290,
+                width: 270,
                 margin: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -873,7 +886,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
               child: Row(
                 children: [
                   Expanded(
@@ -886,7 +899,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
-                            fontSize: 22,
+                            fontSize: 20,
                             letterSpacing: 1.2,
                             shadows: [
                               Shadow(
@@ -897,12 +910,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         const Text(
                           'WIN ₹1 CRORE+',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.5,
                             fontStyle: FontStyle.italic,
@@ -917,10 +930,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   // Minimal Join Indicator
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFD700),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -930,11 +943,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           style: TextStyle(
                             color: Color(0xFF001E3C),
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF001E3C)),
+                        SizedBox(width: 3),
+                        Icon(Icons.arrow_forward_ios, size: 9, color: Color(0xFF001E3C)),
                       ],
                     ),
                   ),
@@ -2015,17 +2028,10 @@ class _ContestCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
-                Text(
-                  '₹${contest.prizePool}',
-                  style: const TextStyle(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                  ),
-                ),
+              
               ],
             ),
           ),

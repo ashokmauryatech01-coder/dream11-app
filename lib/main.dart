@@ -9,15 +9,23 @@ import 'package:fantasy_crick/features/profile/screens/user_profile_screen.dart'
 import 'package:fantasy_crick/features/wallet/screens/wallet_transaction_screen.dart';
 import 'package:fantasy_crick/features/wallet/screens/withdrawal_screen.dart';
 import 'package:fantasy_crick/features/profile/screens/privacy_policy_screen.dart';
+import 'package:fantasy_crick/features/contest/screens/es_teams_list_screen.dart';
+import 'package:fantasy_crick/core/services/app_lifecycle_manager.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
+  // Ensure Flutter binding is initialized first
+  WidgetsFlutterBinding.ensureInitialized();
+  
   // Add error handling for Flutter web
   FlutterError.onError = (FlutterErrorDetails details) {
     print('Flutter Error: ${details.exception}');
     print('Stack: ${details.stack}');
   };
+  
+  // Initialize lifecycle manager for automatic token validation
+  AppLifecycleManager().initialize();
   
   runApp(const MyApp());
 }
@@ -58,6 +66,7 @@ class MyApp extends StatelessWidget {
         '/wallet-transactions': (context) => const WalletTransactionScreen(),
         '/withdrawal': (context) => const WithdrawalScreen(),
         '/privacy-policy': (context) => PrivacyPolicyScreen(),
+        '/teams': (context) => const EsTeamsListScreen(),
       },
     );
   }

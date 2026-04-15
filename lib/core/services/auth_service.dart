@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import 'auth_manager.dart';
 
 class AuthService {
   /// Login with email + password. Returns token + user on success.
@@ -14,7 +15,7 @@ class AuthService {
     final user = response?['user'] ?? response?['data']?['user'];
 
     if (token != null) {
-      await ApiClient.saveToken(token as String);
+      await AuthManager.saveTokenWithExpiry(token as String);
       return {'token': token, 'user': user};
     }
 
@@ -48,7 +49,7 @@ class AuthService {
     // Optionally save token if provided during registration
     final token = response?['token'] ?? response?['data']?['token'];
     if (token != null) {
-      await ApiClient.saveToken(token as String);
+      await AuthManager.saveTokenWithExpiry(token as String);
     }
 
     return response as Map<String, dynamic>;
@@ -110,7 +111,7 @@ class AuthService {
     if (response != null && response['success'] == true) {
       final token = response['token'] ?? response['data']?['token'];
       if (token != null) {
-        await ApiClient.saveToken(token as String);
+        await AuthManager.saveTokenWithExpiry(token as String);
       }
       return true;
     }
@@ -161,7 +162,7 @@ class AuthService {
     final user = response?['user'] ?? response?['data']?['user'];
 
     if (token != null) {
-      await ApiClient.saveToken(token as String);
+      await AuthManager.saveTokenWithExpiry(token as String);
       return {'token': token, 'user': user};
     }
 
@@ -181,12 +182,6 @@ class AuthService {
 
   /// Logout and clear stored token.
   Future<void> logout() async {
-    try {
-      await ApiClient.post('/auth/logout', {});
-    } catch (_) {
-      // Ignore logout API errors — always clear local token
-    } finally {
-      await ApiClient.clearToken();
-    }
+    await AuthManager.logout();
   }
 }

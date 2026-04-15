@@ -4,8 +4,8 @@ import 'dart:js' if (dart.library.io) 'package:fantasy_crick/core/utils/js_stub.
 import 'package:fantasy_crick/common/widgets/beauty_dialog.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/profile_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:fantasy_crick/core/services/wallet_service.dart';
+import 'package:fantasy_crick/features/wallet/screens/payment_webview_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fantasy_crick/common/widgets/winning_celebration_animation.dart';
 
@@ -182,22 +182,43 @@ class _AddCashScreenState extends State<AddCashScreen> {
           _isProcessing = false; // Allow interaction with the Verify button
         });
 
-        // Launch Payment URL if provided
+        // Launch Payment URL in In-App WebView
         if (paymentUrl.isNotEmpty) {
-           debugPrint('Launching Payment URL: $paymentUrl');
+           debugPrint('AddCashScreen: Opening Payment URL in WebView: $paymentUrl');
+           debugPrint('AddCashScreen: kIsWeb = $kIsWeb, mounted = $mounted');
            try {
              if (kIsWeb) {
+               // For web platform, still use external window
+               debugPrint('AddCashScreen: Opening in external browser (web platform)');
                js.context.callMethod('open', [paymentUrl]);
              } else {
-               final uri = Uri.parse(paymentUrl);
-               await launchUrl(uri, mode: LaunchMode.externalApplication);
+               // For mobile, open in-app WebView
+               if (mounted) {
+                 debugPrint('AddCashScreen: Pushing PaymentWebViewScreen...');
+                 Navigator.push(
+                   context,
+                   MaterialPageRoute(
+                     builder: (context) => PaymentWebViewScreen(
+                       paymentUrl: paymentUrl,
+                       orderNo: serverOrderNo,
+                       amount: amount,
+                     ),
+                   ),
+                 ).then((_) {
+                   debugPrint('AddCashScreen: PaymentWebViewScreen closed');
+                 });
+                 debugPrint('AddCashScreen: PaymentWebViewScreen pushed successfully');
+               } else {
+                 debugPrint('AddCashScreen: ERROR - not mounted, cannot push WebView');
+               }
              }
-           } catch (e) {
-             debugPrint('URL launch error: $e');
+           } catch (e, stackTrace) {
+             debugPrint('AddCashScreen: Payment screen navigation error: $e');
+             debugPrint('AddCashScreen: Stack trace: $stackTrace');
            }
+        } else {
+          debugPrint('AddCashScreen: ERROR - paymentUrl is empty!');
         }
-        
-        _showMessage('Payment Initiated', 'Waiting for payment confirmation...', true);
         
         // AUTO-POLLING: Start verifying automatically
         _startAutoVerification();

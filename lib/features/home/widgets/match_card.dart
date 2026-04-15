@@ -19,9 +19,9 @@ class MatchCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 280,
+        width: 260,
         height: 160,
-        margin: const EdgeInsets.only(right: 12, bottom: 4, top: 4, left: 4),
+        margin: const EdgeInsets.only(right: 8, bottom: 4, top: 4, left: 4),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/features/auth/screens/signin_screen.dart';
 import 'package:fantasy_crick/features/home/screens/home_screen.dart';
-import 'package:fantasy_crick/core/services/api_client.dart';
+import 'package:fantasy_crick/core/services/auth_manager.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,9 +22,10 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    final token = await ApiClient.getToken();
+    // Use AuthManager for comprehensive authentication checking
+    final isValid = await AuthManager.checkAuthStatus();
     
-    if (token != null && token.isNotEmpty) {
+    if (isValid) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );

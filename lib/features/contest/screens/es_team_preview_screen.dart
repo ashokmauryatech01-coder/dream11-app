@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fantasy_crick/core/constants/app_colors.dart';
 import 'package:fantasy_crick/core/services/entity_sport_service.dart';
+import 'package:fantasy_crick/core/services/teams_service.dart';
+import 'package:fantasy_crick/core/services/user_profile_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:ui';
 import 'dart:io';
@@ -22,6 +24,7 @@ class _EsTeamPreviewScreenState extends State<EsTeamPreviewScreen> with SingleTi
   double _calculatedTotal = 0;
   bool _isLoadingPoints = false;
   AnimationController? _animationController;
+  List<dynamic> _teamPlayers = []; // Store players from API
 
   @override
   void initState() {
@@ -41,61 +44,138 @@ class _EsTeamPreviewScreenState extends State<EsTeamPreviewScreen> with SingleTi
   }
 
   Future<void> _fetchPoints() async {
-    final matchIdStr = widget.team['match_id']?.toString() ?? '';
-    final matchId = int.tryParse(matchIdStr) ?? 0;
-    if (matchId == 0) return;
-
+    final teamIdStr = widget.team['id']?.toString() ?? widget.team['teamId']?.toString() ?? '';
+    final teamId = int.tryParse(teamIdStr) ?? 0;
+    final userId = await UserProfileService.getSavedUserId();
+    
+    print('DEBUG: TeamPreview - Starting _fetchPoints with teamId: $teamId, userId: $userId');
+    print('DEBUG: TeamPreview - Widget team data: ${widget.team}');
+    
     setState(() => _isLoadingPoints = true);
+    
     try {
-      final pointsData = await EntitySportService.getMatchPoints(matchId);
-      final squadData = await EntitySportService.getFantasySquad(matchId);
+      Map<String, dynamic> teamData = {};
       
-      final pointsMap = <String, dynamic>{};
-      final namesMap = <String, String>{};
-      final rolesMap = <String, String>{};
-
-      // Extract Match Score & Status
-      final teamA = pointsData['teama'] as Map? ?? {};
-      final teamB = pointsData['teamb'] as Map? ?? {};
-      final sA = teamA['scores'] ?? teamA['scores_full'] ?? '';
-      final sB = teamB['scores'] ?? teamB['scores_full'] ?? '';
-      final nA = teamA['short_name'] ?? teamA['name'] ?? 'T1';
-      final nB = teamB['short_name'] ?? teamB['name'] ?? 'T2';
-      
-      String scoreText = '';
-      if (sA.isNotEmpty || sB.isNotEmpty) {
-        scoreText = '$nA: $sA vs $nB: $sB';
+      // Try to get team players from API if we have valid IDs
+      if (teamId > 0 && userId > 0) {
+        teamData = await TeamsService.getTeamPlayers(teamId: teamId, userId: userId);
+        print('DEBUG: TeamPreview - API teamData received: $teamData');
+        print('DEBUG: TeamPreview - API teamData keys: ${teamData.keys}');
+      } else {
+        print('DEBUG: TeamPreview - Skipping API call - invalid teamId: $teamId or userId: $userId');
       }
       
-      final statusNote = pointsData['status_note']?.toString() ?? '';
-
-      // Extract Players from points API
-      final ta = pointsData['points']?['teama']?['playing11'] as List? ?? [];
-      final tb = pointsData['points']?['teamb']?['playing11'] as List? ?? [];
-
-      for (var p in [...ta, ...tb]) {
-        if (p is Map) {
-          final pid = p['pid']?.toString() ?? '';
-          if (pid.isNotEmpty) {
-            pointsMap[pid] = p['point'];
-            namesMap[pid] = p['name']?.toString() ?? '';
-            rolesMap[pid] = p['role']?.toString().toUpperCase() ?? '';
+      // Also get match points if match_id is available
+      final matchIdStr = widget.team['match_id']?.toString() ?? '';
+      final matchId = int.tryParse(matchIdStr) ?? 0;
+      
+      Map<String, dynamic> pointsMap = {};
+      Map<String, String> namesMap = {};
+      Map<String, String> rolesMap = {};
+      String scoreText = '';
+      String statusNote = '';
+      
+      if (matchId > 0) {
+        try {
+          final pointsData = await EntitySportService.getMatchPoints(matchId);
+          final squadData = await EntitySportService.getFantasySquad(matchId);
+          
+          // Extract Match Score & Status
+          final teamA = pointsData['teama'] as Map? ?? {};
+          final teamB = pointsData['teamb'] as Map? ?? {};
+          final sA = teamA['scores'] ?? teamA['scores_full'] ?? '';
+          final sB = teamB['scores'] ?? teamB['scores_full'] ?? '';
+          final nA = teamA['short_name'] ?? teamA['name'] ?? 'T1';
+          final nB = teamB['short_name'] ?? teamB['name'] ?? 'T2';
+          
+          if (sA.isNotEmpty || sB.isNotEmpty) {
+            scoreText = '$nA: $sA vs $nB: $sB';
           }
+          
+          statusNote = pointsData['status_note']?.toString() ?? '';
+
+          // Extract Players from points API
+          final ta = pointsData['points']?['teama']?['playing11'] as List? ?? [];
+          final tb = pointsData['points']?['teamb']?['playing11'] as List? ?? [];
+
+          for (var p in [...ta, ...tb]) {
+            if (p is Map) {
+              final pid = p['pid']?.toString() ?? '';
+              if (pid.isNotEmpty) {
+                pointsMap[pid] = p['point'];
+                namesMap[pid] = p['name']?.toString() ?? '';
+                rolesMap[pid] = p['role']?.toString().toUpperCase() ?? '';
+              }
+            }
+          }
+
+          // Supplement from Squad API
+          final squadPlayers = squadData['players'] as List? ?? [];
+          for (var p in squadPlayers) {
+            if (p is Map) {
+              final pid = p['pid']?.toString() ?? p['player_id']?.toString() ?? '';
+              if (pid.isNotEmpty) {
+                final name = p['name']?.toString() ?? p['title']?.toString() ?? '';
+                if (name.isNotEmpty && (!namesMap.containsKey(pid) || namesMap[pid]!.isEmpty)) {
+                  namesMap[pid] = name;
+                }
+                if (!rolesMap.containsKey(pid) || rolesMap[pid]!.isEmpty) {
+                  rolesMap[pid] = p['role']?.toString().toUpperCase() ?? p['playing_role']?.toString().toUpperCase() ?? '';
+                }
+              }
+            }
+          }
+        } catch (e) {
+          print('DEBUG: TeamPreview - Error fetching match points: $e');
         }
       }
-
-      // Supplement from Squad API
-      final squadPlayers = squadData['players'] as List? ?? [];
-      for (var p in squadPlayers) {
-        if (p is Map) {
-          final pid = p['pid']?.toString() ?? p['player_id']?.toString() ?? '';
+      
+      // Extract players from team data (this should have all 11 players)
+      List<dynamic> teamPlayers = [];
+      print('DEBUG: TeamPreview - Extracting players from teamData...');
+      print('DEBUG: TeamPreview - teamData containsKey players: ${teamData.containsKey('players')}');
+      print('DEBUG: TeamPreview - teamData containsKey team: ${teamData.containsKey('team')}');
+      
+      if (teamData.containsKey('players') && teamData['players'] is List) {
+        teamPlayers = teamData['players'] as List<dynamic>;
+        print('DEBUG: TeamPreview - Found players in teamData[players]: ${teamPlayers.length}');
+      } else if (teamData.containsKey('team') && teamData['team'] is Map) {
+        final team = teamData['team'] as Map<String, dynamic>;
+        print('DEBUG: TeamPreview - Found team object, keys: ${team.keys}');
+        if (team.containsKey('players') && team['players'] is List) {
+          teamPlayers = team['players'] as List<dynamic>;
+          print('DEBUG: TeamPreview - Found players in teamData[team][players]: ${teamPlayers.length}');
+        }
+      }
+      
+      // If no players from API, use widget team data as fallback
+      if (teamPlayers.isEmpty) {
+        print('DEBUG: TeamPreview - No players from API, using widget.team fallback');
+        final widgetPlayers = widget.team['players'] as List? ?? [];
+        print('DEBUG: TeamPreview - Widget team players count: ${widgetPlayers.length}');
+        print('DEBUG: TeamPreview - Widget team players data: $widgetPlayers');
+        teamPlayers = widgetPlayers;
+      }
+      
+      print('DEBUG: TeamPreview - FINAL player count: ${teamPlayers.length}');
+      
+      // Update player info from team data
+      for (var p in teamPlayers) {
+        if (p is Map<String, dynamic>) {
+          final pid = p['id']?.toString() ?? p['player_id']?.toString() ?? p['pid']?.toString() ?? '';
           if (pid.isNotEmpty) {
             final name = p['name']?.toString() ?? p['title']?.toString() ?? '';
+            final role = p['role']?.toString() ?? p['playing_role']?.toString() ?? '';
+            final points = p['points']?.toString() ?? p['point']?.toString() ?? '0';
+            
             if (name.isNotEmpty && (!namesMap.containsKey(pid) || namesMap[pid]!.isEmpty)) {
               namesMap[pid] = name;
             }
-            if (!rolesMap.containsKey(pid) || rolesMap[pid]!.isEmpty) {
-              rolesMap[pid] = p['role']?.toString().toUpperCase() ?? p['playing_role']?.toString().toUpperCase() ?? '';
+            if (role.isNotEmpty && (!rolesMap.containsKey(pid) || rolesMap[pid]!.isEmpty)) {
+              rolesMap[pid] = role.toUpperCase();
+            }
+            if (!pointsMap.containsKey(pid)) {
+              pointsMap[pid] = points;
             }
           }
         }
@@ -103,11 +183,13 @@ class _EsTeamPreviewScreenState extends State<EsTeamPreviewScreen> with SingleTi
 
       // Calculate Total with Captain/VC multipliers
       double teamTotal = 0;
-      final teamPlayers = widget.team['players'] as List? ?? [];
       final capId = widget.team['captain_id']?.toString();
       final vcId = widget.team['vice_captain_id']?.toString();
       
-      for (var p in teamPlayers) {
+      // Use players from team data if available, otherwise fall back to widget team
+      final playersToUse = teamPlayers.isNotEmpty ? teamPlayers : (widget.team['players'] as List? ?? []);
+      
+      for (var p in playersToUse) {
         final pid = (p is Map ? (p['id'] ?? p['player_id'] ?? p['pid']) : p).toString();
         final rawVal = pointsMap[pid];
         double basePts = double.tryParse(rawVal?.toString() ?? '0') ?? 0;
@@ -118,6 +200,7 @@ class _EsTeamPreviewScreenState extends State<EsTeamPreviewScreen> with SingleTi
 
       if (mounted) {
         setState(() {
+          _teamPlayers = teamPlayers.isNotEmpty ? teamPlayers : (widget.team['players'] as List? ?? []);
           _playerPoints = pointsMap;
           _playerNamesMap = namesMap;
           _playerRolesMap = rolesMap;
@@ -128,14 +211,22 @@ class _EsTeamPreviewScreenState extends State<EsTeamPreviewScreen> with SingleTi
         });
       }
     } catch (e) {
+      print('DEBUG: TeamPreview - Error in _fetchPoints: $e');
       if (mounted) setState(() => _isLoadingPoints = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final players = widget.team['players'] as List? ?? [];
+    // Use _teamPlayers from API to ensure all 11 players are shown
+    final players = _teamPlayers.isNotEmpty ? _teamPlayers : (widget.team['players'] as List? ?? []);
     final teamName = widget.team['name']?.toString() ?? 'My Team';
+
+    print('DEBUG: TeamPreview - BUILD METHOD STARTED');
+    print('DEBUG: TeamPreview - _teamPlayers length: ${_teamPlayers.length}');
+    print('DEBUG: TeamPreview - widget.team[players] length: ${(widget.team['players'] as List? ?? []).length}');
+    print('DEBUG: TeamPreview - Final players length: ${players.length}');
+    print('DEBUG: TeamPreview - Players data: $players');
 
     final wks = players.where((p) => _getRole(p) == 'WK').toList();
     final bats = players.where((p) => _getRole(p) == 'BAT').toList();

@@ -1,9 +1,25 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fantasy_crick/main.dart';
 
 class ApiClient {
   static const String baseUrl = 'http://173.208.188.172:8080/api/v1';
+
+  static void _handleUnauthorized() {
+    // Clear token and navigate to login
+    clearToken().then((_) {
+      // Use navigatorKey to navigate to login from anywhere
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/signin',
+          (route) => false,
+        );
+      }
+    });
+  }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -94,6 +110,10 @@ class ApiClient {
         return jsonDecode(response.body);
       }
       return null;
+    } else if (response.statusCode == 401) {
+      // Token expired or invalid - trigger automatic logout
+      _handleUnauthorized();
+      throw Exception('Session expired. Please login again.');
     } else {
       String errorMessage = 'Request failed (${response.statusCode})';
       try {

@@ -621,7 +621,11 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                   unselectedLabelColor: Colors.white54,
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 12,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 11,
                   ),
                   tabs: const [
                     Tab(text: 'PLAY & WIN'),
@@ -1431,20 +1435,27 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Text(
-                      'CRR: ${live['runrate'] ?? '0.00'}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (live['required_runrate'] != null) ...[
-                      const Spacer(),
-                      Text(
-                        'RRR: ${live['required_runrate']}',
+                    Expanded(
+                      child: Text(
+                        'CRR: ${live['runrate'] ?? '0.00'}',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (live['required_runrate'] != null) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'RRR: ${live['required_runrate']}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
                         ),
                       ),
                     ],
@@ -1750,12 +1761,17 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Text(
-                  '$scores${overs.isNotEmpty ? "  ($overs Ov)" : ""}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '$scores${overs.isNotEmpty ? "  ($overs Ov)" : ""}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -2158,44 +2174,49 @@ class _EsMatchDetailScreenState extends State<EsMatchDetailScreen>
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _teamDetailBlock(_teamA, false),
+                    Expanded(
+                      child: _teamDetailBlock(_teamA, false),
+                    ),
+                    const SizedBox(width: 8),
                     Column(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: 8,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black26,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.white10),
                           ),
                           child: Text(
                             _isLive ? 'LIVE' : 'STARTS IN',
                             style: const TextStyle(
                               color: Colors.white54,
-                              fontSize: 9,
+                              fontSize: 8,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 0.5,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           countdown,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
                           ),
                         ),
                       ],
                     ),
-                    _teamDetailBlock(_teamB, true),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _teamDetailBlock(_teamB, true),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

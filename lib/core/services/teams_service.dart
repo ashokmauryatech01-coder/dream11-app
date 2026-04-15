@@ -326,26 +326,114 @@ class TeamsService {
     }
   }
 
-  /// Delete team: DELETE /teams/delete-contest-teamac
+  /// Delete team: POST /teams/delete-contest-team
   Future<Map<String, dynamic>> deleteTeam({required int teamId}) async {
     try {
       final body = {'teamId': teamId};
       print(
-        'DEBUG: TeamsService.deleteTeam - DELETE /teams/delete-contest-teamac',
+        'DEBUG: TeamsService.deleteTeam - POST /teams/delete-contest-team',
       );
       print('DEBUG: TeamsService.deleteTeam - body: $body');
-      final response = await ApiClient.delete(
-        '/teams/delete-contest-teamac',
-        body: body,
+      final response = await ApiClient.post(
+        '/teams/delete-contest-team',
+        body,
       );
       print('DEBUG: TeamsService.deleteTeam - Response: $response');
-      if (response != null && response['success'] != false) {
+      if (response != null && response['success'] == true) {
         return response;
       }
       throw Exception(response?['message'] ?? 'Failed to delete team.');
     } catch (e) {
       print('DEBUG: TeamsService.deleteTeam - ERROR: $e');
       rethrow;
+    }
+  }
+
+  /// Get all teams via {{base_url}}/api/v1/teams
+  static Future<List<Map<String, dynamic>>> getAllUserTeams() async {
+    try {
+      final userId = await UserProfileService.getSavedUserId();
+      if (userId == 0) {
+        print('DEBUG: TeamsService.getAllUserTeams - No userId found, returning empty');
+        return [];
+      }
+
+      final endpoint = '/teams?page=1&limit=50';
+      print('DEBUG: TeamsService.getAllUserTeams - GET $endpoint');
+      
+      final response = await ApiClient.get(endpoint);
+      print('DEBUG: TeamsService.getAllUserTeams - Response: $response');
+
+      if (response == null || response['success'] != true) {
+        return [];
+      }
+
+      final data = response['data'];
+      List<dynamic> teamsList = [];
+      
+      if (data is List) {
+        teamsList = data;
+      } else if (data is Map) {
+        if (data.containsKey('teams') && data['teams'] is List) {
+          teamsList = data['teams'];
+        } else if (data.containsKey('items') && data['items'] is List) {
+          teamsList = data['items'];
+        } else if (data.containsKey('list') && data['list'] is List) {
+          teamsList = data['list'];
+        }
+      }
+
+      final results = <Map<String, dynamic>>[];
+      for (final t in teamsList) {
+        if (t is Map<String, dynamic>) {
+          results.add(t);
+        }
+      }
+
+      print('DEBUG: TeamsService.getAllUserTeams - Found ${results.length} teams');
+      return results;
+    } catch (e) {
+      print('DEBUG: TeamsService.getAllUserTeams - EXCEPTION: $e');
+      return [];
+    }
+  }
+
+  /// Get team players via {{base_url}}/api/v1/teams/show-contest-teams?teamId=535&page=1&user_id=26
+  static Future<Map<String, dynamic>> getTeamPlayers({
+    required int teamId,
+    required int userId,
+    int page = 1,
+  }) async {
+    try {
+      final endpoint = '/teams/show-contest-teams?teamId=$teamId&page=$page&user_id=$userId';
+      print('DEBUG: TeamsService.getTeamPlayers - GET $endpoint');
+      print('DEBUG: TeamsService.getTeamPlayers - Request params: teamId=$teamId, userId=$userId, page=$page');
+      
+      final response = await ApiClient.get(endpoint);
+      print('DEBUG: TeamsService.getTeamPlayers - RAW JSON Response: $response');
+      print('DEBUG: TeamsService.getTeamPlayers - Response Type: ${response.runtimeType}');
+
+      if (response != null) {
+        print('DEBUG: TeamsService.getTeamPlayers - Response keys: ${response.keys}');
+        
+        if (response['success'] == true) {
+          final data = response['data'] ?? response;
+          print('DEBUG: TeamsService.getTeamPlayers - SUCCESS - Data keys: ${data is Map ? data.keys : "N/A"}');
+          return data is Map<String, dynamic> ? data : {};
+        } else {
+          print('DEBUG: TeamsService.getTeamPlayers - API returned success=false: ${response['message']}');
+          // Return empty map but don't throw - let caller handle missing data
+          return {};
+        }
+      }
+      
+      print('DEBUG: TeamsService.getTeamPlayers - Response is null');
+      return {};
+    } catch (e) {
+      print('DEBUG: TeamsService.getTeamPlayers - EXCEPTION: $e');
+      print('DEBUG: TeamsService.getTeamPlayers - Stack trace: ${StackTrace.current}');
+      // Return empty map on error instead of throwing
+      return {};
     }
   }
 
