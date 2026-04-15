@@ -1,4 +1,4 @@
-package com.example.fantasy_crick
+package com.seggaportz.con
 
 import io.flutter.embedding.android.FlutterActivity
 

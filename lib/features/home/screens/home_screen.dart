@@ -209,19 +209,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      actions: [
-        // Teams button
-        IconButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/teams');
-          },
-          icon: const Icon(
-            Icons.group,
-            color: Colors.white,
-          ),
-          tooltip: 'My Teams',
-        ),
-      ],
     );
   }
 
@@ -1851,6 +1838,9 @@ class _MatchListCard extends StatelessWidget {
     final teamB = data['teamb']?['short_name'] ?? 'T2';
     final teamALogo = data['teama']?['logo_url']?.toString();
     final teamBLogo = data['teamb']?['logo_url']?.toString();
+    final matchNum = data['match_number']?.toString() ?? '';
+    final matchDate = data['date_start']?.toString() ?? '';
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1858,39 +1848,94 @@ class _MatchListCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black12),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
+            // Match Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _teamIcon(teamALogo, teamA),
-                Column(
-                  children: [
-                    Text(
-                      isLive ? 'LIVE' : _formatTime(data['date_start']),
-                      style: TextStyle(
-                        color: isLive
-                            ? const Color(0xFF4CAF50)
-                            : const Color(0xFF007A8A),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Text(
-                      'VS',
-                      style: TextStyle(color: Colors.grey, fontSize: 10),
-                    ),
-                  ],
+                Text(
+                  matchNum.isNotEmpty ? 'Match $matchNum' : '',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                _teamIcon(teamBLogo, teamB),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isLive 
+                        ? const Color(0xFF4CAF50).withOpacity(0.1)
+                        : const Color(0xFF007A8A).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isLive ? '● LIVE' : 'Upcoming',
+                    style: TextStyle(
+                      color: isLive
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFF007A8A),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              data['competition']?['title'] ?? 'Series',
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            const SizedBox(height: 16),
+            // Teams Row
+            Row(
+              children: [
+                // Team A
+                Expanded(
+                  child: _teamColumn(teamALogo, teamA, true),
+                ),
+                // VS
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'VS',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDateTime(matchDate),
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Team B
+                Expanded(
+                  child: _teamColumn(teamBLogo, teamB, false),
+                ),
+              ],
             ),
           ],
         ),
@@ -1898,89 +1943,112 @@ class _MatchListCard extends StatelessWidget {
     );
   }
 
-  Widget _teamIcon(String? url, String short) {
+  Widget _teamColumn(String? url, String short, bool isLeft) {
     return Column(
+      crossAxisAlignment: isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.black.withOpacity(0.08)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+        Row(
+          mainAxisAlignment: isLeft ? MainAxisAlignment.start : MainAxisAlignment.end,
+          children: [
+            if (!isLeft) ...[
+              Text(
+                short,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Color(0xFF1B2430),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: (url != null && url.isNotEmpty)
+                    ? CachedNetworkImage(
+                        imageUrl: url,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Center(
+                          child: Text(
+                            short.isNotEmpty ? short[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Center(
+                          child: Text(
+                            short.isNotEmpty ? short[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          short.isNotEmpty ? short[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            if (isLeft) ...[
+              const SizedBox(width: 12),
+              Text(
+                short,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Color(0xFF1B2430),
+                ),
               ),
             ],
-          ),
-          child: ClipOval(
-            child: (url != null && url.isNotEmpty)
-                ? CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Center(
-                      child: Text(
-                        short.isNotEmpty ? short[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Center(
-                      child: Text(
-                        short.isNotEmpty ? short[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  )
-                : Center(
-                    child: Text(
-                      short.isNotEmpty ? short[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          short,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: Color(0xFF1B2430),
-          ),
+          ],
         ),
       ],
     );
   }
 
-  String _formatTime(dynamic dateStart) {
-    if (dateStart == null) return 'TBD';
-    String str = dateStart.toString();
-    if (str.isEmpty) return 'TBD';
+  String _formatDateTime(String dateStr) {
+    if (dateStr.isEmpty) return 'TBD';
     try {
-      if (str.contains(' ')) {
-        final timePart = str.split(' ').last;
-        if (timePart.length >= 5) return timePart.substring(0, 5);
-      } else if (str.contains('T')) {
-        final timePart = str.split('T').last;
-        if (timePart.length >= 5) return timePart.substring(0, 5);
-      }
-    } catch (_) {}
-    return str.length > 10 ? str.substring(11, 16) : '07:30 PM';
+      final date = DateTime.parse(dateStr);
+      final day = date.day.toString().padLeft(2, '0');
+      final month = _getMonthAbbrev(date.month);
+      final hour = date.hour.toString().padLeft(2, '0');
+      final minute = date.minute.toString().padLeft(2, '0');
+      return '$day $month, $hour:$minute';
+    } catch (_) {
+      return 'TBD';
+    }
+  }
+
+  String _getMonthAbbrev(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
   }
 }
 
